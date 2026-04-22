@@ -18,18 +18,32 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseAdminClient();
+  const email = parsed.data.email.trim().toLowerCase();
   const { data: user, error } = await supabase
     .from("users")
     .select("id, email, password_hash, is_admin, is_approved")
-    .eq("email", parsed.data.email.toLowerCase())
+    .eq("email", email)
     .maybeSingle();
 
-  if (error || !user || !user.password_hash || !user.is_admin || !user.is_approved) {
-    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+  if (error) {
+    console.error("Login lookup failed:", error);
+    return NextResponse.json({ error: "Unable to read admin user record." }, { status: 500 });
+  }
+
+  if (!user) {
+    return NextResponse.json({ error: "No user found for that email." }, { status: 401 });
+  }
+
+  if (!user.password_hash) {
+    return NextResponse.json({ error: "User row is missing a password hash." }, { status: 500 });
+  }
+
+  if (!user.is_admin || !user.is_approved) {
+    return NextResponse.json({ error: "User is not approved as an admin." }, { status: 401 });
   }
 
   if (!verifyPasswordHash(parsed.data.password, user.password_hash)) {
-    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    return NextResponse.json({ error: "Password does not match the stored hash." }, { status: 401 });
   }
 
   const token = createSessionToken(
