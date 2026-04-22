@@ -15,6 +15,7 @@
 - `app/admin/admin-client.tsx`: client-side admin UI for login, upload, and preview
 - `app/api/auth/*`: custom email/password session routes
 - `app/api/admin/cats/route.ts`: admin-only cat upload endpoint
+- `app/api/admin/cats/[id]/route.ts`: admin-only cat delete endpoint
 - `app/api/cats/route.ts`: public cat feed for the site and admin preview
 - `app/layout.tsx`: metadata, icons, analytics, root HTML shell
 - `app/globals.css`: CSS variables and Tailwind base layer
@@ -50,6 +51,7 @@ The nav buttons call `navigate()` and close the mobile drawer.
 - The Supabase client is configured to use the `meankatcafe` schema by default.
 - Approved admins get a signed session cookie.
 - Admin uploads save the image file to Supabase Storage and insert a row into `cats`.
+- Admins can remove uploaded cats from the preview/dashboard, which deletes the row and its storage asset.
 - Public cats data comes from `app/api/cats`, then the client merges it with the resident defaults.
 - For hosted Supabase, expose `meankatcafe` from the Dashboard API settings and apply the schema grants in `references/supabase-schema.md`; do not use `ALTER ROLE authenticator` in the SQL editor.
 

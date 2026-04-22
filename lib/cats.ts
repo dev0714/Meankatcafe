@@ -57,6 +57,10 @@ export function categoryLabel(category: CatCategory) {
   return category === "resident" ? "Resident" : "Other";
 }
 
+export function isUploadedCat(cat: Pick<CatCard, "createdAt">) {
+  return Boolean(cat.createdAt);
+}
+
 export function normalizeCatImages(images: string[] | undefined, fallback: string) {
   if (images && images.length > 0) {
     return images;

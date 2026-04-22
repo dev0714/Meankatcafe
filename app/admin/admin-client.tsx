@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, mergeCatsByName, type CatCard, categoryLabel } from "@/lib/cats";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, categoryLabel } from "@/lib/cats";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -42,6 +42,7 @@ export default function AdminClient() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
   const [saving, setSaving] = useState(false);
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -143,6 +144,39 @@ export default function AdminClient() {
     setUpload(emptyUpload);
     setSelectedImage(null);
     setMessage("Cat uploaded successfully.");
+  }
+
+  async function handleDeleteCat(catId: string) {
+    const confirmed = window.confirm("Remove this cat from MeanKat?");
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCatId(catId);
+    setMessage("");
+
+    const response = await fetch(`/api/admin/cats/${catId}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setMessage(data.error ?? "Delete failed.");
+      setDeletingCatId(null);
+      return;
+    }
+
+    const refreshResponse = await fetch("/api/cats");
+    if (refreshResponse.ok) {
+      const refreshed = (await refreshResponse.json()) as CatCard[];
+      setCats(mergeCatsByName(DEFAULT_CATS, refreshed));
+    } else {
+      setCats((current) => current.filter((cat) => cat.id !== catId));
+    }
+
+    setMessage(data.warning ?? "Cat removed successfully.");
+    setDeletingCatId(null);
   }
 
   const groupedCats = {
@@ -291,6 +325,17 @@ export default function AdminClient() {
                             ) : null}
                             <div style={{ fontWeight: 800 }}>{cat.name}</div>
                             <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.6 }}>{cat.description}</div>
+                            {isUploadedCat(cat) ? (
+                              <button
+                                className="mk-outline"
+                                type="button"
+                                onClick={() => handleDeleteCat(cat.id)}
+                                disabled={deletingCatId === cat.id}
+                                style={{ marginTop: 10, padding: "8px 14px" }}
+                              >
+                                {deletingCatId === cat.id ? "Removing..." : "Remove cat"}
+                              </button>
+                            ) : null}
                           </div>
                         )) : <div style={{ color: BRAND.textLight, fontSize: 14 }}>No cats in this group yet.</div>}
                       </div>
