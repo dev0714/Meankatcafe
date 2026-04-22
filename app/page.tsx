@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -79,12 +81,6 @@ const menuSections = [
   ]},
 ];
 
-const cats = [
-  { name: "Riley", mood: "Gently present", breed: "Ginger Longhair", emoji: "😇", bio: "The heart of MeanKat. Calm, nurturing, and eternally patient. The café's unofficial caretaker and gentle anchor. Find him downstairs near reception, offering comfort just by being there.", images: ["/riley-casual.jpg", "/riley-staff.jpg"] },
-  { name: "Smokey", mood: "Royally demanding", breed: "Silver Tabby", emoji: "👑", bio: "The resident queen with the loudest purr. Pure softness wrapped in silver fur with a sprinkle of sass. Extremely loving with people but prefers her peaceful space from other cats. You'll find her perched high on the cat villa, watching from her royal lookout.", images: ["/smokey.jpg"] },
-  { name: "Janice", mood: "Fiercely protective", breed: "Oriental Tabby", emoji: "🦁", bio: "Petite in size but big in spirit — the devoted protector of her little family. While she keeps a watchful eye on her babies, she's incredibly sweet with people. Easily recognized by her tipped ear and adorably round belly. A tiny body with a heart twice her size.", images: ["/janice-1.jpg", "/janice-2.jpg"] },
-];
-
 const menuGroupMap = {
   "Coffee & Hot": ["Coffee", "Lattes", "Mochas", "Hot Chocolate", "Matcha — Hot"],
   "Cold Drinks": ["Matcha — Cold", "Crushers", "Frappes", "Milkshakes"],
@@ -97,15 +93,34 @@ export default function MeanKatCafe() {
   const [menuFilter, setMenuFilter] = useState("All");
   const [form, setForm] = useState({ name: "", email: "", msg: "" });
   const [submitted, setSubmitted] = useState(false);
-  const [selectedCatImage, setSelectedCatImage] = useState({});
+  const [selectedCatImage, setSelectedCatImage] = useState<Record<string, number>>({});
+  const [catEntries, setCatEntries] = useState<CatCard[]>(DEFAULT_CATS);
+  const [catFilter, setCatFilter] = useState<"All" | "resident" | "other">("All");
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
+
+  useEffect(() => {
+    const loadCats = async () => {
+      const response = await fetch("/api/cats");
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as CatCard[];
+      setCatEntries((current) => mergeCatsByName(current, data));
+    };
+
+    loadCats();
+  }, []);
 
   const navigate = (p) => { setPage(p); setMobileOpen(false); };
 
   const visibleSections = menuFilter === "All"
     ? menuSections
     : menuSections.filter(s => menuGroupMap[menuFilter]?.includes(s.title));
+  const visibleCats = catFilter === "All"
+    ? catEntries
+    : catEntries.filter(cat => cat.category === catFilter);
 
   return (
     <div style={{ background: BRAND.cream, minHeight: "100vh", fontFamily: "'Nunito', sans-serif", color: BRAND.text }}>
@@ -155,6 +170,7 @@ export default function MeanKatCafe() {
           </div>
           <div className="d-nav" style={{ display: "flex", gap: 28 }}>
             {navLinks.map(l => <button key={l} className={`mk-nav ${page === l ? "on" : ""}`} onClick={() => navigate(l)}>{l}</button>)}
+            <Link href="/admin" className="mk-nav" style={{ textDecoration: "none" }}>Admin</Link>
           </div>
           <button className="m-btn" onClick={() => setMobileOpen(!mobileOpen)} style={{ display: "none", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: BRAND.text }}>
             {mobileOpen ? "✕" : "☰"}
@@ -163,6 +179,7 @@ export default function MeanKatCafe() {
         {mobileOpen && (
           <div className="m-panel" style={{ borderTop: "2px solid #f0d84a", padding: "20px clamp(16px, 5vw, 40px)", display: "flex", flexDirection: "column", gap: 18, background: "rgba(240,216,74,0.05)" }}>
             {navLinks.map(l => <button key={l} className={`mk-nav ${page === l ? "on" : ""}`} onClick={() => navigate(l)}>{l}</button>)}
+            <Link href="/admin" className="mk-nav" style={{ textDecoration: "none" }}>Admin</Link>
           </div>
         )}
       </nav>
@@ -299,17 +316,28 @@ export default function MeanKatCafe() {
             <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
               <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                The residents
+                The cats
               </div>
               <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: 14 }}>
-                Meet the <span style={{ color: BRAND.purple }}>Staff.</span>
+                Meet the <span style={{ color: BRAND.purple }}>Residents.</span>
               </h1>
               <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", maxWidth: 460, lineHeight: 1.7 }}>
-                They run this place. We just make the coffee. All are rescues living their absolute best (most unimpressed) lives.
+                They run this place. We just make the coffee. Use the filters below to switch between resident cats and other cats.
               </p>
             </div>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+              {["All", ...CAT_CATEGORY_OPTIONS.map((option) => option.value)].map((value) => (
+                <button
+                  key={value}
+                  className={`mk-filter ${catFilter === value ? "on" : ""}`}
+                  onClick={() => setCatFilter(value as "All" | "resident" | "other")}
+                >
+                  {value === "All" ? "All Cats" : CAT_CATEGORY_OPTIONS.find((option) => option.value === value)?.label}
+                </button>
+              ))}
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "clamp(16px, 3vw, 22px)", marginBottom: 44 }}>
-              {cats.map(cat => {
+              {visibleCats.map(cat => {
                 const currentImageIndex = selectedCatImage[cat.name] || 0;
                 const displayImage = cat.images ? cat.images[currentImageIndex] : null;
                 return (
@@ -324,11 +352,16 @@ export default function MeanKatCafe() {
                     </div>
                   )}
                   <div style={{ fontWeight: 900, fontSize: 22, background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 3 }}>{cat.name}</div>
-                  <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 8 }}>{cat.breed}</div>
-                  <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginBottom: 14, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
-                    Currently: {cat.mood}
+                  <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 8 }}>
+                    {cat.breed || categoryLabel(cat.category)}
                   </div>
-                  <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{cat.bio}</p>
+                  <div style={{ display: "inline-flex", marginBottom: 10, padding: "6px 12px", borderRadius: 999, background: cat.category === "resident" ? "rgba(155,142,196,0.12)" : "rgba(240,216,74,0.2)", color: BRAND.text, fontSize: 11, fontWeight: 700 }}>
+                    {cat.category === "resident" ? "Resident cat" : "Other cat"}
+                  </div>
+                  <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginBottom: 14, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
+                    Currently: {cat.mood || "Unknown mood"}
+                  </div>
+                  <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{cat.description}</p>
                   {cat.images && cat.images.length > 1 && (
                     <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                       {cat.images.map((img, i) => (
@@ -347,9 +380,9 @@ export default function MeanKatCafe() {
               })}
             </div>
             <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, borderRadius: 20, padding: "36px 40px", color: "white", textAlign: "center", boxShadow: "0 12px 40px rgba(155,142,196,0.2)" }}>
-              <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 10 }}>🐾 All our cats are rescues</div>
+              <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 10 }}>🐾 Resident cats and visitors welcome</div>
               <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.8, maxWidth: 580, margin: "0 auto" }}>
-                Every cat at MeanKat is fully vaccinated, vet-checked, and given the best care. Please don't disturb sleeping cats, and never force an interaction — they'll come to you if they feel like it. They almost certainly won't.
+                Resident cats are the house favourites. Other cats can be uploaded by approved admins and still appear on the public site. Please don't disturb sleeping cats, and never force an interaction — they'll come to you if they feel like it. They almost certainly won't.
               </div>
             </div>
           </div>

@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'MeanKat Cafe',
+  description: 'MeanKat Cafe website with public sections, admin login, and Supabase-backed cat uploads.',
   generator: 'v0.app',
   icons: {
     icon: [

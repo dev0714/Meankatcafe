@@ -11,10 +11,17 @@
 ## Main Files
 
 - `app/page.tsx`: full single-page site, section switching, content arrays, inline styling
+- `app/admin/page.tsx`: admin login and upload entry point
+- `app/admin/admin-client.tsx`: client-side admin UI for login, upload, and preview
+- `app/api/auth/*`: custom email/password session routes
+- `app/api/admin/cats/route.ts`: admin-only cat upload endpoint
+- `app/api/cats/route.ts`: public cat feed for the site and admin preview
 - `app/layout.tsx`: metadata, icons, analytics, root HTML shell
 - `app/globals.css`: CSS variables and Tailwind base layer
 - `public/`: logos, cat photos, founder image, menu images, icons
 - `scripts/remove-white-bg.mjs`: image-processing utility for `public/logo.png`
+- `references/supabase-schema.md`: table and storage expectations for Supabase
+- `.env.example`: required environment variables for the admin flow
 
 ## Page Structure
 
@@ -36,6 +43,13 @@ The nav buttons call `navigate()` and close the mobile drawer.
 - `menuGroupMap`: filters for the menu section
 - `cats`: featured cat profiles and image sets
 - `BRAND`: site palette and core brand colors
+
+## Supabase Flow
+
+- Login checks the local `users` table with hashed passwords.
+- Approved admins get a signed session cookie.
+- Admin uploads save the image file to Supabase Storage and insert a row into `cats`.
+- Public cats data comes from `app/api/cats`, then the client merges it with the resident defaults.
 
 ## Key Behaviors
 
@@ -62,3 +76,4 @@ The nav buttons call `navigate()` and close the mobile drawer.
 - Preserve the purple/cream/gold palette unless the user asks for a redesign.
 - If you add a new section or route, update both `navLinks` and this map.
 - If you move content out of `app/page.tsx`, keep the source-of-truth data documented here.
+- If you change the auth or upload model, update `references/supabase-schema.md` and `.env.example` together.

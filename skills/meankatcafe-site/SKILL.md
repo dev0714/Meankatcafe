@@ -7,11 +7,11 @@ description: Project-specific guide for the MeanKat Cafe Next.js site in this fo
 
 ## Overview
 
-Use this skill for any work on the MeanKat Cafe website under `Websites/Meankatcafe`. The app is a mostly client-rendered Next.js 16 site where one page in `app/page.tsx` swaps between sections with local React state. Most content, layout, and styling live in that file, so treat it as the source of truth.
+Use this skill for any work on the MeanKat Cafe website under `Websites/Meankatcafe`. The app is a mostly client-rendered Next.js 16 site where one page in `app/page.tsx` swaps between sections with local React state. Most content, layout, and styling live in that file, and the new admin flow lives beside it in `app/admin/` plus `app/api/`.
 
 ## First Look
 
-Read `references/site-map.md` before changing the site. It summarizes the stack, sections, assets, and editing rules.
+Read `references/site-map.md` before changing the site. It summarizes the stack, sections, assets, editing rules, and the Supabase-backed admin flow.
 
 ## Working Rules
 
@@ -20,6 +20,9 @@ Read `references/site-map.md` before changing the site. It summarizes the stack,
 - Update content in the source arrays and objects in `app/page.tsx` first, then adjust the JSX if needed.
 - Keep static assets in `public/` and reuse existing cat, logo, founder, and menu images when possible.
 - Treat the contact form as client-side only; it sets local state and does not submit to a backend.
+- The admin login uses the local `users` table plus a signed session cookie; it does not use Supabase Auth.
+- Cat uploads write image files to the Supabase Storage bucket and save the bucket path in the `cats` table.
+- Public cats are merged from the built-in resident defaults and the database-backed list returned by `app/api/cats`.
 - `app/globals.css` is mostly base theme plumbing. Most visual styling lives inline in `app/page.tsx`.
 - `scripts/remove-white-bg.mjs` rewrites `public/logo.png`; run it only when intentionally regenerating that asset.
 
@@ -27,6 +30,7 @@ Read `references/site-map.md` before changing the site. It summarizes the stack,
 
 - Menu updates: edit `menuSections` and `menuGroupMap`.
 - Cat updates: edit `cats` and the matching `public/` image files.
+- Admin/auth updates: edit `app/admin/`, `app/api/auth/`, `app/api/admin/cats/`, and `references/supabase-schema.md`.
 - Navigation or section copy: edit `navLinks` and the section JSX in `app/page.tsx`.
 - Site metadata or icons: edit `app/layout.tsx`.
 - Shared CSS tokens and Tailwind base setup: edit `app/globals.css`.
