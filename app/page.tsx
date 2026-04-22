@@ -87,34 +87,6 @@ const menuGroupMap = {
   "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
 };
 
-const HERO_PAW_PRINTS = [
-  { top: "9%", left: "12%", size: 16, rotate: 10, delay: "0s", opacity: 0.08 },
-  { top: "15%", left: "28%", size: 20, rotate: -15, delay: "0.3s", opacity: 0.09 },
-  { top: "11%", left: "59%", size: 24, rotate: -18, delay: "0s", opacity: 0.11 },
-  { top: "22%", left: "7%", size: 18, rotate: 7, delay: "0.6s", opacity: 0.08 },
-  { top: "16%", left: "74%", size: 18, rotate: 14, delay: "0.4s", opacity: 0.09 },
-  { top: "21%", left: "88%", size: 20, rotate: -10, delay: "0.8s", opacity: 0.09 },
-  { top: "31%", left: "18%", size: 22, rotate: -8, delay: "1s", opacity: 0.09 },
-  { top: "28%", left: "66%", size: 30, rotate: 7, delay: "1.2s", opacity: 0.11 },
-  { top: "34%", left: "82%", size: 16, rotate: 20, delay: "1.6s", opacity: 0.08 },
-  { top: "41%", left: "10%", size: 17, rotate: 12, delay: "1.8s", opacity: 0.08 },
-  { top: "39%", left: "54%", size: 22, rotate: -6, delay: "2s", opacity: 0.1 },
-  { top: "45%", left: "73%", size: 28, rotate: -16, delay: "2.4s", opacity: 0.1 },
-  { top: "51%", left: "90%", size: 18, rotate: 11, delay: "2.8s", opacity: 0.08 },
-  { top: "54%", left: "32%", size: 20, rotate: -4, delay: "3s", opacity: 0.09 },
-  { top: "57%", left: "61%", size: 20, rotate: 4, delay: "3.2s", opacity: 0.09 },
-  { top: "62%", left: "5%", size: 16, rotate: 18, delay: "3.4s", opacity: 0.07 },
-  { top: "63%", left: "79%", size: 24, rotate: -8, delay: "3.6s", opacity: 0.1 },
-  { top: "69%", left: "86%", size: 16, rotate: 17, delay: "4s", opacity: 0.08 },
-  { top: "73%", left: "23%", size: 18, rotate: -10, delay: "4.2s", opacity: 0.08 },
-  { top: "74%", left: "68%", size: 22, rotate: -13, delay: "4.4s", opacity: 0.1 },
-  { top: "78%", left: "57%", size: 18, rotate: 9, delay: "4.8s", opacity: 0.08 },
-  { top: "83%", left: "15%", size: 16, rotate: 14, delay: "5s", opacity: 0.07 },
-  { top: "82%", left: "84%", size: 24, rotate: -5, delay: "5.2s", opacity: 0.09 },
-  { top: "7%", left: "84%", size: 14, rotate: 13, delay: "5.6s", opacity: 0.07 },
-  { top: "47%", left: "93%", size: 14, rotate: -12, delay: "6s", opacity: 0.07 },
-];
-
 export default function MeanKatCafe() {
   const [page, setPage] = useState("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -231,30 +203,21 @@ export default function MeanKatCafe() {
             {/* Logo Background */}
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
-            {/* Paw print accents */}
-            {HERO_PAW_PRINTS.map((paw, index) => (
-              <div
-                key={`${paw.top}-${paw.left}-${index}`}
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  top: paw.top,
-                  left: paw.left,
-                  width: paw.size,
-                  height: paw.size,
-                  opacity: paw.opacity,
-                  pointerEvents: "none",
-                  animation: `floatSlow 7s ease-in-out infinite ${paw.delay}`,
-                  transform: `rotate(${paw.rotate}deg)`,
-                  color: BRAND.purple,
-                  mixBlendMode: "multiply",
-                }}
-              >
-                <svg viewBox="0 0 64 64" width="100%" height="100%" fill="currentColor" aria-hidden="true">
-                  <path d="M32 26c-8 0-14 6-14 13 0 9 9 15 14 15s14-6 14-15c0-7-6-13-14-13zm-19-3c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm10-10c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm18-1c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm12 11c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8z" />
-                </svg>
-              </div>
-            ))}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "url('/paw-pattern.svg')",
+                backgroundRepeat: "repeat",
+                backgroundSize: "540px 540px",
+                backgroundPosition: "center",
+                opacity: 0.28,
+                mixBlendMode: "multiply",
+                pointerEvents: "none",
+                animation: "floatSlow 9s ease-in-out infinite",
+              }}
+            />
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
