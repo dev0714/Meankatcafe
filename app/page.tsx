@@ -87,6 +87,15 @@ const menuGroupMap = {
   "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
 };
 
+const HERO_PAW_PRINTS = [
+  { top: "18%", left: "63%", size: 28, rotate: -14, delay: "0s" },
+  { top: "26%", left: "86%", size: 24, rotate: 12, delay: "0.5s" },
+  { top: "40%", left: "74%", size: 30, rotate: -8, delay: "1s" },
+  { top: "58%", left: "90%", size: 22, rotate: 10, delay: "1.5s" },
+  { top: "14%", left: "88%", size: 20, rotate: -18, delay: "2s" },
+  { top: "70%", left: "80%", size: 26, rotate: 8, delay: "2.5s" },
+];
+
 export default function MeanKatCafe() {
   const [page, setPage] = useState("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -204,15 +213,28 @@ export default function MeanKatCafe() {
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
             {/* Paw print accents */}
-            <div aria-hidden="true" style={{ position: "absolute", right: "11%", top: "28%", width: 34, height: 34, opacity: 0.12, pointerEvents: "none", animation: "floatSlow 6s ease-in-out infinite" }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.7) 0 9px, transparent 10px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px)" }} />
-            </div>
-            <div aria-hidden="true" style={{ position: "absolute", right: "5%", top: "56%", width: 30, height: 30, opacity: 0.1, pointerEvents: "none", animation: "floatSlow 7s ease-in-out infinite 0.8s" }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.75) 0 8px, transparent 9px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.75) 0 4px, transparent 5px)" }} />
-            </div>
-            <div aria-hidden="true" style={{ position: "absolute", right: "20%", top: "74%", width: 38, height: 38, opacity: 0.09, pointerEvents: "none", animation: "floatSlow 8s ease-in-out infinite 1.4s", transform: "rotate(-10deg)" }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.7) 0 10px, transparent 11px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px)" }} />
-            </div>
+            {HERO_PAW_PRINTS.map((paw, index) => (
+              <div
+                key={`${paw.top}-${paw.left}-${index}`}
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: paw.top,
+                  left: paw.left,
+                  width: paw.size,
+                  height: paw.size,
+                  opacity: 0.12,
+                  pointerEvents: "none",
+                  animation: `floatSlow 7s ease-in-out infinite ${paw.delay}`,
+                  transform: `rotate(${paw.rotate}deg)`,
+                  color: BRAND.purple,
+                }}
+              >
+                <svg viewBox="0 0 64 64" width="100%" height="100%" fill="currentColor" aria-hidden="true">
+                  <path d="M32 26c-8 0-14 6-14 13 0 9 9 15 14 15s14-6 14-15c0-7-6-13-14-13zm-19-3c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm10-10c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm18-1c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8zm12 11c-4 0-7 4-7 8 0 5 4 9 8 9 4 0 7-4 7-9 0-4-4-8-8-8z" />
+                </svg>
+              </div>
+            ))}
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
@@ -242,22 +264,6 @@ export default function MeanKatCafe() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                 {/* Entrance fee */}
                 <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)", position: "relative", overflow: "visible" }}>
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      top: -38,
-                      right: 42,
-                      width: 128,
-                      height: 72,
-                      opacity: 0.16,
-                      background:
-                        "radial-gradient(circle at 20px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 38px 12px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 58px 8px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 78px 12px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 96px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(ellipse at 58px 40px, rgba(58,48,96,0.95) 0 15px, transparent 16px), radial-gradient(circle at 18px 48px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 32px 52px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 48px 56px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 66px 56px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 84px 52px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 98px 48px, rgba(58,48,96,0.95) 0 4px, transparent 5px)",
-                      filter: "blur(0.2px)",
-                      pointerEvents: "none",
-                      transform: "rotate(-4deg)",
-                    }}
-                  />
                   <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
                   <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 26px)", color: BRAND.text, marginBottom: 18 }}>Visit the Cats 🐱</div>
                   {[["R50", "Per person"], ["R40", "Students · weekdays (card req.)"], ["R40", "Pensioners"], ["Free", "Children under 1 year"]].map(([p, l]) => (
