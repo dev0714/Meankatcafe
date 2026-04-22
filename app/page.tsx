@@ -246,16 +246,16 @@ export default function MeanKatCafe() {
                     aria-hidden="true"
                     style={{
                       position: "absolute",
-                      top: -46,
-                      right: 38,
-                      width: 116,
-                      height: 84,
-                      opacity: 0.14,
+                      top: -38,
+                      right: 42,
+                      width: 128,
+                      height: 72,
+                      opacity: 0.16,
                       background:
-                        "radial-gradient(circle at 20px 28px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(circle at 44px 16px, rgba(58,48,96,0.95) 0 9px, transparent 10px), radial-gradient(circle at 74px 16px, rgba(58,48,96,0.95) 0 9px, transparent 10px), radial-gradient(circle at 96px 28px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(ellipse at 58px 44px, rgba(58,48,96,0.95) 0 18px, transparent 19px), radial-gradient(ellipse at 62px 60px, rgba(58,48,96,0.95) 0 22px, transparent 23px)",
-                      filter: "blur(0.1px)",
+                        "radial-gradient(circle at 20px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 38px 12px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 58px 8px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 78px 12px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 96px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(ellipse at 58px 40px, rgba(58,48,96,0.95) 0 15px, transparent 16px), radial-gradient(circle at 18px 48px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 32px 52px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 48px 56px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 66px 56px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 84px 52px, rgba(58,48,96,0.95) 0 4px, transparent 5px), radial-gradient(circle at 98px 48px, rgba(58,48,96,0.95) 0 4px, transparent 5px)",
+                      filter: "blur(0.2px)",
                       pointerEvents: "none",
-                      transform: "rotate(-3deg)",
+                      transform: "rotate(-4deg)",
                     }}
                   />
                   <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
