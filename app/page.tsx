@@ -202,6 +202,17 @@ export default function MeanKatCafe() {
           <div style={{ minHeight: "clamp(80vh, 100vh, 120vh)", display: "flex", alignItems: "center", padding: "clamp(40px, 10vw, 80px) clamp(20px, 5vw, 40px)", background: `linear-gradient(135deg, ${BRAND.cream} 0%, #e8e0f8 50%, #d8d0f0 100%)`, position: "relative", overflow: "hidden" }}>
             {/* Logo Background */}
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
+
+            {/* Paw print accents */}
+            <div aria-hidden="true" style={{ position: "absolute", right: "11%", top: "28%", width: 34, height: 34, opacity: 0.12, pointerEvents: "none", animation: "floatSlow 6s ease-in-out infinite" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.7) 0 9px, transparent 10px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px)" }} />
+            </div>
+            <div aria-hidden="true" style={{ position: "absolute", right: "5%", top: "56%", width: 30, height: 30, opacity: 0.1, pointerEvents: "none", animation: "floatSlow 7s ease-in-out infinite 0.8s" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.75) 0 8px, transparent 9px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.75) 0 4px, transparent 5px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.75) 0 4px, transparent 5px)" }} />
+            </div>
+            <div aria-hidden="true" style={{ position: "absolute", right: "20%", top: "74%", width: 38, height: 38, opacity: 0.09, pointerEvents: "none", animation: "floatSlow 8s ease-in-out infinite 1.4s", transform: "rotate(-10deg)" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 62%, rgba(155,142,196,0.7) 0 10px, transparent 11px), radial-gradient(circle at 18% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 44% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 68% 4%, rgba(155,142,196,0.7) 0 5px, transparent 6px), radial-gradient(circle at 92% 18%, rgba(155,142,196,0.7) 0 5px, transparent 6px)" }} />
+            </div>
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
