@@ -20,7 +20,7 @@ function sanitizeFileName(name: string) {
 
 export async function POST(request: Request) {
   try {
-    const session = getSession();
+    const session = await getSession();
 
     if (!session?.isAdmin || !session?.isApproved) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

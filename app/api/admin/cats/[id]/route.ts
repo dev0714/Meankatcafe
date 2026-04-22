@@ -9,7 +9,7 @@ type RouteContext = {
 };
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const session = getSession();
+  const session = await getSession();
 
   if (!session?.isAdmin || !session?.isApproved) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

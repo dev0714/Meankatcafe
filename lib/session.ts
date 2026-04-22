@@ -15,8 +15,11 @@ type CookieStoreLike = {
   get(name: string): { value: string } | undefined;
 };
 
-export function getSession(cookieStore: CookieStoreLike = cookies()) {
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+type CookieStoreSource = CookieStoreLike | Promise<CookieStoreLike>;
+
+export async function getSession(cookieStore: CookieStoreSource = cookies()) {
+  const store = await cookieStore;
+  const token = store.get(SESSION_COOKIE_NAME)?.value;
   if (!token) {
     return null;
   }
