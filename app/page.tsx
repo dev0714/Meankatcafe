@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
 
 const BRAND = {
   cream: "#f5f0d8",
