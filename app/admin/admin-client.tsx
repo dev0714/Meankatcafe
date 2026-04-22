@@ -366,7 +366,21 @@ export default function AdminClient() {
                               </div>
                             ) : null}
                             <div style={{ fontWeight: 800 }}>{cat.name}</div>
-                            <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.6 }}>{cat.description}</div>
+                            <div
+                              style={{
+                                maxHeight: 110,
+                                overflowY: "auto",
+                                paddingRight: 8,
+                                marginTop: 4,
+                                fontSize: 13,
+                                color: BRAND.textLight,
+                                lineHeight: 1.6,
+                                scrollbarWidth: "thin",
+                                scrollbarColor: `${BRAND.purple} rgba(155,142,196,0.15)`,
+                              }}
+                            >
+                              {cat.description}
+                            </div>
                             <button
                               className="mk-outline"
                               type="button"
