@@ -1,0 +1,4 @@
+interface:
+  display_name: "MeanKat Cafe Site"
+  short_description: "Project guide for the MeanKat Cafe Next.js site"
+  default_prompt: "Work inside the MeanKat Cafe website folder. Use the site reference before editing content, layout, or assets, and preserve the single-page section-swapping structure, brand palette, and cat cafe voice."
