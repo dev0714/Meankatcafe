@@ -23,6 +23,8 @@ alter default privileges in schema meankatcafe
 grant all on sequences to anon, authenticated, service_role;
 ```
 
+On hosted Supabase, do not try to run `ALTER ROLE authenticator ...` in the SQL editor. The `authenticator` role is reserved there, so schema exposure should be handled from the Dashboard API settings plus the grants above.
+
 ## Tables
 
 ### users

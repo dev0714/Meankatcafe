@@ -51,6 +51,7 @@ The nav buttons call `navigate()` and close the mobile drawer.
 - Approved admins get a signed session cookie.
 - Admin uploads save the image file to Supabase Storage and insert a row into `cats`.
 - Public cats data comes from `app/api/cats`, then the client merges it with the resident defaults.
+- For hosted Supabase, expose `meankatcafe` from the Dashboard API settings and apply the schema grants in `references/supabase-schema.md`; do not use `ALTER ROLE authenticator` in the SQL editor.
 
 ## Key Behaviors
 
