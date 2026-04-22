@@ -13,6 +13,9 @@ export function getSupabaseAdminClient() {
   const supabaseServiceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    db: {
+      schema: "meankatcafe",
+    },
     auth: {
       autoRefreshToken: false,
       persistSession: false,

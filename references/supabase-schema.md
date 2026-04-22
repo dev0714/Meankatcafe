@@ -1,5 +1,22 @@
 # Supabase Schema
 
+## Schema
+
+Create a dedicated schema for the site:
+
+```sql
+create schema if not exists meankatcafe;
+```
+
+Expose it in Supabase API settings, then grant access:
+
+```sql
+grant usage on schema meankatcafe to anon, authenticated, service_role;
+grant all on all tables in schema meankatcafe to anon, authenticated, service_role;
+grant all on all routines in schema meankatcafe to anon, authenticated, service_role;
+grant all on all sequences in schema meankatcafe to anon, authenticated, service_role;
+```
+
 ## Tables
 
 ### users
@@ -7,7 +24,7 @@
 Use this table for site admins. Do not store plaintext passwords.
 
 ```sql
-create table public.users (
+create table meankatcafe.users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   password_hash text not null,
@@ -22,13 +39,13 @@ create table public.users (
 Store cat metadata here. Images live in Supabase Storage.
 
 ```sql
-create table public.cats (
+create table meankatcafe.cats (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null,
   category text not null check (category in ('resident', 'other')),
   image_path text not null,
-  created_by uuid references public.users(id),
+  created_by uuid references meankatcafe.users(id),
   created_at timestamptz not null default now()
 );
 ```

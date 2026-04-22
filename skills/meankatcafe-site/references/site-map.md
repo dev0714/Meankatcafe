@@ -47,6 +47,7 @@ The nav buttons call `navigate()` and close the mobile drawer.
 ## Supabase Flow
 
 - Login checks the local `users` table with hashed passwords.
+- The Supabase client is configured to use the `meankatcafe` schema by default.
 - Approved admins get a signed session cookie.
 - Admin uploads save the image file to Supabase Storage and insert a row into `cats`.
 - Public cats data comes from `app/api/cats`, then the client merges it with the resident defaults.
