@@ -56,6 +56,7 @@ export async function POST(request: Request) {
   }
 
   const { data: created, error: insertError } = await supabase
+    .schema("meankatcafe")
     .from("cats")
     .insert({
       name: parsed.data.name,

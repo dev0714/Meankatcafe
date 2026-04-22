@@ -9,6 +9,7 @@ export async function GET() {
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
+    .schema("meankatcafe")
     .from("cats")
     .select("id, name, description, category, image_path, created_at")
     .order("created_at", { ascending: false });

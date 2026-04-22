@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdminClient();
   const email = parsed.data.email.trim().toLowerCase();
   const { data: user, error } = await supabase
+    .schema("meankatcafe")
     .from("users")
     .select("id, email, password_hash, is_admin, is_approved")
     .eq("email", email)

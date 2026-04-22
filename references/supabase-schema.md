@@ -15,6 +15,12 @@ grant usage on schema meankatcafe to anon, authenticated, service_role;
 grant all on all tables in schema meankatcafe to anon, authenticated, service_role;
 grant all on all routines in schema meankatcafe to anon, authenticated, service_role;
 grant all on all sequences in schema meankatcafe to anon, authenticated, service_role;
+
+alter default privileges in schema meankatcafe
+grant all on tables to anon, authenticated, service_role;
+
+alter default privileges in schema meankatcafe
+grant all on sequences to anon, authenticated, service_role;
 ```
 
 ## Tables
