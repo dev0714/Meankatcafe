@@ -34,6 +34,8 @@ const emptyUpload = {
   category: "resident" as const,
 };
 
+const HIDDEN_CAT_IDS_STORAGE_KEY = "meankat_hidden_cat_ids";
+
 export default function AdminClient() {
   const [auth, setAuth] = useState<AuthState>({ loading: true, user: null, error: "" });
   const [loginEmail, setLoginEmail] = useState("");
@@ -44,6 +46,30 @@ export default function AdminClient() {
   const [saving, setSaving] = useState(false);
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(HIDDEN_CAT_IDS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[];
+        if (Array.isArray(parsed)) {
+          setHiddenCatIds(parsed.filter((value) => typeof value === "string"));
+        }
+      }
+    } catch {
+      setHiddenCatIds([]);
+    }
+  }, []);
+
+  function persistHiddenCatIds(nextHiddenIds: string[]) {
+    setHiddenCatIds(nextHiddenIds);
+    try {
+      window.localStorage.setItem(HIDDEN_CAT_IDS_STORAGE_KEY, JSON.stringify(nextHiddenIds));
+    } catch {
+      // Ignore storage errors and keep the current in-memory state.
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -68,11 +94,12 @@ export default function AdminClient() {
       }
 
       const data = (await response.json()) as CatCard[];
-      setCats(mergeCatsByName(DEFAULT_CATS, data));
+      const merged = mergeCatsByName(DEFAULT_CATS, data);
+      setCats(merged.filter((cat) => !hiddenCatIds.includes(cat.id)));
     };
 
     loadCats();
-  }, [auth.user]);
+  }, [auth.user, hiddenCatIds]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,16 +173,24 @@ export default function AdminClient() {
     setMessage("Cat uploaded successfully.");
   }
 
-  async function handleDeleteCat(catId: string) {
-    const confirmed = window.confirm("Remove this cat from MeanKat?");
+  async function handleDeleteCat(cat: CatCard) {
+    const confirmed = window.confirm(`Remove ${cat.name} from MeanKat?`);
     if (!confirmed) {
       return;
     }
 
-    setDeletingCatId(catId);
+    setDeletingCatId(cat.id);
     setMessage("");
 
-    const response = await fetch(`/api/admin/cats/${catId}`, {
+    if (!isUploadedCat(cat)) {
+      persistHiddenCatIds(Array.from(new Set([...hiddenCatIds, cat.id])));
+      setCats((current) => current.filter((item) => item.id !== cat.id));
+      setMessage(`${cat.name} removed from the admin preview.`);
+      setDeletingCatId(null);
+      return;
+    }
+
+    const response = await fetch(`/api/admin/cats/${cat.id}`, {
       method: "DELETE",
     });
 
@@ -170,9 +205,9 @@ export default function AdminClient() {
     const refreshResponse = await fetch("/api/cats");
     if (refreshResponse.ok) {
       const refreshed = (await refreshResponse.json()) as CatCard[];
-      setCats(mergeCatsByName(DEFAULT_CATS, refreshed));
+      setCats(mergeCatsByName(DEFAULT_CATS, refreshed).filter((item) => !hiddenCatIds.includes(item.id)));
     } else {
-      setCats((current) => current.filter((cat) => cat.id !== catId));
+      setCats((current) => current.filter((item) => item.id !== cat.id));
     }
 
     setMessage(data.warning ?? "Cat removed successfully.");
@@ -325,17 +360,15 @@ export default function AdminClient() {
                             ) : null}
                             <div style={{ fontWeight: 800 }}>{cat.name}</div>
                             <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.6 }}>{cat.description}</div>
-                            {isUploadedCat(cat) ? (
-                              <button
-                                className="mk-outline"
-                                type="button"
-                                onClick={() => handleDeleteCat(cat.id)}
-                                disabled={deletingCatId === cat.id}
-                                style={{ marginTop: 10, padding: "8px 14px" }}
-                              >
-                                {deletingCatId === cat.id ? "Removing..." : "Remove cat"}
-                              </button>
-                            ) : null}
+                            <button
+                              className="mk-outline"
+                              type="button"
+                              onClick={() => handleDeleteCat(cat)}
+                              disabled={deletingCatId === cat.id}
+                              style={{ marginTop: 10, padding: "8px 14px" }}
+                            >
+                              {deletingCatId === cat.id ? "Removing..." : "Remove cat"}
+                            </button>
                           </div>
                         )) : <div style={{ color: BRAND.textLight, fontSize: 14 }}>No cats in this group yet.</div>}
                       </div>

@@ -51,7 +51,7 @@ The nav buttons call `navigate()` and close the mobile drawer.
 - The Supabase client is configured to use the `meankatcafe` schema by default.
 - Approved admins get a signed session cookie.
 - Admin uploads save the image file to Supabase Storage and insert a row into `cats`.
-- Admins can remove uploaded cats from the preview/dashboard, which deletes the row and its storage asset.
+- Admins can remove any cat from the preview/dashboard; uploaded cats delete their row and storage asset, while built-in cats are hidden from the admin preview.
 - Public cats data comes from `app/api/cats`, then the client merges it with the resident defaults.
 - For hosted Supabase, expose `meankatcafe` from the Dashboard API settings and apply the schema grants in `references/supabase-schema.md`; do not use `ALTER ROLE authenticator` in the SQL editor.
 
