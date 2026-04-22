@@ -88,12 +88,31 @@ const menuGroupMap = {
 };
 
 const HERO_PAW_PRINTS = [
-  { top: "18%", left: "63%", size: 28, rotate: -14, delay: "0s" },
-  { top: "26%", left: "86%", size: 24, rotate: 12, delay: "0.5s" },
-  { top: "40%", left: "74%", size: 30, rotate: -8, delay: "1s" },
-  { top: "58%", left: "90%", size: 22, rotate: 10, delay: "1.5s" },
-  { top: "14%", left: "88%", size: 20, rotate: -18, delay: "2s" },
-  { top: "70%", left: "80%", size: 26, rotate: 8, delay: "2.5s" },
+  { top: "9%", left: "12%", size: 16, rotate: 10, delay: "0s", opacity: 0.08 },
+  { top: "15%", left: "28%", size: 20, rotate: -15, delay: "0.3s", opacity: 0.09 },
+  { top: "11%", left: "59%", size: 24, rotate: -18, delay: "0s", opacity: 0.11 },
+  { top: "22%", left: "7%", size: 18, rotate: 7, delay: "0.6s", opacity: 0.08 },
+  { top: "16%", left: "74%", size: 18, rotate: 14, delay: "0.4s", opacity: 0.09 },
+  { top: "21%", left: "88%", size: 20, rotate: -10, delay: "0.8s", opacity: 0.09 },
+  { top: "31%", left: "18%", size: 22, rotate: -8, delay: "1s", opacity: 0.09 },
+  { top: "28%", left: "66%", size: 30, rotate: 7, delay: "1.2s", opacity: 0.11 },
+  { top: "34%", left: "82%", size: 16, rotate: 20, delay: "1.6s", opacity: 0.08 },
+  { top: "41%", left: "10%", size: 17, rotate: 12, delay: "1.8s", opacity: 0.08 },
+  { top: "39%", left: "54%", size: 22, rotate: -6, delay: "2s", opacity: 0.1 },
+  { top: "45%", left: "73%", size: 28, rotate: -16, delay: "2.4s", opacity: 0.1 },
+  { top: "51%", left: "90%", size: 18, rotate: 11, delay: "2.8s", opacity: 0.08 },
+  { top: "54%", left: "32%", size: 20, rotate: -4, delay: "3s", opacity: 0.09 },
+  { top: "57%", left: "61%", size: 20, rotate: 4, delay: "3.2s", opacity: 0.09 },
+  { top: "62%", left: "5%", size: 16, rotate: 18, delay: "3.4s", opacity: 0.07 },
+  { top: "63%", left: "79%", size: 24, rotate: -8, delay: "3.6s", opacity: 0.1 },
+  { top: "69%", left: "86%", size: 16, rotate: 17, delay: "4s", opacity: 0.08 },
+  { top: "73%", left: "23%", size: 18, rotate: -10, delay: "4.2s", opacity: 0.08 },
+  { top: "74%", left: "68%", size: 22, rotate: -13, delay: "4.4s", opacity: 0.1 },
+  { top: "78%", left: "57%", size: 18, rotate: 9, delay: "4.8s", opacity: 0.08 },
+  { top: "83%", left: "15%", size: 16, rotate: 14, delay: "5s", opacity: 0.07 },
+  { top: "82%", left: "84%", size: 24, rotate: -5, delay: "5.2s", opacity: 0.09 },
+  { top: "7%", left: "84%", size: 14, rotate: 13, delay: "5.6s", opacity: 0.07 },
+  { top: "47%", left: "93%", size: 14, rotate: -12, delay: "6s", opacity: 0.07 },
 ];
 
 export default function MeanKatCafe() {
@@ -223,11 +242,12 @@ export default function MeanKatCafe() {
                   left: paw.left,
                   width: paw.size,
                   height: paw.size,
-                  opacity: 0.12,
+                  opacity: paw.opacity,
                   pointerEvents: "none",
                   animation: `floatSlow 7s ease-in-out infinite ${paw.delay}`,
                   transform: `rotate(${paw.rotate}deg)`,
                   color: BRAND.purple,
+                  mixBlendMode: "multiply",
                 }}
               >
                 <svg viewBox="0 0 64 64" width="100%" height="100%" fill="currentColor" aria-hidden="true">
