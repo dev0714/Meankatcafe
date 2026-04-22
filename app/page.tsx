@@ -148,6 +148,17 @@ export default function MeanKatCafe() {
         .mk-input:focus { border-color: #f0d84a; box-shadow: 0 0 0 3px rgba(240,216,74,0.15); }
         .mk-input::placeholder { color: #c5bce0; }
         textarea.mk-input { resize: vertical; min-height: 130px; }
+        .cat-desc-scroll {
+          max-height: 170px;
+          overflow-y: auto;
+          padding-right: 8px;
+          scrollbar-width: thin;
+          scrollbar-color: #9b8ec4 rgba(155,142,196,0.15);
+        }
+        .cat-desc-scroll::-webkit-scrollbar { width: 8px; }
+        .cat-desc-scroll::-webkit-scrollbar-track { background: rgba(155,142,196,0.12); border-radius: 999px; }
+        .cat-desc-scroll::-webkit-scrollbar-thumb { background: #9b8ec4; border-radius: 999px; }
+        .cat-desc-scroll::-webkit-scrollbar-thumb:hover { background: #7a6fa8; }
         .tag { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
         .float-elem { animation: floatSlow 3s ease-in-out infinite; }
         @media (max-width: 768px) {
@@ -361,7 +372,9 @@ export default function MeanKatCafe() {
                   <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginBottom: 14, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
                     Currently: {cat.mood || "Unknown mood"}
                   </div>
-                  <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{cat.description}</p>
+                  <div className="cat-desc-scroll" style={{ marginTop: 2, marginBottom: 2 }}>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{cat.description}</p>
+                  </div>
                   {cat.images && cat.images.length > 1 && (
                     <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                       {cat.images.map((img, i) => (
