@@ -88,6 +88,12 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Cat upload failed:", error);
     const message = error instanceof Error ? error.message : "Upload failed unexpectedly.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: message,
+        details: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

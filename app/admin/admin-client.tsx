@@ -159,7 +159,7 @@ export default function AdminClient() {
     });
 
     const responseText = await response.text();
-    let data: { error?: string; warning?: string; cat?: CatCard } = {};
+    let data: { error?: string; warning?: string; cat?: CatCard; details?: string } = {};
     try {
       data = responseText ? JSON.parse(responseText) : {};
     } catch {
@@ -170,7 +170,7 @@ export default function AdminClient() {
 
     if (!response.ok) {
       const fallbackError = responseText || `Upload failed with status ${response.status}.`;
-      setMessage(data.error ?? fallbackError);
+      setMessage(data.error ? `${data.error}${data.details ? `\n${data.details}` : ""}` : fallbackError);
       return;
     }
 
