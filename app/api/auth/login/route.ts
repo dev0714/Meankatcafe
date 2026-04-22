@@ -28,7 +28,12 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Login lookup failed:", error);
-    return NextResponse.json({ error: "Unable to read admin user record." }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: `Unable to read admin user record: ${error.message}`,
+      },
+      { status: 500 }
+    );
   }
 
   if (!user) {
