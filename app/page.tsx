@@ -230,7 +230,23 @@ export default function MeanKatCafe() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                 {/* Entrance fee */}
-                <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)" }}>
+                <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)", position: "relative", overflow: "visible" }}>
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      top: -34,
+                      right: 34,
+                      width: 110,
+                      height: 62,
+                      opacity: 0.16,
+                      background:
+                        "radial-gradient(circle at 18px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 34px 14px, rgba(58,48,96,0.95) 0 9px, transparent 10px), radial-gradient(circle at 52px 20px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(circle at 72px 16px, rgba(58,48,96,0.95) 0 11px, transparent 12px), radial-gradient(circle at 90px 22px, rgba(58,48,96,0.95) 0 7px, transparent 8px), radial-gradient(circle at 56px 34px, rgba(58,48,96,0.95) 0 16px, transparent 17px), radial-gradient(circle at 38px 34px, rgba(58,48,96,0.95) 0 14px, transparent 15px), radial-gradient(circle at 72px 38px, rgba(58,48,96,0.95) 0 14px, transparent 15px), radial-gradient(circle at 22px 46px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(circle at 44px 48px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(circle at 68px 48px, rgba(58,48,96,0.95) 0 8px, transparent 9px), radial-gradient(circle at 92px 46px, rgba(58,48,96,0.95) 0 8px, transparent 9px)",
+                      filter: "blur(0.2px)",
+                      pointerEvents: "none",
+                      transform: "rotate(-2deg)",
+                    }}
+                  />
                   <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
                   <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 26px)", color: BRAND.text, marginBottom: 18 }}>Visit the Cats 🐱</div>
                   {[["R50", "Per person"], ["R40", "Students · weekdays (card req.)"], ["R40", "Pensioners"], ["Free", "Children under 1 year"]].map(([p, l]) => (
