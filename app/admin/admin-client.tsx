@@ -84,9 +84,17 @@ export default function AdminClient() {
       body: JSON.stringify({ email: loginEmail, password: loginPassword }),
     });
 
-    const data = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let data: { error?: string; user?: SessionUser } = {};
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      data = {};
+    }
+
     if (!response.ok) {
-      setAuth((current) => ({ ...current, error: data.error ?? "Login failed." }));
+      const fallbackError = responseText || `Login failed with status ${response.status}.`;
+      setAuth((current) => ({ ...current, error: data.error ?? fallbackError }));
       return;
     }
 
