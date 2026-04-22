@@ -280,6 +280,15 @@ export default function AdminClient() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {items.length > 0 ? items.map((cat) => (
                           <div key={cat.id} style={{ padding: 12, background: BRAND.white, borderRadius: 12 }}>
+                            {cat.images?.[0] ? (
+                              <div style={{ marginBottom: 10, borderRadius: 10, overflow: "hidden", background: "rgba(155,142,196,0.08)" }}>
+                                <img
+                                  src={cat.images[0]}
+                                  alt={cat.name}
+                                  style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }}
+                                />
+                              </div>
+                            ) : null}
                             <div style={{ fontWeight: 800 }}>{cat.name}</div>
                             <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.6 }}>{cat.description}</div>
                           </div>
