@@ -698,7 +698,7 @@ export default function MeanKatCafe() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ position: "relative", maxWidth: "min(90vw, 900px)", width: "100%", animation: "fadeIn 0.2s ease" }}
+            style={{ position: "relative", maxWidth: "min(92vw, 860px)", width: "100%", animation: "fadeIn 0.2s ease" }}
           >
             <button
               onClick={() => setMenuModalImage(null)}
@@ -708,7 +708,7 @@ export default function MeanKatCafe() {
             <img
               src={menuModalImage.url}
               alt="MeanKat menu"
-              style={{ width: "100%", height: "auto", borderRadius: 20, display: "block", boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
+              style={{ width: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 20, display: "block", boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
             />
           </div>
         </div>
