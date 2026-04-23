@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { emojify } from "node-emoji";
+import { emojify } from "@/lib/emojify";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
 
 const BRAND = {
