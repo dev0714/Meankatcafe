@@ -93,14 +93,24 @@ function seededPawPrints() {
     s = (Math.imul(s, 1664525) + 1013904223) | 0;
     return (s >>> 0) / 4294967296;
   };
-  return Array.from({ length: 20 }, () => ({
-    x: rand() * 100,
-    y: rand() * 100,
-    r: rand() * 360 - 180,
-    s: 0.7 + rand() * 0.9,   // size multiplier → base 90px
-    o: 0.30 + rand() * 0.40, // opacity — higher since real image
-    v: Math.floor(rand() * 6), // which of the 6 paw variants (3×2 sprite)
-  }));
+  return Array.from({ length: 18 }, (_, i) => {
+    const xr = rand();
+    // Split into left-edge zone (0–16%) and right zone (56–100%)
+    // so paws don't sit over the hero text column.
+    // Roughly 1 in 3 go left, 2 in 3 go right.
+    const x = i % 3 === 0
+      ? xr * 16
+      : 56 + xr * 44;
+    return {
+      x,
+      y: rand() * 95,
+      r: rand() * 360 - 180,
+      s: 0.65 + rand() * 0.85,
+      o: 0.35 + rand() * 0.35,
+      // variants 1–5 only — skip 0 (white outline paw renders as bare lines via multiply)
+      v: Math.floor(rand() * 5) + 1,
+    };
+  });
 }
 
 const PAW_PRINTS = seededPawPrints();
@@ -245,6 +255,8 @@ export default function MeanKatCafe() {
                     opacity: p.o,
                     mixBlendMode: "multiply",
                     pointerEvents: "none",
+                    border: "none",
+                    outline: "none",
                   }}
                 />
               );
