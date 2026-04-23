@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { emojify } from "@/lib/emojify";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
@@ -55,6 +55,13 @@ export default function MeanKatCafe() {
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [menuData, setMenuData] = useState<MenuSection[]>(DEFAULT_MENU);
   const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
+  const [menuModalImage, setMenuModalImage] = useState<{ id: string; url: string } | null>(null);
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
+  const dragDistance = useRef(0);
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
@@ -331,12 +338,41 @@ export default function MeanKatCafe() {
             
             {/* Menu Photo Carousel */}
             <div style={{ position: "relative", marginBottom: 48 }}>
-              <div style={{ display: "flex", gap: "clamp(14px, 3vw, 22px)", overflowX: "auto", scrollSnapType: "x mandatory", paddingBottom: 12, scrollbarWidth: "thin", scrollbarColor: `${BRAND.purple} rgba(155,142,196,0.15)` }}>
+              <div
+                ref={carouselRef}
+                onMouseDown={(e) => {
+                  isDragging.current = true;
+                  dragStartX.current = e.pageX - (carouselRef.current?.offsetLeft ?? 0);
+                  dragScrollLeft.current = carouselRef.current?.scrollLeft ?? 0;
+                  dragDistance.current = 0;
+                  if (carouselRef.current) carouselRef.current.style.cursor = "grabbing";
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging.current) return;
+                  e.preventDefault();
+                  const x = e.pageX - (carouselRef.current?.offsetLeft ?? 0);
+                  const walk = x - dragStartX.current;
+                  dragDistance.current = Math.abs(walk);
+                  if (carouselRef.current) carouselRef.current.scrollLeft = dragScrollLeft.current - walk;
+                }}
+                onMouseUp={() => { isDragging.current = false; if (carouselRef.current) carouselRef.current.style.cursor = "grab"; }}
+                onMouseLeave={() => { isDragging.current = false; if (carouselRef.current) carouselRef.current.style.cursor = "grab"; }}
+                style={{ display: "flex", gap: "clamp(14px, 3vw, 22px)", overflowX: "auto", scrollSnapType: "x mandatory", paddingBottom: 12, scrollbarWidth: "thin", scrollbarColor: `${BRAND.purple} rgba(155,142,196,0.15)`, cursor: "grab", userSelect: "none" }}
+              >
                 {menuImages.map((img) => (
-                  <div key={img.id} style={{ flex: "0 0 clamp(260px, 42vw, 520px)", scrollSnapAlign: "start", background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 8px 28px rgba(155,142,196,0.18)" }}>
-                    <img src={img.url} alt="MeanKat menu" style={{ width: "100%", height: "auto", display: "block" }} />
+                  <div
+                    key={img.id}
+                    onClick={() => { if (dragDistance.current < 6) setMenuModalImage(img); }}
+                    style={{ flex: "0 0 clamp(260px, 42vw, 520px)", scrollSnapAlign: "start", background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 8px 28px rgba(155,142,196,0.18)", cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s" }}
+                    onMouseEnter={(e) => { if (!isDragging.current) { (e.currentTarget as HTMLDivElement).style.transform = "scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(155,142,196,0.3)"; } }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 28px rgba(155,142,196,0.18)"; }}
+                  >
+                    <img src={img.url} alt="MeanKat menu" style={{ width: "100%", height: "auto", display: "block", pointerEvents: "none" }} />
                   </div>
                 ))}
+              </div>
+              <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: BRAND.textLight, opacity: 0.7 }}>
+                ← drag to scroll · click to enlarge →
               </div>
             </div>
 
@@ -653,6 +689,30 @@ export default function MeanKatCafe() {
           </div>
         </div>
       </footer>
+
+      {/* ── MENU IMAGE MODAL ── */}
+      {menuModalImage && (
+        <div
+          onClick={() => setMenuModalImage(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(20,16,48,0.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ position: "relative", maxWidth: "min(90vw, 900px)", width: "100%", animation: "fadeIn 0.2s ease" }}
+          >
+            <button
+              onClick={() => setMenuModalImage(null)}
+              style={{ position: "absolute", top: -16, right: -16, zIndex: 10, background: "white", border: "none", borderRadius: "50%", width: 40, height: 40, cursor: "pointer", fontSize: 20, color: BRAND.purpleDark, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}
+              aria-label="Close"
+            >×</button>
+            <img
+              src={menuModalImage.url}
+              alt="MeanKat menu"
+              style={{ width: "100%", height: "auto", borderRadius: 20, display: "block", boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── CAT MODAL ── */}
       {modalCat && (
