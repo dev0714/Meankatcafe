@@ -118,6 +118,8 @@ export default function MeanKatCafe() {
   const [selectedCatImage, setSelectedCatImage] = useState<Record<string, number>>({});
   const [catEntries, setCatEntries] = useState<CatCard[]>(DEFAULT_CATS);
   const [catFilter, setCatFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
+  const [modalCat, setModalCat] = useState<CatCard | null>(null);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
@@ -151,6 +153,7 @@ export default function MeanKatCafe() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #f5f0d8; }
         @keyframes floatSlow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         @keyframes slideInRight { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
@@ -426,7 +429,7 @@ export default function MeanKatCafe() {
                 const currentImageIndex = selectedCatImage[cat.name] || 0;
                 const displayImage = cat.images ? cat.images[currentImageIndex] : null;
                 return (
-                <div key={cat.name} className="mk-card">
+                <div key={cat.name} className="mk-card" style={{ cursor: "pointer" }} onClick={() => { setModalCat(cat); setModalImageIndex(currentImageIndex); }}>
                   {displayImage ? (
                     <div style={{ width: "100%", height: 200, marginBottom: 16, borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 12px rgba(155,142,196,0.12)" }}>
                       <img src={displayImage} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -452,12 +455,12 @@ export default function MeanKatCafe() {
                   {cat.images && cat.images.length > 1 && (
                     <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                       {cat.images.map((img, i) => (
-                        <img 
-                          key={i} 
-                          src={img} 
-                          alt={`${cat.name} ${i + 1}`} 
-                          onClick={() => setSelectedCatImage({ ...selectedCatImage, [cat.name]: i })}
-                          style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", border: currentImageIndex === i ? `2px solid ${BRAND.yellow}` : `1px solid ${BRAND.purpleLight}`, cursor: "pointer", transition: "all 0.3s", boxShadow: currentImageIndex === i ? `0 0 8px ${BRAND.yellow}` : "none" }} 
+                        <img
+                          key={i}
+                          src={img}
+                          alt={`${cat.name} ${i + 1}`}
+                          onClick={(e) => { e.stopPropagation(); setSelectedCatImage({ ...selectedCatImage, [cat.name]: i }); }}
+                          style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", border: currentImageIndex === i ? `2px solid ${BRAND.yellow}` : `1px solid ${BRAND.purpleLight}`, cursor: "pointer", transition: "all 0.3s", boxShadow: currentImageIndex === i ? `0 0 8px ${BRAND.yellow}` : "none" }}
                         />
                       ))}
                     </div>
@@ -694,6 +697,59 @@ export default function MeanKatCafe() {
           </div>
         </div>
       </footer>
+
+      {/* ── CAT MODAL ── */}
+      {modalCat && (
+        <div
+          onClick={() => setModalCat(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(30,24,60,0.72)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#fffef5", borderRadius: 24, padding: "clamp(24px, 4vw, 40px)", maxWidth: 540, width: "100%", boxShadow: "0 32px 80px rgba(58,48,96,0.35)", animation: "fadeIn 0.25s ease", position: "relative", maxHeight: "90vh", overflowY: "auto" }}
+          >
+            <button
+              onClick={() => setModalCat(null)}
+              style={{ position: "absolute", top: 16, right: 16, background: "rgba(155,142,196,0.12)", border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "#7a6fa8", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+              aria-label="Close"
+            >×</button>
+
+            {modalCat.images?.[modalImageIndex] ? (
+              <div style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 20, boxShadow: "0 8px 24px rgba(155,142,196,0.18)" }}>
+                <img src={modalCat.images[modalImageIndex]} alt={modalCat.name} style={{ width: "100%", maxHeight: 380, objectFit: "cover", display: "block" }} />
+              </div>
+            ) : (
+              <div style={{ fontSize: 80, textAlign: "center", marginBottom: 20 }}>{modalCat.emoji}</div>
+            )}
+
+            {modalCat.images && modalCat.images.length > 1 && (
+              <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                {modalCat.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt={`${modalCat.name} ${i + 1}`}
+                    onClick={() => setModalImageIndex(i)}
+                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: modalImageIndex === i ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, boxShadow: modalImageIndex === i ? `0 0 0 3px rgba(240,216,74,0.35)` : "none", transition: "all 0.2s" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div style={{ fontWeight: 900, fontSize: "clamp(22px, 4vw, 28px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 4 }}>{modalCat.name}</div>
+            <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 10 }}>{modalCat.breed || categoryLabel(modalCat.category)}</div>
+            <div style={{ display: "inline-flex", marginBottom: 12, padding: "6px 14px", borderRadius: 999, background: modalCat.category === "resident" ? "rgba(155,142,196,0.12)" : modalCat.category === "dual" ? "rgba(155,142,196,0.22)" : "rgba(240,216,74,0.2)", fontSize: 12, fontWeight: 700, color: BRAND.text }}>
+              {modalCat.category === "resident" ? "Resident cat" : modalCat.category === "dual" ? "Dual adoption" : "Adoptable cat"}
+            </div>
+            {modalCat.mood && (
+              <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginLeft: 8, marginBottom: 16, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
+                Currently: {modalCat.mood}
+              </div>
+            )}
+            <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9, marginTop: 8 }}>{modalCat.description}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
