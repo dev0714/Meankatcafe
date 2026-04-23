@@ -340,35 +340,6 @@ export default function MeanKatCafe() {
               </div>
             </div>
 
-            {/* Menu filter chips */}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 28 }}>
-              {["All", ...menuGroups].map((group) => (
-                <button key={group} className={`mk-filter ${menuFilter === group ? "on" : ""}`} onClick={() => setMenuFilter(group)}>
-                  {group}
-                </button>
-              ))}
-            </div>
-
-            {/* Menu item sections */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "clamp(14px, 3vw, 20px)", marginBottom: 48 }}>
-              {visibleSections.map((section) => (
-                <div key={section.title} style={{ background: BRAND.white, border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 16, padding: "clamp(18px, 3vw, 24px)", boxShadow: "0 4px 16px rgba(155,142,196,0.08)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <span style={{ fontSize: 22 }}>{section.emoji}</span>
-                    <div style={{ fontWeight: 900, fontSize: "clamp(15px, 2.5vw, 17px)", color: BRAND.text }}>{section.title}</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {section.items.map((item, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, paddingBottom: 8, borderBottom: `1px solid ${BRAND.purpleLight}30` }}>
-                        <span style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.5, flex: 1 }}>{item.name}</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: BRAND.purple, whiteSpace: "nowrap" }}>{item.price}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
             <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 16, padding: "clamp(20px, 4vw, 26px) clamp(20px, 4vw, 30px)", display: "flex", gap: 18, alignItems: "flex-start", boxShadow: "0 8px 24px rgba(240,216,74,0.2)", flexWrap: "wrap" }}>
               <span style={{ fontSize: "clamp(20px, 4vw, 26px)" }}>🐾</span>
               <div>
