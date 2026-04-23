@@ -706,7 +706,7 @@ export default function MeanKatCafe() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: "#fffef5", borderRadius: 24, padding: "clamp(24px, 4vw, 40px)", maxWidth: 540, width: "100%", boxShadow: "0 32px 80px rgba(58,48,96,0.35)", animation: "fadeIn 0.25s ease", position: "relative", maxHeight: "90vh", overflowY: "auto" }}
+            style={{ background: "#fffef5", borderRadius: 24, padding: "clamp(24px, 4vw, 40px)", maxWidth: 540, width: "100%", boxShadow: "0 32px 80px rgba(58,48,96,0.35)", animation: "fadeIn 0.25s ease", position: "relative", maxHeight: "90vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}
           >
             <button
               onClick={() => setModalCat(null)}
@@ -746,7 +746,9 @@ export default function MeanKatCafe() {
                 Currently: {modalCat.mood}
               </div>
             )}
-            <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9, marginTop: 8 }}>{modalCat.description}</p>
+            <div style={{ overflowY: "auto", marginTop: 8, paddingRight: 4, flexShrink: 1, scrollbarWidth: "thin", scrollbarColor: "#9b8ec4 rgba(155,142,196,0.15)" }}>
+              <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9 }}>{modalCat.description}</p>
+            </div>
           </div>
         </div>
       )}
