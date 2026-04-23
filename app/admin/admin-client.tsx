@@ -3,7 +3,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, categoryLabel } from "@/lib/cats";
-import { DEFAULT_MENU, MENU_FILTER_GROUPS, type MenuSection, type MenuItem } from "@/lib/menu";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -22,7 +21,7 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "menu-items";
+type AdminTab = "cats" | "menu-images";
 
 const emptyUpload: { name: string; description: string; category: CatCategory } = {
   name: "",
@@ -54,15 +53,6 @@ export default function AdminClient() {
   const [menuImageMsg, setMenuImageMsg] = useState("");
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const [hiddenBuiltinIds, setHiddenBuiltinIds] = useState<string[]>([]);
-
-  // --- menu items ---
-  const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
-  const [menuMsg, setMenuMsg] = useState("");
-  const [menuSaving, setMenuSaving] = useState(false);
-  const [newSection, setNewSection] = useState({ title: "", emoji: "🍽️", filterGroup: MENU_FILTER_GROUPS[0] });
-  const [newItem, setNewItem] = useState<Record<string, { name: string; price: string }>>({});
-  const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
-  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   // ── init ──────────────────────────────────────────────────────────────────
 
@@ -106,17 +96,6 @@ export default function AdminClient() {
     fetch("/api/menu-images")
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setMenuImages(imgs.filter((i) => !hiddenBuiltinIds.includes(i.id))))
-      .catch(() => {});
-  }, [auth.user]);
-
-  useEffect(() => {
-    if (!auth.user) return;
-    fetch("/api/menu")
-      .then((r) => r.ok ? r.json() : [])
-      .then((data: MenuSection[]) => {
-        const dbSections = data.filter((s) => s.id);
-        setMenuSections(dbSections.length > 0 ? dbSections : []);
-      })
       .catch(() => {});
   }, [auth.user]);
 
@@ -234,69 +213,6 @@ export default function AdminClient() {
     setDeletingImageId(null);
   }
 
-  // ── menu items ────────────────────────────────────────────────────────────
-
-  async function handleAddSection(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setMenuSaving(true); setMenuMsg("");
-    const res = await fetch("/api/admin/menu/sections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newSection),
-    });
-    const data = await res.json().catch(() => ({}));
-    setMenuSaving(false);
-    if (!res.ok) { setMenuMsg(data.error ?? "Failed."); return; }
-    setMenuSections((s) => [...s, data.section]);
-    setNewSection({ title: "", emoji: "🍽️", filterGroup: MENU_FILTER_GROUPS[0] });
-    setMenuMsg("Section added.");
-  }
-
-  async function handleDeleteSection(sectionId: string) {
-    if (!confirm("Delete this section and all its items?")) return;
-    setDeletingSectionId(sectionId);
-    const res = await fetch(`/api/admin/menu/sections/${sectionId}`, { method: "DELETE" });
-    if (res.ok) {
-      setMenuSections((s) => s.filter((sec) => sec.id !== sectionId));
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setMenuMsg(data.error ?? "Delete failed.");
-    }
-    setDeletingSectionId(null);
-  }
-
-  async function handleAddItem(e: FormEvent<HTMLFormElement>, sectionId: string) {
-    e.preventDefault();
-    const item = newItem[sectionId] ?? { name: "", price: "" };
-    if (!item.name || !item.price) return;
-    const res = await fetch(`/api/admin/menu/sections/${sectionId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setMenuMsg(data.error ?? "Failed."); return; }
-    setMenuSections((secs) =>
-      secs.map((s) => s.id === sectionId ? { ...s, items: [...s.items, data.item] } : s)
-    );
-    setNewItem((n) => ({ ...n, [sectionId]: { name: "", price: "" } }));
-  }
-
-  async function handleDeleteItem(sectionId: string, item: MenuItem) {
-    if (!item.id) return;
-    setDeletingItemId(item.id);
-    const res = await fetch(`/api/admin/menu/items/${item.id}`, { method: "DELETE" });
-    if (res.ok) {
-      setMenuSections((secs) =>
-        secs.map((s) => s.id === sectionId ? { ...s, items: s.items.filter((i) => i.id !== item.id) } : s)
-      );
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setMenuMsg(data.error ?? "Delete failed.");
-    }
-    setDeletingItemId(null);
-  }
-
   const groupedCats = {
     resident: cats.filter((c) => c.category === "resident"),
     adoptable: cats.filter((c) => c.category === "adoptable"),
@@ -308,7 +224,6 @@ export default function AdminClient() {
   const NAV: { id: AdminTab; label: string; icon: string }[] = [
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
-    { id: "menu-items", label: "Menu Items", icon: "📋" },
   ];
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -509,120 +424,6 @@ export default function AdminClient() {
           </>
         )}
 
-        {/* ── Menu Items Tab ── */}
-        {activeTab === "menu-items" && (
-          <>
-            <div style={{ marginBottom: 28 }}>
-              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Content</div>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Menu Items</h1>
-              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>
-                Add sections and items here. Once you have at least one section in the database, it replaces the built-in menu on the public site.
-              </p>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
-              {/* Add section */}
-              <div className="panel" style={{ position: "sticky", top: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Add Section</div>
-                <form onSubmit={handleAddSection} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Section name</div>
-                    <input className="mk-input" value={newSection.title} onChange={(e) => setNewSection((s) => ({ ...s, title: e.target.value }))} placeholder="Coffee" required />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Emoji</div>
-                    <input className="mk-input" value={newSection.emoji} onChange={(e) => setNewSection((s) => ({ ...s, emoji: e.target.value }))} placeholder="☕" required />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Filter group</div>
-                    <select className="mk-input" value={newSection.filterGroup} onChange={(e) => setNewSection((s) => ({ ...s, filterGroup: e.target.value }))}>
-                      {MENU_FILTER_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </label>
-                  {menuMsg && <div style={{ fontSize: 13, color: BRAND.textLight }}>{menuMsg}</div>}
-                  <button className="mk-primary" type="submit" disabled={menuSaving}>{menuSaving ? "Saving…" : "Add section"}</button>
-                </form>
-
-                <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${BRAND.purpleLight}40` }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.textLight, marginBottom: 8 }}>Built-in menu sections</div>
-                  <div style={{ fontSize: 12, color: BRAND.textLight, lineHeight: 1.6 }}>
-                    {DEFAULT_MENU.map((s) => `${s.emoji} ${s.title}`).join(" · ")}
-                  </div>
-                  <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 8 }}>These show on the public site until you add your own sections above.</div>
-                </div>
-              </div>
-
-              {/* Sections list */}
-              <div>
-                {menuSections.length === 0 ? (
-                  <div className="panel" style={{ color: BRAND.textLight, fontSize: 14 }}>
-                    No custom sections yet. Add one on the left to start building your live menu.
-                  </div>
-                ) : menuSections.map((section) => (
-                  <div key={section.id} className="panel">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                      <div>
-                        <span style={{ fontSize: 20, marginRight: 8 }}>{section.emoji}</span>
-                        <span style={{ fontWeight: 800, fontSize: 16, color: BRAND.text }}>{section.title}</span>
-                        <span style={{ marginLeft: 10, fontSize: 11, background: `${BRAND.purple}18`, color: BRAND.purple, borderRadius: 999, padding: "2px 10px", fontWeight: 700 }}>{section.filterGroup}</span>
-                      </div>
-                      <button className="mk-danger" onClick={() => handleDeleteSection(section.id!)} disabled={deletingSectionId === section.id}>
-                        {deletingSectionId === section.id ? "Deleting…" : "Delete section"}
-                      </button>
-                    </div>
-
-                    {/* Items */}
-                    <div style={{ marginBottom: 14 }}>
-                      {section.items.length === 0
-                        ? <div style={{ fontSize: 13, color: BRAND.textLight }}>No items yet.</div>
-                        : section.items.map((item) => (
-                            <div key={item.id ?? item.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: `${BRAND.purple}08`, marginBottom: 6 }}>
-                              <div>
-                                <span style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</span>
-                                <span style={{ marginLeft: 12, color: BRAND.textLight, fontSize: 13 }}>{item.price}</span>
-                              </div>
-                              {item.id && (
-                                <button className="mk-danger" onClick={() => handleDeleteItem(section.id!, item)} disabled={deletingItemId === item.id} style={{ padding: "4px 10px", fontSize: 11 }}>
-                                  {deletingItemId === item.id ? "…" : "Remove"}
-                                </button>
-                              )}
-                            </div>
-                          ))
-                      }
-                    </div>
-
-                    {/* Add item form */}
-                    <form onSubmit={(e) => handleAddItem(e, section.id!)} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-                      <div style={{ flex: 2 }}>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Item name</div>
-                        <input
-                          className="mk-input"
-                          style={{ padding: "9px 12px" }}
-                          value={newItem[section.id!]?.name ?? ""}
-                          onChange={(e) => setNewItem((n) => ({ ...n, [section.id!]: { ...n[section.id!] ?? { name: "", price: "" }, name: e.target.value } }))}
-                          placeholder="Espresso"
-                          required
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Price</div>
-                        <input
-                          className="mk-input"
-                          style={{ padding: "9px 12px" }}
-                          value={newItem[section.id!]?.price ?? ""}
-                          onChange={(e) => setNewItem((n) => ({ ...n, [section.id!]: { ...n[section.id!] ?? { name: "", price: "" }, price: e.target.value } }))}
-                          placeholder="R28"
-                          required
-                        />
-                      </div>
-                      <button className="mk-primary" type="submit" style={{ padding: "10px 16px", whiteSpace: "nowrap" }}>+ Add item</button>
-                    </form>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
       </main>
     </div>
   );
