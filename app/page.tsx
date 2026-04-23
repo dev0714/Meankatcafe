@@ -130,7 +130,10 @@ export default function MeanKatCafe() {
         return;
       }
 
-      const data = (await response.json()) as CatCard[];
+      const data = ((await response.json()) as Array<CatCard & { category: string }>).map(c => ({
+        ...c,
+        category: (c.category === "other" ? "adoptable" : c.category) as CatCard["category"],
+      }));
       setCatEntries((current) => mergeCatsByName(current, data));
     };
 
