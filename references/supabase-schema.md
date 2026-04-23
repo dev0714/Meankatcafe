@@ -51,9 +51,52 @@ create table meankatcafe.cats (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null,
-  category text not null check (category in ('resident', 'other')),
+  category text not null check (category in ('resident', 'adoptable', 'dual', 'other')),
   image_path text not null,
   created_by uuid references meankatcafe.users(id),
+  created_at timestamptz not null default now()
+);
+```
+
+### menu_images
+
+Menu/food photos shown in the carousel on the public Menu page.
+
+```sql
+create table meankatcafe.menu_images (
+  id uuid primary key default gen_random_uuid(),
+  image_path text not null,
+  created_by uuid references meankatcafe.users(id),
+  created_at timestamptz not null default now()
+);
+```
+
+### menu_sections
+
+Menu categories (Coffee, Lattes, Desserts, etc.).
+
+```sql
+create table meankatcafe.menu_sections (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  emoji text not null default '🍽️',
+  filter_group text not null default 'Other',
+  display_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+```
+
+### menu_items
+
+Individual items within each section.
+
+```sql
+create table meankatcafe.menu_items (
+  id uuid primary key default gen_random_uuid(),
+  section_id uuid not null references meankatcafe.menu_sections(id) on delete cascade,
+  name text not null,
+  price text not null,
+  display_order int not null default 0,
   created_at timestamptz not null default now()
 );
 ```
@@ -61,11 +104,19 @@ create table meankatcafe.cats (
 ## Storage
 
 - Bucket name: `cat-images`
-- Store uploaded files under `resident/` or `other/`
-- Save the bucket path in `cats.image_path`
+- Cats: stored under `resident/`, `adoptable/`, or `dual/`
+- Menu photos: stored under `menu/`
+- Save the bucket path in the respective table's `image_path` column
 
 ## App Expectations
 
 - `app/api/auth/login` checks `users`
 - `app/api/admin/cats` uploads to Storage and inserts into `cats`
-- `app/api/cats` returns public cat data for the site
+- `app/api/cats` returns public cat data
+- `app/api/menu-images` returns menu carousel images (falls back to built-ins)
+- `app/api/admin/menu-images` uploads menu photos
+- `app/api/admin/menu-images/[id]` deletes a menu photo
+- `app/api/menu` returns menu sections + items (falls back to hardcoded DEFAULT_MENU)
+- `app/api/admin/menu/sections` creates a section
+- `app/api/admin/menu/sections/[id]` deletes a section (cascade) or adds an item (POST)
+- `app/api/admin/menu/items/[id]` deletes a single item

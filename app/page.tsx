@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { emojify } from "@/lib/emojify";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
+import { DEFAULT_MENU, type MenuSection } from "@/lib/menu";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -18,75 +19,6 @@ const BRAND = {
 
   const navLinks = ["Home", "Menu", "Cats", "Story", "About", "Contact"];
 
-const menuSections = [
-  { title: "Coffee", emoji: "☕", items: [
-    { name: "Espresso", price: "R28" }, { name: "Extra Shot", price: "+R7" },
-    { name: "Americano", price: "R32" }, { name: "Cappuccino", price: "R36" },
-    { name: "Flat White", price: "R40" }, { name: "Cortado", price: "Single R35 / Double R37" },
-  ]},
-  { title: "Lattes", emoji: "🥛", items: [
-    { name: "Classic", price: "R38" }, { name: "Spicy Chai", price: "R41" },
-    { name: "Dirty Chai", price: "R45" }, { name: "Vanilla", price: "R68" },
-    { name: "Rolo, Speckled Egg, Milk Tart, Double Choc or Blueberry Choc", price: "R75" },
-  ]},
-  { title: "Mochas", emoji: "🍫", items: [
-    { name: "Classic", price: "R50" }, { name: "Cocoa", price: "R60" }, { name: "White Mocha", price: "R60" },
-  ]},
-  { title: "Hot Chocolate", emoji: "🍵", items: [
-    { name: "Classic", price: "R45" }, { name: "Double Chocolate", price: "R60" },
-    { name: "White Chocolate", price: "R58" },
-    { name: "Delux Add-Ons: Rolo, Milk Tart, Speckled Egg or Bubblegum", price: "R60" },
-  ]},
-  { title: "Matcha — Hot", emoji: "🍵", items: [
-    { name: "Coconut Matcha Latte", price: "R65" },
-    { name: "Strawberry & Coconut Matcha Latte", price: "R70" },
-    { name: "Choc-Coconut Matcha Fusion", price: "R72" },
-  ]},
-  { title: "Matcha — Cold", emoji: "🧊", items: [
-    { name: "Coconut Matcha Latte", price: "R68" },
-    { name: "Strawberry & Coconut Matcha Latte", price: "R70" },
-    { name: "Choc-Coconut Matcha Fusion", price: "R75" },
-    { name: "Coconut Matcha Crusher", price: "R75" },
-  ]},
-  { title: "Crushers", emoji: "🧃", items: [
-    { name: "Strawberry", price: "R70" }, { name: "Peach", price: "R70" },
-    { name: "Raspberry Dragonfruit", price: "R70" }, { name: "Mixed Berry", price: "R70" },
-    { name: "Mango", price: "R70" }, { name: "Passion Fruit", price: "R65" },
-    { name: "Pear Elderflower", price: "R70" },
-  ]},
-  { title: "Frappes", emoji: "🥤", items: [
-    { name: "Coffee", price: "R55" }, { name: "White Chocolate", price: "R60" },
-    { name: "Bubble Gum", price: "R70" }, { name: "Milk Tart", price: "R70" },
-    { name: "Iced Cappuccino", price: "R67" },
-  ]},
-  { title: "Milkshakes", emoji: "🥛", items: [
-    { name: "Vanilla, Strawberry, Chocolate or Bubblegum", price: "R55" },
-    { name: "Double Chocolate", price: "R65" }, { name: "Mango", price: "R70" },
-    { name: "Rolo, Milk Tart, Speckled Egg, Unicorn or Mixed Berry", price: "R75" },
-  ]},
-  { title: "Mini Pitas", emoji: "🥙", items: [
-    { name: "Tender chicken with Middle Eastern spices, tomatoes, onions & tahini\nFlavours: Middle Eastern · Spicy · Mediterranean with Pineapple · Lemon & Herb", price: "R65" },
-  ]},
-  { title: "Crumble Biscuits", emoji: "🍪", items: [
-    { name: "Chocolate", price: "R45" }, { name: "Triple Choc", price: "R50" },
-    { name: "Oreo Delight", price: "R50" }, { name: "Smores", price: "R50" },
-    { name: "Lotus Biscoff Delight", price: "R55" }, { name: "Pistachio", price: "R55" },
-    { name: "Nutella Choc Chip", price: "R55" },
-    { name: "Mini Choc Chip Cookies", price: "Regular R45 / Large R65" },
-  ]},
-  { title: "Desserts", emoji: "🍰", items: [
-    { name: "Chocolate Cake", price: "R55" }, { name: "Chocolate Cheesecake", price: "R80" },
-    { name: "Brownie", price: "R60" }, { name: "Kataifi Brownie", price: "R85" },
-    { name: "Brown Butter Almond Cake", price: "R65" }, { name: "Tiramisu Buns", price: "R85" },
-    { name: "Cinnamon Buns", price: "R60" }, { name: "Waffle Sticks (ask for topping options)", price: "R80" },
-  ]},
-];
-
-const menuGroupMap = {
-  "Coffee & Hot": ["Coffee", "Lattes", "Mochas", "Hot Chocolate", "Matcha — Hot"],
-  "Cold Drinks": ["Matcha — Cold", "Crushers", "Frappes", "Milkshakes"],
-  "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
-};
 
 function seededPawPrints() {
   let s = 2847;
@@ -121,6 +53,8 @@ export default function MeanKatCafe() {
   const [catFilter, setCatFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
   const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [menuData, setMenuData] = useState<MenuSection[]>(DEFAULT_MENU);
+  const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
@@ -141,11 +75,21 @@ export default function MeanKatCafe() {
     loadCats();
   }, []);
 
-  const navigate = (p) => { setPage(p); setMobileOpen(false); };
+  useEffect(() => {
+    fetch("/api/menu").then(r => r.ok ? r.json() : null).then((data: MenuSection[] | null) => {
+      if (data && data.length > 0 && data[0].id) setMenuData(data);
+    }).catch(() => {});
+    fetch("/api/menu-images").then(r => r.ok ? r.json() : null).then((data) => {
+      if (data && data.length > 0) setMenuImages(data);
+    }).catch(() => {});
+  }, []);
 
+  const navigate = (p: string) => { setPage(p); setMobileOpen(false); };
+
+  const menuGroups = [...new Set(menuData.map(s => s.filterGroup).filter(Boolean))];
   const visibleSections = menuFilter === "All"
-    ? menuSections
-    : menuSections.filter(s => menuGroupMap[menuFilter]?.includes(s.title));
+    ? menuData
+    : menuData.filter(s => s.filterGroup === menuFilter);
   const visibleCats = catFilter === "All"
     ? catEntries
     : catEntries.filter(cat => cat.category === catFilter);
@@ -378,14 +322,44 @@ export default function MeanKatCafe() {
               </p>
             </div>
             
-            {/* Full Menu Images */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "clamp(16px, 4vw, 28px)", marginBottom: 48 }}>
-              <div style={{ background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 12px 40px rgba(155,142,196,0.2)", transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)" }} onMouseOver={e => { e.currentTarget.style.transform = "translateY(-8px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(155,142,196,0.35)"; }} onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(155,142,196,0.2)"; }}>
-                <img src="/menu1.jpg" alt="MeanKat Cafe Menu - Matcha, Pitas, Biscuits, Desserts" style={{ width: "100%", height: "auto", display: "block" }} />
+            {/* Menu Photo Carousel */}
+            <div style={{ position: "relative", marginBottom: 48 }}>
+              <div style={{ display: "flex", gap: "clamp(14px, 3vw, 22px)", overflowX: "auto", scrollSnapType: "x mandatory", paddingBottom: 12, scrollbarWidth: "thin", scrollbarColor: `${BRAND.purple} rgba(155,142,196,0.15)` }}>
+                {menuImages.map((img) => (
+                  <div key={img.id} style={{ flex: "0 0 clamp(260px, 42vw, 520px)", scrollSnapAlign: "start", background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 8px 28px rgba(155,142,196,0.18)" }}>
+                    <img src={img.url} alt="MeanKat menu" style={{ width: "100%", height: "auto", display: "block" }} />
+                  </div>
+                ))}
               </div>
-              <div style={{ background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 12px 40px rgba(155,142,196,0.2)", transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)" }} onMouseOver={e => { e.currentTarget.style.transform = "translateY(-8px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(155,142,196,0.35)"; }} onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(155,142,196,0.2)"; }}>
-                <img src="/menu2.jpg" alt="MeanKat Cafe Menu - Coffee, Lattes, Mochas, Drinks, Frappes" style={{ width: "100%", height: "auto", display: "block" }} />
-              </div>
+            </div>
+
+            {/* Menu filter chips */}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 28 }}>
+              {["All", ...menuGroups].map((group) => (
+                <button key={group} className={`mk-filter ${menuFilter === group ? "on" : ""}`} onClick={() => setMenuFilter(group)}>
+                  {group}
+                </button>
+              ))}
+            </div>
+
+            {/* Menu item sections */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "clamp(14px, 3vw, 20px)", marginBottom: 48 }}>
+              {visibleSections.map((section) => (
+                <div key={section.title} style={{ background: BRAND.white, border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 16, padding: "clamp(18px, 3vw, 24px)", boxShadow: "0 4px 16px rgba(155,142,196,0.08)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <span style={{ fontSize: 22 }}>{section.emoji}</span>
+                    <div style={{ fontWeight: 900, fontSize: "clamp(15px, 2.5vw, 17px)", color: BRAND.text }}>{section.title}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {section.items.map((item, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, paddingBottom: 8, borderBottom: `1px solid ${BRAND.purpleLight}30` }}>
+                        <span style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.5, flex: 1 }}>{item.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: BRAND.purple, whiteSpace: "nowrap" }}>{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 16, padding: "clamp(20px, 4vw, 26px) clamp(20px, 4vw, 30px)", display: "flex", gap: 18, alignItems: "flex-start", boxShadow: "0 8px 24px rgba(240,216,74,0.2)", flexWrap: "wrap" }}>
