@@ -235,13 +235,29 @@ export default function MeanKatCafe() {
             >
               <defs>
                 <g id="cat-paw">
-                  {/* main metacarpal pad — wide lobed shape */}
-                  <path d="M0,22 C-22,22 -36,11 -36,-4 C-36,-20 -23,-27 -10,-22 C-6,-20 -2,-15 0,-11 C2,-15 6,-20 10,-22 C23,-27 36,-20 36,-4 C36,11 22,22 0,22 Z"/>
-                  {/* four toe pads */}
-                  <ellipse cx="-37" cy="-25" rx="9" ry="13" transform="rotate(-35 -37 -25)"/>
-                  <ellipse cx="-17" cy="-38" rx="8" ry="11" transform="rotate(-12 -17 -38)"/>
-                  <ellipse cx="17" cy="-38" rx="8" ry="11" transform="rotate(12 17 -38)"/>
-                  <ellipse cx="37" cy="-25" rx="9" ry="13" transform="rotate(35 37 -25)"/>
+                  {/*
+                    Paw centered at (0,0) via translate(-50,-52).
+                    Outer body: rounded cartoon mitt with 3 toe bumps at top.
+                    Inner pad shapes cut out via evenodd — matches reference cartoon silhouette.
+                  */}
+                  <g transform="translate(-50,-52)">
+                    <path fillRule="evenodd" d={[
+                      "M 50,92 C 34,92 14,80 13,63 C 12,50 18,45 21,43",
+                      "C 11,39 9,28 13,20 C 17,12 29,10 36,17",
+                      "C 39,20 41,26 44,24 C 46,14 54,14 56,24",
+                      "C 59,26 61,20 64,17 C 71,10 83,12 87,20",
+                      "C 91,28 89,39 79,43 C 82,45 88,50 87,63",
+                      "C 86,80 66,92 50,92 Z",
+                      "M 50,53 C 63,53 72,61 72,70 C 72,80 63,87 50,87",
+                      "C 37,87 28,80 28,70 C 28,61 37,53 50,53 Z",
+                      "M 26,40 C 32,40 35,43 35,47 C 35,52 32,55 26,55",
+                      "C 20,55 17,52 17,47 C 17,43 20,40 26,40 Z",
+                      "M 50,32 C 56,32 59,36 59,40 C 59,44 56,48 50,48",
+                      "C 44,48 41,44 41,40 C 41,36 44,32 50,32 Z",
+                      "M 74,40 C 80,40 83,43 83,47 C 83,52 80,55 74,55",
+                      "C 68,55 65,52 65,47 C 65,43 68,40 74,40 Z",
+                    ].join(" ")}/>
+                  </g>
                 </g>
               </defs>
               {PAW_PRINTS.map((p, i) => (
