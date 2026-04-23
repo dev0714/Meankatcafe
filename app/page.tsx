@@ -95,14 +95,14 @@ function seededPawPrints() {
   };
   return Array.from({ length: 20 }, (_, i) => {
     const xr = rand();
-    // Zone away from the hero text column (roughly 18–55% x)
+    // Zone away from hero text column (≈18–55% x)
     const x = i % 3 === 0 ? xr * 16 : 56 + xr * 42;
     return {
       x,
-      y: rand() * 92,
+      y: rand() * 90,
       r: rand() * 360 - 180,
-      s: 0.6 + rand() * 0.9,
-      o: 0.08 + rand() * 0.10,
+      s: 0.55 + rand() * 0.95,
+      o: 0.18 + rand() * 0.22,
     };
   });
 }
@@ -226,29 +226,41 @@ export default function MeanKatCafe() {
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
             
-            {/* Scattered paw prints — black silhouette on white; multiply blends white away */}
+            {/* Scattered paw prints — 5 purple ellipses per paw, each pad floats independently */}
             {PAW_PRINTS.map((p, i) => {
-              const size = Math.round(90 * p.s);
+              const size = Math.round(100 * p.s);
               return (
                 <div
                   key={i}
                   aria-hidden="true"
                   style={{
                     position: "absolute",
-                    width: size,
-                    height: size,
                     left: `${p.x}%`,
                     top: `${p.y}%`,
                     transform: `translate(-50%,-50%) rotate(${p.r}deg)`,
-                    backgroundImage: "url('/paw.jpg')",
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
                     opacity: p.o,
-                    mixBlendMode: "multiply",
                     pointerEvents: "none",
                   }}
-                />
+                >
+                  {/* viewBox gives 8-10px gap between each pad — "apart" look */}
+                  <svg width={size} height={size} viewBox="-60 -72 120 112" overflow="visible" style={{ display: "block" }}>
+                    {/* main metacarpal pad */}
+                    <ellipse cx="0" cy="20" rx="28" ry="22" fill={BRAND.purple}
+                      style={{ animation: "floatSlow 3.0s ease-in-out infinite 0.0s" }}/>
+                    {/* left outer toe */}
+                    <ellipse cx="-38" cy="-22" rx="13" ry="15" fill={BRAND.purple}
+                      style={{ animation: "floatSlow 3.3s ease-in-out infinite 0.3s" }}/>
+                    {/* left inner toe */}
+                    <ellipse cx="-14" cy="-47" rx="12" ry="14" fill={BRAND.purple}
+                      style={{ animation: "floatSlow 2.8s ease-in-out infinite 0.6s" }}/>
+                    {/* right inner toe */}
+                    <ellipse cx="14" cy="-47" rx="12" ry="14" fill={BRAND.purple}
+                      style={{ animation: "floatSlow 3.1s ease-in-out infinite 0.9s" }}/>
+                    {/* right outer toe */}
+                    <ellipse cx="38" cy="-22" rx="13" ry="15" fill={BRAND.purple}
+                      style={{ animation: "floatSlow 2.9s ease-in-out infinite 1.2s" }}/>
+                  </svg>
+                </div>
               );
             })}
 
