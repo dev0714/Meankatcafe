@@ -87,6 +87,28 @@ const menuGroupMap = {
   "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
 };
 
+function seededPawPrints() {
+  let s = 2847;
+  const rand = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) | 0;
+    return (s >>> 0) / 4294967296;
+  };
+  return Array.from({ length: 20 }, (_, i) => {
+    const xr = rand();
+    // Zone away from the hero text column (roughly 18–55% x)
+    const x = i % 3 === 0 ? xr * 16 : 56 + xr * 42;
+    return {
+      x,
+      y: rand() * 92,
+      r: rand() * 360 - 180,
+      s: 0.6 + rand() * 0.9,
+      o: 0.08 + rand() * 0.10,
+    };
+  });
+}
+
+const PAW_PRINTS = seededPawPrints();
+
 export default function MeanKatCafe() {
   const [page, setPage] = useState("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -204,6 +226,32 @@ export default function MeanKatCafe() {
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
             
+            {/* Scattered paw prints — black silhouette on white; multiply blends white away */}
+            {PAW_PRINTS.map((p, i) => {
+              const size = Math.round(90 * p.s);
+              return (
+                <div
+                  key={i}
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    width: size,
+                    height: size,
+                    left: `${p.x}%`,
+                    top: `${p.y}%`,
+                    transform: `translate(-50%,-50%) rotate(${p.r}deg)`,
+                    backgroundImage: "url('/paw.jpg')",
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                    opacity: p.o,
+                    mixBlendMode: "multiply",
+                    pointerEvents: "none",
+                  }}
+                />
+              );
+            })}
+
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
             <div style={{ position: "absolute", bottom: "12%", left: "4%", width: 80, height: 80, background: "#9b8ec4", borderRadius: "50%", opacity: 0.08, animation: "floatSlow 5s ease-in-out infinite 0.5s", pointerEvents: "none", display: "none" }} />
