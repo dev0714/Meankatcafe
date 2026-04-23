@@ -87,34 +87,6 @@ const menuGroupMap = {
   "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
 };
 
-function seededPawPrints() {
-  let s = 2847;
-  const rand = () => {
-    s = (Math.imul(s, 1664525) + 1013904223) | 0;
-    return (s >>> 0) / 4294967296;
-  };
-  return Array.from({ length: 18 }, (_, i) => {
-    const xr = rand();
-    // Split into left-edge zone (0–16%) and right zone (56–100%)
-    // so paws don't sit over the hero text column.
-    // Roughly 1 in 3 go left, 2 in 3 go right.
-    const x = i % 3 === 0
-      ? xr * 16
-      : 56 + xr * 44;
-    return {
-      x,
-      y: rand() * 95,
-      r: rand() * 360 - 180,
-      s: 0.65 + rand() * 0.85,
-      o: 0.35 + rand() * 0.35,
-      // variants 1–5 only — skip 0 (white outline paw renders as bare lines via multiply)
-      v: Math.floor(rand() * 5) + 1,
-    };
-  });
-}
-
-const PAW_PRINTS = seededPawPrints();
-
 export default function MeanKatCafe() {
   const [page, setPage] = useState("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -231,36 +203,6 @@ export default function MeanKatCafe() {
             {/* Logo Background */}
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
-            {/* Scattered paw icons — paw-icons.png is a 3-col × 2-row sprite sheet.
-                mix-blend-mode:multiply dissolves the white image background into the hero gradient. */}
-            {PAW_PRINTS.map((p, i) => {
-              const col = p.v % 3;
-              const row = Math.floor(p.v / 3);
-              const size = Math.round(90 * p.s);
-              return (
-                <div
-                  key={i}
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    width: size,
-                    height: size,
-                    left: `${p.x}%`,
-                    top: `${p.y}%`,
-                    transform: `translate(-50%,-50%) rotate(${p.r}deg)`,
-                    backgroundImage: "url('/paw-icons.png')",
-                    backgroundSize: "300% 200%",
-                    backgroundPosition: `${col * 50}% ${row * 100}%`,
-                    backgroundRepeat: "no-repeat",
-                    opacity: p.o,
-                    mixBlendMode: "multiply",
-                    pointerEvents: "none",
-                    border: "none",
-                    outline: "none",
-                  }}
-                />
-              );
-            })}
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
