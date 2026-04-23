@@ -238,22 +238,99 @@ export default function AdminClient() {
 
   if (!auth.user) {
     return (
-      <div style={{ minHeight: "100vh", background: BRAND.cream, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 20, padding: 36, maxWidth: 440, width: "100%", boxShadow: "0 8px 32px rgba(155,142,196,0.15)" }}>
-          <div style={{ fontWeight: 900, fontSize: 28, marginBottom: 6, color: BRAND.text }}>MeanKat Admin</div>
-          <div style={{ color: BRAND.textLight, marginBottom: 24, fontSize: 14 }}>Only approved admins can enter.</div>
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <label>
-              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Email</div>
-              <input className="mk-input" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="admin@meankatcafe.co.za" required />
-            </label>
-            <label>
-              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Password</div>
-              <input className="mk-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Password" required />
-            </label>
-            {auth.error && <div style={{ color: "#b42318", fontSize: 14 }}>{auth.error}</div>}
-            <button className="mk-primary" type="submit">Log in</button>
-          </form>
+      <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'Nunito', sans-serif" }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
+          * { box-sizing: border-box; }
+          .mk-input { width: 100%; border: 1.5px solid ${BRAND.purpleLight}; border-radius: 10px; padding: 12px 14px; font-family: 'Nunito', sans-serif; font-size: 14px; background: ${BRAND.white}; color: ${BRAND.text}; outline: none; transition: all 0.2s; font-weight: 500; }
+          .mk-input:focus { border-color: ${BRAND.purple}; box-shadow: 0 0 0 3px rgba(155,142,196,0.15); }
+          .mk-input::placeholder { color: ${BRAND.purpleLight}; }
+          .tag { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+          .mk-primary { background: linear-gradient(135deg, ${BRAND.purple}, ${BRAND.purpleDark}); color: white; border: none; border-radius: 10px; padding: 13px 22px; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; }
+          .mk-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+          .login-info-pill { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; }
+        `}</style>
+
+        {/* ── Left: Branding panel ── */}
+        <div style={{ flex: 1, background: SIDEBAR_BG, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "clamp(32px, 6vw, 64px)", position: "relative", overflow: "hidden" }}>
+          {/* decorative circles */}
+          <div style={{ position: "absolute", top: -80, right: -80, width: 340, height: 340, borderRadius: "50%", background: "rgba(155,142,196,0.12)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -60, left: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(240,216,74,0.07)", pointerEvents: "none" }} />
+
+          <div>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", fontWeight: 700, letterSpacing: 0.3, marginBottom: 48, transition: "color 0.2s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.85)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
+            >
+              ← Back to site
+            </Link>
+
+            <div style={{ display: "inline-block", background: `${BRAND.yellow}22`, border: `1px solid ${BRAND.yellow}44`, borderRadius: 999, padding: "4px 14px", marginBottom: 20 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: BRAND.yellow }}>Admin Portal</span>
+            </div>
+            <h1 style={{ margin: "0 0 14px", fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 900, color: "white", lineHeight: 1.1 }}>
+              MeanKat<br />Café
+            </h1>
+            <p style={{ margin: "0 0 40px", fontSize: 16, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, maxWidth: 340 }}>
+              Manage your cats, photos, and content — all in one place.
+            </p>
+          </div>
+
+          <div>
+            <div className="login-info-pill">
+              <span style={{ fontSize: 24 }}>🐾</span>
+              <div>
+                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Cat profiles</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Add, remove &amp; categorise cats</div>
+              </div>
+            </div>
+            <div className="login-info-pill">
+              <span style={{ fontSize: 24 }}>📸</span>
+              <div>
+                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Menu photos</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Upload &amp; manage menu images</div>
+              </div>
+            </div>
+            <div className="login-info-pill" style={{ marginBottom: 0 }}>
+              <span style={{ fontSize: 24 }}>🔒</span>
+              <div>
+                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Secure access</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Approved admins only</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: Login form ── */}
+        <div style={{ width: "clamp(340px, 42vw, 520px)", background: BRAND.cream, display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(32px, 5vw, 64px)" }}>
+          <div style={{ width: "100%", maxWidth: 380 }}>
+            <div style={{ marginBottom: 36 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>Sign in</div>
+              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Welcome back</h2>
+              <p style={{ margin: "8px 0 0", fontSize: 14, color: BRAND.textLight }}>Enter your credentials to access the admin panel.</p>
+            </div>
+
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <label>
+                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Email address</div>
+                <input className="mk-input" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="admin@meankatcafe.co.za" required />
+              </label>
+              <label>
+                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Password</div>
+                <input className="mk-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••••" required />
+              </label>
+              {auth.error && (
+                <div style={{ background: "#fff0ee", border: "1px solid #f4c2be", borderRadius: 8, padding: "10px 14px", color: "#b42318", fontSize: 13, fontWeight: 600 }}>
+                  {auth.error}
+                </div>
+              )}
+              <button className="mk-primary" type="submit">Log in →</button>
+            </form>
+
+            <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px solid ${BRAND.purpleLight}50`, fontSize: 12, color: BRAND.textLight, lineHeight: 1.6 }}>
+              Don&apos;t have access? Contact the café owner to get your account approved.
+            </div>
+          </div>
         </div>
       </div>
     );
