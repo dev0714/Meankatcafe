@@ -301,7 +301,7 @@ export default function MeanKatCafe() {
                         width: "clamp(140px, 18vw, 190px)",
                         height: "auto",
                         display: "block",
-                        filter: "drop-shadow(0 6px 12px rgba(58,48,96,0.2))",
+                        filter: "brightness(0) saturate(100%) invert(62%) sepia(20%) saturate(600%) hue-rotate(215deg) brightness(0.88) drop-shadow(0 6px 12px rgba(58,48,96,0.2))",
                       }}
                     />
                   </div>
