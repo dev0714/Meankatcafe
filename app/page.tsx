@@ -292,6 +292,41 @@ export default function MeanKatCafe() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                 {/* Entrance fee */}
                 <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)", position: "relative", overflow: "visible" }}>
+                  {/* Cat sitting on top of the card */}
+                  <div aria-hidden="true" style={{ position: "absolute", top: -78, right: 24, pointerEvents: "none", filter: "drop-shadow(0 6px 14px rgba(58,48,96,0.18))", animation: "floatSlow 4s ease-in-out infinite", zIndex: 10 }}>
+                    <svg width="74" height="80" viewBox="0 0 74 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* tail curling left */}
+                      <path d="M20,76 C2,82 -2,62 14,54" stroke="#7a6fa8" strokeWidth="7" strokeLinecap="round"/>
+                      {/* body */}
+                      <ellipse cx="42" cy="60" rx="24" ry="21" fill="#9b8ec4"/>
+                      {/* head */}
+                      <circle cx="42" cy="26" r="22" fill="#9b8ec4"/>
+                      {/* left ear */}
+                      <polygon points="18,18 26,2 34,20" fill="#9b8ec4"/>
+                      {/* right ear */}
+                      <polygon points="50,20 58,2 66,18" fill="#9b8ec4"/>
+                      {/* left inner ear */}
+                      <polygon points="21,17 26,7 31,18" fill="#c5bce0"/>
+                      {/* right inner ear */}
+                      <polygon points="53,18 58,7 63,17" fill="#c5bce0"/>
+                      {/* eyes — happy squint */}
+                      <path d="M28,22 Q32,18 36,22" stroke="#3a3060" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                      <path d="M48,22 Q52,18 56,22" stroke="#3a3060" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                      {/* nose */}
+                      <path d="M40,30 L42,33 L44,30 Z" fill="#c5bce0"/>
+                      {/* mouth */}
+                      <path d="M39,33 Q42,37 45,33" stroke="#7a6fa8" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                      {/* whiskers left */}
+                      <line x1="12" y1="28" x2="30" y2="30" stroke="#7a6fa8" strokeWidth="1.2" strokeLinecap="round" opacity="0.55"/>
+                      <line x1="12" y1="32" x2="30" y2="32" stroke="#7a6fa8" strokeWidth="1.2" strokeLinecap="round" opacity="0.55"/>
+                      {/* whiskers right */}
+                      <line x1="54" y1="30" x2="72" y2="28" stroke="#7a6fa8" strokeWidth="1.2" strokeLinecap="round" opacity="0.55"/>
+                      <line x1="54" y1="32" x2="72" y2="32" stroke="#7a6fa8" strokeWidth="1.2" strokeLinecap="round" opacity="0.55"/>
+                      {/* front paws resting on card edge */}
+                      <ellipse cx="32" cy="78" rx="9" ry="5" fill="#7a6fa8"/>
+                      <ellipse cx="52" cy="78" rx="9" ry="5" fill="#7a6fa8"/>
+                    </svg>
+                  </div>
                   <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
                   <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 26px)", color: BRAND.text, marginBottom: 18 }}>Visit the Cats 🐱</div>
                   {[["R50", "Per person"], ["R40", "Students · weekdays (card req.)"], ["R40", "Pensioners"], ["Free", "Children under 1 year"]].map(([p, l]) => (
