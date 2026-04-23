@@ -53,6 +53,7 @@ export default function AdminClient() {
   const [menuImageSaving, setMenuImageSaving] = useState(false);
   const [menuImageMsg, setMenuImageMsg] = useState("");
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+  const [hiddenBuiltinIds, setHiddenBuiltinIds] = useState<string[]>([]);
 
   // --- menu items ---
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
@@ -73,6 +74,13 @@ export default function AdminClient() {
         if (Array.isArray(parsed)) setHiddenCatIds(parsed.filter((v) => typeof v === "string"));
       }
     } catch { setHiddenCatIds([]); }
+    try {
+      const stored = window.localStorage.getItem("meankat_hidden_menu_images");
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[];
+        if (Array.isArray(parsed)) setHiddenBuiltinIds(parsed.filter((v) => typeof v === "string"));
+      }
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -97,7 +105,7 @@ export default function AdminClient() {
     if (!auth.user) return;
     fetch("/api/menu-images")
       .then((r) => r.ok ? r.json() : [])
-      .then(setMenuImages)
+      .then((imgs: MenuImage[]) => setMenuImages(imgs.filter((i) => !hiddenBuiltinIds.includes(i.id))))
       .catch(() => {});
   }, [auth.user]);
 
@@ -206,7 +214,11 @@ export default function AdminClient() {
 
   async function handleDeleteMenuImage(img: MenuImage) {
     if (img.id.startsWith("builtin-")) {
-      setMenuImageMsg("Upload at least one image to replace the built-in ones, then they'll stop showing automatically.");
+      if (!confirm("Hide this built-in menu image? It will be removed from the site. You can restore it by clearing your browser data.")) return;
+      const next = [...new Set([...hiddenBuiltinIds, img.id])];
+      setHiddenBuiltinIds(next);
+      try { window.localStorage.setItem("meankat_hidden_menu_images", JSON.stringify(next)); } catch { }
+      setMenuImages((imgs) => imgs.filter((i) => i.id !== img.id));
       return;
     }
     if (!confirm("Delete this menu image?")) return;
@@ -485,7 +497,7 @@ export default function AdminClient() {
                               disabled={deletingImageId === img.id}
                               style={{ marginLeft: "auto" }}
                             >
-                              {deletingImageId === img.id ? "Deleting…" : img.id.startsWith("builtin-") ? "Can't delete" : "Delete"}
+                              {deletingImageId === img.id ? "Deleting…" : "Delete"}
                             </button>
                           </div>
                         </div>

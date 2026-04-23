@@ -80,7 +80,14 @@ export default function MeanKatCafe() {
       if (data && data.length > 0 && data[0].id) setMenuData(data);
     }).catch(() => {});
     fetch("/api/menu-images").then(r => r.ok ? r.json() : null).then((data) => {
-      if (data && data.length > 0) setMenuImages(data);
+      if (data && data.length > 0) {
+        try {
+          const hidden: string[] = JSON.parse(window.localStorage.getItem("meankat_hidden_menu_images") ?? "[]");
+          setMenuImages(data.filter((img: { id: string }) => !hidden.includes(img.id)));
+        } catch {
+          setMenuImages(data);
+        }
+      }
     }).catch(() => {});
   }, []);
 
