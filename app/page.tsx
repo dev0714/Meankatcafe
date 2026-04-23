@@ -316,7 +316,7 @@ export default function MeanKatCafe() {
                 </div>
                 {/* Stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                  {[{ icon: "😾", num: "6", label: "Resident Cats" }, { icon: "☕", num: "30+", label: "Drinks on Menu" }, { icon: "🍰", num: "8+", label: "Fresh Desserts" }, { icon: "📍", num: "DBN", label: "Durban, KZN" }].map(s => (
+                  {[{ icon: "😾", num: String(catEntries.filter(c => c.category === "resident").length || catEntries.length), label: "Resident Cats" }, { icon: "☕", num: "30+", label: "Drinks on Menu" }, { icon: "🍰", num: "8+", label: "Fresh Desserts" }, { icon: "📍", num: "DBN", label: "Durban, KZN" }].map(s => (
                     <div key={s.label} style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 14, padding: "clamp(14px, 2vw, 18px)", textAlign: "center", transition: "all 0.3s", cursor: "pointer", boxShadow: "0 4px 12px rgba(155,142,196,0.08)" }}>
                       <div style={{ fontSize: "clamp(18px, 4vw, 22px)", marginBottom: 6 }}>{s.icon}</div>
                       <div style={{ fontWeight: 900, fontSize: "clamp(16px, 3vw, 22px)", background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{s.num}</div>
