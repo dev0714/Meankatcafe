@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { emojify } from "node-emoji";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
 
 const BRAND = {
@@ -453,7 +454,7 @@ export default function MeanKatCafe() {
                     Currently: {cat.mood || "Unknown mood"}
                   </div>
                   <div className="cat-desc-scroll" style={{ marginTop: 2, marginBottom: 2 }}>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{cat.description}</p>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{emojify(cat.description)}</p>
                   </div>
                   {cat.images && cat.images.length > 1 && (
                     <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
@@ -750,7 +751,7 @@ export default function MeanKatCafe() {
               </div>
             )}
             <div style={{ overflowY: "auto", marginTop: 8, paddingRight: 4, flexShrink: 1, scrollbarWidth: "thin", scrollbarColor: "#9b8ec4 rgba(155,142,196,0.15)" }}>
-              <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9 }}>{modalCat.description}</p>
+              <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9 }}>{emojify(modalCat.description)}</p>
             </div>
           </div>
         </div>
