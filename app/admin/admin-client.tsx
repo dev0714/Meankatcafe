@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, categoryLabel } from "@/lib/cats";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, categoryLabel } from "@/lib/cats";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -28,10 +28,10 @@ type AuthState = {
   error: string;
 };
 
-const emptyUpload = {
+const emptyUpload: { name: string; description: string; category: CatCategory } = {
   name: "",
   description: "",
-  category: "resident" as const,
+  category: "resident",
 };
 
 const HIDDEN_CAT_IDS_STORAGE_KEY = "meankat_hidden_cat_ids";
@@ -304,7 +304,7 @@ export default function AdminClient() {
                   <select
                     className="mk-input"
                     value={upload.category}
-                    onChange={(event) => setUpload((current) => ({ ...current, category: event.target.value as "resident" | "adoptable" | "dual" }))}
+                    onChange={(event) => setUpload((current) => ({ ...current, category: event.target.value as CatCategory }))}
                   >
                     {CAT_CATEGORY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -353,7 +353,7 @@ export default function AdminClient() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
                   {Object.entries(groupedCats).map(([group, items]) => (
                     <div key={group} style={{ background: "rgba(155,142,196,0.06)", borderRadius: 16, padding: 16 }}>
-                      <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>{categoryLabel(group as "resident" | "adoptable" | "dual")} cats</div>
+                      <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>{categoryLabel(group as CatCategory)} cats</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {items.length > 0 ? items.map((cat) => (
                           <div key={cat.id} style={{ padding: 12, background: BRAND.white, borderRadius: 12 }}>
