@@ -116,6 +116,9 @@ importers:
       embla-carousel-react:
         specifier: 8.6.0
         version: 8.6.0(react@19.2.4)
+      emojilib:
+        specifier: ^3.0.12
+        version: 3.0.12
       input-otp:
         specifier: 1.4.2
         version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -128,6 +131,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      node-emoji:
+        specifier: ^1.11.0
+        version: 1.11.0
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -1413,6 +1419,9 @@ packages:
   embla-carousel@8.6.0:
     resolution: {integrity: sha512-SjWyZBHJPbqxHOzckOfo8lHisEaJWmwd23XppYFYVh10bU66/Pn5tkVkbkCMZVdbUE5eTCI2nD8OyIP4Z+uwkA==}
 
+  emojilib@3.0.12:
+    resolution: {integrity: sha512-b52zmWqBwv9juk6lKaTdYxRQSnpsnT58Sj/x6fE8fZWcsNd43gAPXUbtjLKJvVlPS9FFNCN6nB9Vh1xipnCzXw==}
+
   enhanced-resolve@5.19.0:
     resolution: {integrity: sha512-phv3E1Xl4tQOShqSte26C7Fl84EwUdZsyOuSSk9qtAGyyQs2s3jJzComh+Abf4g187lUUAvH+H26omrqia2aGg==}
     engines: {node: '>=10.13.0'}
@@ -1579,6 +1588,9 @@ packages:
         optional: true
       sass:
         optional: true
+
+  node-emoji@1.11.0:
+    resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
@@ -2948,6 +2960,8 @@ snapshots:
 
   embla-carousel@8.6.0: {}
 
+  emojilib@3.0.12: {}
+
   enhanced-resolve@5.19.0:
     dependencies:
       graceful-fs: 4.2.11
@@ -3071,6 +3085,10 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  node-emoji@1.11.0:
+    dependencies:
+      lodash: 4.17.23
 
   node-releases@2.0.27: {}
 
