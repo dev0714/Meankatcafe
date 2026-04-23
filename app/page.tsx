@@ -93,12 +93,13 @@ function seededPawPrints() {
     s = (Math.imul(s, 1664525) + 1013904223) | 0;
     return (s >>> 0) / 4294967296;
   };
-  return Array.from({ length: 22 }, () => ({
+  return Array.from({ length: 20 }, () => ({
     x: rand() * 100,
     y: rand() * 100,
     r: rand() * 360 - 180,
-    s: 0.9 + rand() * 0.9,
-    o: 0.10 + rand() * 0.14,
+    s: 0.7 + rand() * 0.9,   // size multiplier → base 90px
+    o: 0.30 + rand() * 0.40, // opacity — higher since real image
+    v: Math.floor(rand() * 6), // which of the 6 paw variants (3×2 sprite)
   }));
 }
 
@@ -220,70 +221,34 @@ export default function MeanKatCafe() {
             {/* Logo Background */}
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 1000 700"
-              preserveAspectRatio="none"
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                mixBlendMode: "multiply",
-                pointerEvents: "none",
-              }}
-            >
-              <defs>
-                <g id="cat-paw">
-                  {/*
-                    Centered at origin via translate(-50,-51).
-                    Outer contour: ONE continuous clockwise path that traces the rounded
-                    mitt body + 3 toe bumps without any overlapping subpaths (prevents
-                    evenodd from punching holes in the body).
-                    Pad subpaths follow as separate enclosed shapes — evenodd makes them holes.
-                  */}
-                  <g transform="translate(-50,-51)">
-                    <path fillRule="evenodd" d={[
-                      // ── outer silhouette (single continuous clockwise path) ──
-                      "M 50,88",
-                      "C 68,88 85,80 86,65",       // lower-right body
-                      "C 87,55 88,48 89,42",        // right side up
-                      "C 90,33 85,22 76,22",        // into right toe peak
-                      "C 67,22 64,33 65,42",        // out of right toe
-                      "C 64,43 63,44 62,44",        // pinch between right & centre toes
-                      "C 61,38 57,14 50,14",        // into centre toe peak
-                      "C 43,14 39,38 38,44",        // out of centre toe
-                      "C 37,44 36,43 35,42",        // pinch between centre & left toes
-                      "C 36,33 33,22 24,22",        // into left toe peak
-                      "C 15,22 10,33 11,42",        // out of left toe
-                      "C 12,48 13,55 14,65",        // left side down
-                      "C 15,80 32,88 50,88 Z",      // lower-left body back to start
-                      // ── main metacarpal pad (hole) ──
-                      "M 50,53 C 61,53 69,60 69,69 C 69,78 61,85 50,85",
-                      "C 39,85 31,78 31,69 C 31,60 39,53 50,53 Z",
-                      // ── left toe pad (hole) ──
-                      "M 26,39 C 31,39 34,43 34,47 C 34,51 31,54 26,54",
-                      "C 21,54 18,51 18,47 C 18,43 21,39 26,39 Z",
-                      // ── centre toe pad (hole) ──
-                      "M 50,28 C 56,28 59,32 59,36 C 59,40 56,43 50,43",
-                      "C 44,43 41,40 41,36 C 41,32 44,28 50,28 Z",
-                      // ── right toe pad (hole) ──
-                      "M 74,39 C 79,39 82,43 82,47 C 82,51 79,54 74,54",
-                      "C 69,54 66,51 66,47 C 66,43 69,39 74,39 Z",
-                    ].join(" ")}/>
-                  </g>
-                </g>
-              </defs>
-              {PAW_PRINTS.map((p, i) => (
-                <use
+            {/* Scattered paw icons — paw-icons.png is a 3-col × 2-row sprite sheet.
+                mix-blend-mode:multiply dissolves the white image background into the hero gradient. */}
+            {PAW_PRINTS.map((p, i) => {
+              const col = p.v % 3;
+              const row = Math.floor(p.v / 3);
+              const size = Math.round(90 * p.s);
+              return (
+                <div
                   key={i}
-                  href="#cat-paw"
-                  transform={`translate(${p.x * 10},${p.y * 7}) rotate(${p.r}) scale(${p.s})`}
-                  fill="#7a6fa8"
-                  opacity={p.o}
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    width: size,
+                    height: size,
+                    left: `${p.x}%`,
+                    top: `${p.y}%`,
+                    transform: `translate(-50%,-50%) rotate(${p.r}deg)`,
+                    backgroundImage: "url('/paw-icons.png')",
+                    backgroundSize: "300% 200%",
+                    backgroundPosition: `${col * 50}% ${row * 100}%`,
+                    backgroundRepeat: "no-repeat",
+                    opacity: p.o,
+                    mixBlendMode: "multiply",
+                    pointerEvents: "none",
+                  }}
                 />
-              ))}
-            </svg>
+              );
+            })}
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
