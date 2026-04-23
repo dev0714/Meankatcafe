@@ -87,6 +87,23 @@ const menuGroupMap = {
   "Food & Sweets": ["Mini Pitas", "Crumble Biscuits", "Desserts"],
 };
 
+function seededPawPrints() {
+  let s = 2847;
+  const rand = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) | 0;
+    return (s >>> 0) / 4294967296;
+  };
+  return Array.from({ length: 48 }, () => ({
+    x: rand() * 100,
+    y: rand() * 100,
+    r: rand() * 360 - 180,
+    s: 0.5 + rand() * 1.0,
+    o: 0.07 + rand() * 0.17,
+  }));
+}
+
+const PAW_PRINTS = seededPawPrints();
+
 export default function MeanKatCafe() {
   const [page, setPage] = useState("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -203,21 +220,40 @@ export default function MeanKatCafe() {
             {/* Logo Background */}
             <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
 
-            <div
+            <svg
               aria-hidden="true"
+              viewBox="0 0 1000 700"
+              preserveAspectRatio="none"
               style={{
                 position: "absolute",
                 inset: 0,
-                backgroundImage: "url('/paw-pattern.svg')",
-                backgroundRepeat: "repeat",
-                backgroundSize: "540px 540px",
-                backgroundPosition: "center",
-                opacity: 0.28,
+                width: "100%",
+                height: "100%",
                 mixBlendMode: "multiply",
                 pointerEvents: "none",
-                animation: "floatSlow 9s ease-in-out infinite",
               }}
-            />
+            >
+              <defs>
+                <g id="cat-paw">
+                  {/* main metacarpal pad — wide lobed shape */}
+                  <path d="M0,22 C-22,22 -36,11 -36,-4 C-36,-20 -23,-27 -10,-22 C-6,-20 -2,-15 0,-11 C2,-15 6,-20 10,-22 C23,-27 36,-20 36,-4 C36,11 22,22 0,22 Z"/>
+                  {/* four toe pads */}
+                  <ellipse cx="-37" cy="-25" rx="9" ry="13" transform="rotate(-35 -37 -25)"/>
+                  <ellipse cx="-17" cy="-38" rx="8" ry="11" transform="rotate(-12 -17 -38)"/>
+                  <ellipse cx="17" cy="-38" rx="8" ry="11" transform="rotate(12 17 -38)"/>
+                  <ellipse cx="37" cy="-25" rx="9" ry="13" transform="rotate(35 37 -25)"/>
+                </g>
+              </defs>
+              {PAW_PRINTS.map((p, i) => (
+                <use
+                  key={i}
+                  href="#cat-paw"
+                  transform={`translate(${p.x * 10},${p.y * 7}) rotate(${p.r}) scale(${p.s})`}
+                  fill="#7a6fa8"
+                  opacity={p.o}
+                />
+              ))}
+            </svg>
             
             {/* Decorative elements */}
             <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
