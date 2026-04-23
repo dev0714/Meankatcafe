@@ -293,7 +293,7 @@ export default function MeanKatCafe() {
                 {/* Entrance fee */}
                 <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)", position: "relative", overflow: "visible" }}>
                   {/* Cat lying on top of the card — transparent PNG, no white box */}
-                  <div aria-hidden="true" style={{ position: "absolute", top: -85, left: -10, pointerEvents: "none", zIndex: 10, animation: "floatSlow 4s ease-in-out infinite" }}>
+                  <div aria-hidden="true" style={{ position: "absolute", top: -48, left: 16, pointerEvents: "none", zIndex: 10, animation: "floatSlow 4s ease-in-out infinite" }}>
                     <img
                       src="/cat-lie-down.png"
                       alt=""
