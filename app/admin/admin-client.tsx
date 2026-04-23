@@ -223,7 +223,8 @@ export default function AdminClient() {
 
   const groupedCats = {
     resident: cats.filter((cat) => cat.category === "resident"),
-    other: cats.filter((cat) => cat.category === "other"),
+    adoptable: cats.filter((cat) => cat.category === "adoptable"),
+    dual: cats.filter((cat) => cat.category === "dual"),
   };
 
   return (
@@ -303,7 +304,7 @@ export default function AdminClient() {
                   <select
                     className="mk-input"
                     value={upload.category}
-                    onChange={(event) => setUpload((current) => ({ ...current, category: event.target.value as "resident" | "other" }))}
+                    onChange={(event) => setUpload((current) => ({ ...current, category: event.target.value as "resident" | "adoptable" | "dual" }))}
                   >
                     {CAT_CATEGORY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -347,12 +348,12 @@ export default function AdminClient() {
               <div style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 20, padding: 28, boxShadow: "0 8px 24px rgba(155,142,196,0.12)" }}>
                 <h2 style={{ marginTop: 0 }}>Public cats preview</h2>
                 <p style={{ color: BRAND.textLight, lineHeight: 1.8 }}>
-                  Resident cats and other cats both show on the public site. Uploaded cats will appear after the next refresh.
+                  Resident, adoptable, and dual adoption cats all show on the public site. Uploaded cats will appear after the next refresh.
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
                   {Object.entries(groupedCats).map(([group, items]) => (
                     <div key={group} style={{ background: "rgba(155,142,196,0.06)", borderRadius: 16, padding: 16 }}>
-                      <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>{categoryLabel(group as "resident" | "other")} cats</div>
+                      <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>{categoryLabel(group as "resident" | "adoptable" | "dual")} cats</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {items.length > 0 ? items.map((cat) => (
                           <div key={cat.id} style={{ padding: 12, background: BRAND.white, borderRadius: 12 }}>

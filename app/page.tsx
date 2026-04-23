@@ -117,7 +117,7 @@ export default function MeanKatCafe() {
   const [submitted, setSubmitted] = useState(false);
   const [selectedCatImage, setSelectedCatImage] = useState<Record<string, number>>({});
   const [catEntries, setCatEntries] = useState<CatCard[]>(DEFAULT_CATS);
-  const [catFilter, setCatFilter] = useState<"All" | "resident" | "other">("All");
+  const [catFilter, setCatFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
@@ -407,7 +407,7 @@ export default function MeanKatCafe() {
                 Meet the <span style={{ color: BRAND.purple }}>Residents.</span>
               </h1>
               <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", maxWidth: 460, lineHeight: 1.7 }}>
-                They run this place. We just make the coffee. Use the filters below to switch between resident cats and other cats.
+                They run this place. We just make the coffee. Use the filters below to browse resident cats, adoptable cats, and dual adoptions.
               </p>
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
@@ -415,7 +415,7 @@ export default function MeanKatCafe() {
                 <button
                   key={value}
                   className={`mk-filter ${catFilter === value ? "on" : ""}`}
-                  onClick={() => setCatFilter(value as "All" | "resident" | "other")}
+                  onClick={() => setCatFilter(value as "All" | "resident" | "adoptable" | "dual")}
                 >
                   {value === "All" ? "All Cats" : CAT_CATEGORY_OPTIONS.find((option) => option.value === value)?.label}
                 </button>
@@ -440,8 +440,8 @@ export default function MeanKatCafe() {
                   <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 8 }}>
                     {cat.breed || categoryLabel(cat.category)}
                   </div>
-                  <div style={{ display: "inline-flex", marginBottom: 10, padding: "6px 12px", borderRadius: 999, background: cat.category === "resident" ? "rgba(155,142,196,0.12)" : "rgba(240,216,74,0.2)", color: BRAND.text, fontSize: 11, fontWeight: 700 }}>
-                    {cat.category === "resident" ? "Resident cat" : "Other cat"}
+                  <div style={{ display: "inline-flex", marginBottom: 10, padding: "6px 12px", borderRadius: 999, background: cat.category === "resident" ? "rgba(155,142,196,0.12)" : cat.category === "dual" ? "rgba(155,142,196,0.22)" : "rgba(240,216,74,0.2)", color: BRAND.text, fontSize: 11, fontWeight: 700 }}>
+                    {cat.category === "resident" ? "Resident cat" : cat.category === "dual" ? "Dual adoption" : "Adoptable cat"}
                   </div>
                   <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginBottom: 14, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
                     Currently: {cat.mood || "Unknown mood"}
@@ -469,7 +469,7 @@ export default function MeanKatCafe() {
             <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, borderRadius: 20, padding: "36px 40px", color: "white", textAlign: "center", boxShadow: "0 12px 40px rgba(155,142,196,0.2)" }}>
               <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 10 }}>🐾 Resident cats and visitors welcome</div>
               <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.8, maxWidth: 580, margin: "0 auto" }}>
-                Resident cats are the house favourites. Other cats can be uploaded by approved admins and still appear on the public site. Please don't disturb sleeping cats, and never force an interaction — they'll come to you if they feel like it. They almost certainly won't.
+                Resident cats are the house favourites. Adoptable cats and dual adoptions can be uploaded by approved admins and still appear on the public site. Please don't disturb sleeping cats, and never force an interaction — they'll come to you if they feel like it. They almost certainly won't.
               </div>
             </div>
           </div>

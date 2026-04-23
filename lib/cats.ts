@@ -1,4 +1,4 @@
-export type CatCategory = "resident" | "other";
+export type CatCategory = "resident" | "adoptable" | "dual";
 
 export type CatCard = {
   id: string;
@@ -14,7 +14,8 @@ export type CatCard = {
 
 export const CAT_CATEGORY_OPTIONS: Array<{ value: CatCategory; label: string }> = [
   { value: "resident", label: "Resident Cats" },
-  { value: "other", label: "Other Cats" },
+  { value: "adoptable", label: "Adoptable Cats" },
+  { value: "dual", label: "Dual Adoptions" },
 ];
 
 export const DEFAULT_CATS: CatCard[] = [
@@ -54,7 +55,9 @@ export const DEFAULT_CATS: CatCard[] = [
 ];
 
 export function categoryLabel(category: CatCategory) {
-  return category === "resident" ? "Resident" : "Other";
+  if (category === "resident") return "Resident";
+  if (category === "dual") return "Dual Adoption";
+  return "Adoptable";
 }
 
 export function isUploadedCat(cat: Pick<CatCard, "createdAt">) {
