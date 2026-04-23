@@ -93,12 +93,12 @@ function seededPawPrints() {
     s = (Math.imul(s, 1664525) + 1013904223) | 0;
     return (s >>> 0) / 4294967296;
   };
-  return Array.from({ length: 48 }, () => ({
+  return Array.from({ length: 22 }, () => ({
     x: rand() * 100,
     y: rand() * 100,
     r: rand() * 360 - 180,
-    s: 0.5 + rand() * 1.0,
-    o: 0.07 + rand() * 0.17,
+    s: 0.9 + rand() * 0.9,
+    o: 0.10 + rand() * 0.14,
   }));
 }
 
@@ -236,26 +236,40 @@ export default function MeanKatCafe() {
               <defs>
                 <g id="cat-paw">
                   {/*
-                    Paw centered at (0,0) via translate(-50,-52).
-                    Outer body: rounded cartoon mitt with 3 toe bumps at top.
-                    Inner pad shapes cut out via evenodd — matches reference cartoon silhouette.
+                    Centered at origin via translate(-50,-51).
+                    Outer contour: ONE continuous clockwise path that traces the rounded
+                    mitt body + 3 toe bumps without any overlapping subpaths (prevents
+                    evenodd from punching holes in the body).
+                    Pad subpaths follow as separate enclosed shapes — evenodd makes them holes.
                   */}
-                  <g transform="translate(-50,-52)">
+                  <g transform="translate(-50,-51)">
                     <path fillRule="evenodd" d={[
-                      "M 50,92 C 34,92 14,80 13,63 C 12,50 18,45 21,43",
-                      "C 11,39 9,28 13,20 C 17,12 29,10 36,17",
-                      "C 39,20 41,26 44,24 C 46,14 54,14 56,24",
-                      "C 59,26 61,20 64,17 C 71,10 83,12 87,20",
-                      "C 91,28 89,39 79,43 C 82,45 88,50 87,63",
-                      "C 86,80 66,92 50,92 Z",
-                      "M 50,53 C 63,53 72,61 72,70 C 72,80 63,87 50,87",
-                      "C 37,87 28,80 28,70 C 28,61 37,53 50,53 Z",
-                      "M 26,40 C 32,40 35,43 35,47 C 35,52 32,55 26,55",
-                      "C 20,55 17,52 17,47 C 17,43 20,40 26,40 Z",
-                      "M 50,32 C 56,32 59,36 59,40 C 59,44 56,48 50,48",
-                      "C 44,48 41,44 41,40 C 41,36 44,32 50,32 Z",
-                      "M 74,40 C 80,40 83,43 83,47 C 83,52 80,55 74,55",
-                      "C 68,55 65,52 65,47 C 65,43 68,40 74,40 Z",
+                      // ── outer silhouette (single continuous clockwise path) ──
+                      "M 50,88",
+                      "C 68,88 85,80 86,65",       // lower-right body
+                      "C 87,55 88,48 89,42",        // right side up
+                      "C 90,33 85,22 76,22",        // into right toe peak
+                      "C 67,22 64,33 65,42",        // out of right toe
+                      "C 64,43 63,44 62,44",        // pinch between right & centre toes
+                      "C 61,38 57,14 50,14",        // into centre toe peak
+                      "C 43,14 39,38 38,44",        // out of centre toe
+                      "C 37,44 36,43 35,42",        // pinch between centre & left toes
+                      "C 36,33 33,22 24,22",        // into left toe peak
+                      "C 15,22 10,33 11,42",        // out of left toe
+                      "C 12,48 13,55 14,65",        // left side down
+                      "C 15,80 32,88 50,88 Z",      // lower-left body back to start
+                      // ── main metacarpal pad (hole) ──
+                      "M 50,53 C 61,53 69,60 69,69 C 69,78 61,85 50,85",
+                      "C 39,85 31,78 31,69 C 31,60 39,53 50,53 Z",
+                      // ── left toe pad (hole) ──
+                      "M 26,39 C 31,39 34,43 34,47 C 34,51 31,54 26,54",
+                      "C 21,54 18,51 18,47 C 18,43 21,39 26,39 Z",
+                      // ── centre toe pad (hole) ──
+                      "M 50,28 C 56,28 59,32 59,36 C 59,40 56,43 50,43",
+                      "C 44,43 41,40 41,36 C 41,32 44,28 50,28 Z",
+                      // ── right toe pad (hole) ──
+                      "M 74,39 C 79,39 82,43 82,47 C 82,51 79,54 74,54",
+                      "C 69,54 66,51 66,47 C 66,43 69,39 74,39 Z",
                     ].join(" ")}/>
                   </g>
                 </g>
