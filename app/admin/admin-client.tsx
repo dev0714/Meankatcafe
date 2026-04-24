@@ -21,7 +21,8 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings";
+type AdminTab = "cats" | "menu-images" | "settings" | "users";
+type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; created_at: string };
 
 const SETTINGS_DEFAULTS = {
   entrance_fee_1_price: "R50",
@@ -69,6 +70,14 @@ export default function AdminClient() {
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
+
+  // --- users ---
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [newUser, setNewUser] = useState({ email: "", password: "", is_admin: true, is_approved: true });
+  const [userMsg, setUserMsg] = useState("");
+  const [userSaving, setUserSaving] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -128,6 +137,14 @@ export default function AdminClient() {
     fetch("/api/settings")
       .then((r) => r.ok ? r.json() : null)
       .then((data: SiteSettings | null) => { if (data) setSettings({ ...SETTINGS_DEFAULTS, ...data }); })
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/admin/users")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminUser[]) => setAdminUsers(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -245,6 +262,45 @@ export default function AdminClient() {
     setDeletingImageId(null);
   }
 
+  async function handleCreateUser(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setUserSaving(true); setUserMsg("");
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newUser),
+    });
+    const data = await res.json().catch(() => ({}));
+    setUserSaving(false);
+    if (!res.ok) { setUserMsg(data.error ?? "Failed to create user."); return; }
+    setAdminUsers((u) => [data.user, ...u]);
+    setNewUser({ email: "", password: "", is_admin: true, is_approved: true });
+    setUserMsg("User created successfully.");
+  }
+
+  async function handleDeleteUser(user: AdminUser) {
+    if (!confirm(`Delete ${user.email}? This cannot be undone.`)) return;
+    setDeletingUserId(user.id);
+    const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setUserMsg(data.error ?? "Delete failed."); setDeletingUserId(null); return; }
+    setAdminUsers((u) => u.filter((x) => x.id !== user.id));
+    setDeletingUserId(null);
+  }
+
+  async function handleToggleUser(user: AdminUser, field: "is_approved" | "is_admin") {
+    setTogglingUserId(user.id);
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: !user[field] }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setAdminUsers((u) => u.map((x) => x.id === user.id ? data.user : x));
+    else setUserMsg(data.error ?? "Update failed.");
+    setTogglingUserId(null);
+  }
+
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSettingsSaving(true); setSettingsMsg("");
@@ -271,6 +327,7 @@ export default function AdminClient() {
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
     { id: "settings", label: "Site Settings", icon: "⚙️" },
+    { id: "users", label: "Users", icon: "👤" },
   ];
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -647,6 +704,102 @@ export default function AdminClient() {
                 {settingsMsg && <div style={{ fontSize: 13, fontWeight: 700, color: settingsMsg.includes("success") ? "#16a34a" : "#b42318" }}>{settingsMsg}</div>}
               </div>
             </form>
+          </>
+        )}
+
+        {/* ── Users Tab ── */}
+        {activeTab === "users" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Access</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Users</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Create and manage admin accounts. Only approved admins can log in.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+              {/* Create user form */}
+              <div className="panel" style={{ position: "sticky", top: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Create New User</div>
+                <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Email address</div>
+                    <input className="mk-input" type="email" value={newUser.email} onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))} placeholder="user@meankatcafe.co.za" required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Password (min 8 chars)</div>
+                    <input className="mk-input" type="password" value={newUser.password} onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))} placeholder="••••••••••" required minLength={8} />
+                  </label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                      <input type="checkbox" checked={newUser.is_admin} onChange={(e) => setNewUser((u) => ({ ...u, is_admin: e.target.checked }))} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>Admin</div>
+                        <div style={{ fontSize: 11, color: BRAND.textLight }}>Can access the admin panel</div>
+                      </div>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                      <input type="checkbox" checked={newUser.is_approved} onChange={(e) => setNewUser((u) => ({ ...u, is_approved: e.target.checked }))} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>Approved</div>
+                        <div style={{ fontSize: 11, color: BRAND.textLight }}>Uncheck to create a pending account</div>
+                      </div>
+                    </label>
+                  </div>
+                  {userMsg && (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: userMsg.includes("success") ? "#16a34a" : "#b42318", background: userMsg.includes("success") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${userMsg.includes("success") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px" }}>
+                      {userMsg}
+                    </div>
+                  )}
+                  <button className="mk-primary" type="submit" disabled={userSaving}>{userSaving ? "Creating…" : "Create user"}</button>
+                </form>
+              </div>
+
+              {/* Users list */}
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Users ({adminUsers.length})</div>
+                {adminUsers.length === 0 ? (
+                  <div style={{ color: BRAND.textLight, fontSize: 14 }}>No users yet.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {adminUsers.map((user) => (
+                      <div key={user.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, wordBreak: "break-all" }}>{user.email}</div>
+                          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_admin ? `${BRAND.purple}18` : "rgba(0,0,0,0.05)", color: user.is_admin ? BRAND.purple : BRAND.textLight }}>
+                              {user.is_admin ? "Admin" : "Non-admin"}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_approved ? "rgba(22,163,74,0.1)" : "rgba(180,35,24,0.08)", color: user.is_approved ? "#16a34a" : "#b42318" }}>
+                              {user.is_approved ? "Approved" : "Pending"}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11, color: BRAND.textLight, marginTop: 4 }}>
+                            Created {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                          <button
+                            className="mk-outline"
+                            style={{ padding: "6px 12px", fontSize: 12 }}
+                            onClick={() => handleToggleUser(user, "is_approved")}
+                            disabled={togglingUserId === user.id}
+                          >
+                            {user.is_approved ? "Revoke" : "Approve"}
+                          </button>
+                          <button
+                            className="mk-danger"
+                            onClick={() => handleDeleteUser(user)}
+                            disabled={deletingUserId === user.id}
+                          >
+                            {deletingUserId === user.id ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         )}
 
