@@ -19,23 +19,45 @@ export async function GET() {
   }
 
   const bucket = getSupabaseBucketName();
+  const catIds = data.map((r) => r.id);
+
+  // Fetch all extra images for these cats
+  const { data: extraImages } = await supabase
+    .schema("meankatcafe")
+    .from("cat_images")
+    .select("id, cat_id, image_path, type, display_order")
+    .in("cat_id", catIds)
+    .order("display_order", { ascending: true });
+
+  const getUrl = (path: string) => supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+
   const cats = data.map((row) => {
-    const imagePath = row.image_path as string | null;
-    const beforeImagePath = row.before_image_path as string | null;
-    const imageUrl = imagePath
-      ? supabase.storage.from(bucket).getPublicUrl(imagePath).data.publicUrl
-      : "";
-    const beforeImageUrl = beforeImagePath
-      ? supabase.storage.from(bucket).getPublicUrl(beforeImagePath).data.publicUrl
-      : null;
+    const primaryUrl = row.image_path ? getUrl(row.image_path) : null;
+    const legacyBeforeUrl = row.before_image_path ? getUrl(row.before_image_path) : null;
+
+    const extras = (extraImages ?? []).filter((img) => img.cat_id === row.id);
+    const afterExtras = extras.filter((img) => img.type === "after");
+    const beforeExtras = extras.filter((img) => img.type === "before");
+
+    const images = [
+      ...(primaryUrl ? [{ url: primaryUrl, dbId: null }] : []),
+      ...afterExtras.map((img) => ({ url: getUrl(img.image_path), dbId: img.id as string })),
+    ];
+
+    const beforeImages = [
+      ...(legacyBeforeUrl ? [{ url: legacyBeforeUrl, dbId: null }] : []),
+      ...beforeExtras.map((img) => ({ url: getUrl(img.image_path), dbId: img.id as string })),
+    ];
 
     return {
       id: row.id,
       name: row.name,
       description: row.description,
       category: row.category,
-      images: imageUrl ? [imageUrl] : [],
-      beforeImage: beforeImageUrl ?? undefined,
+      images: images.map((i) => i.url),
+      afterImageDbIds: images.map((i) => i.dbId),
+      beforeImages: beforeImages.map((i) => i.url),
+      beforeImageDbIds: beforeImages.map((i) => i.dbId),
       createdAt: row.created_at,
     };
   });

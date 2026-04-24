@@ -65,8 +65,8 @@ export default function AdminClient() {
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [catMsg, setCatMsg] = useState("");
   const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
-  const [beforeUploadingId, setBeforeUploadingId] = useState<string | null>(null);
-  const [beforeDeletingId, setBeforeDeletingId] = useState<string | null>(null);
+  const [uploadingImageForId, setUploadingImageForId] = useState<string | null>(null);
+  const [deletingImageDbId, setDeletingImageDbId] = useState<string | null>(null);
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
@@ -225,25 +225,41 @@ export default function AdminClient() {
     setDeletingCatId(null);
   }
 
-  async function handleUploadBeforeImage(cat: CatCard, file: File) {
-    if (!isUploadedCat(cat)) { setCatMsg("Before photos can only be added to uploaded cats."); return; }
-    setBeforeUploadingId(cat.id);
+  async function handleUploadCatImage(cat: CatCard, file: File, type: "after" | "before") {
+    setUploadingImageForId(`${cat.id}-${type}`);
     const fd = new FormData();
     fd.append("image", file);
-    const res = await fetch(`/api/admin/cats/${cat.id}/before`, { method: "POST", body: fd });
+    fd.append("type", type);
+    const res = await fetch(`/api/admin/cats/${cat.id}/images`, { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
-    setBeforeUploadingId(null);
+    setUploadingImageForId(null);
     if (!res.ok) { setCatMsg(data.error ?? "Upload failed."); return; }
-    setCats((c) => c.map((x) => x.id === cat.id ? { ...x, beforeImage: data.url } : x));
-    setCatMsg("Before photo uploaded.");
+    const { url, dbId: newDbId } = data.image as { url: string; dbId: string };
+    setCats((c) => c.map((x) => {
+      if (x.id !== cat.id) return x;
+      if (type === "after") return { ...x, images: [...x.images, url], afterImageDbIds: [...(x.afterImageDbIds ?? []), newDbId] };
+      return { ...x, beforeImages: [...(x.beforeImages ?? []), url], beforeImageDbIds: [...(x.beforeImageDbIds ?? []), newDbId] };
+    }));
   }
 
-  async function handleDeleteBeforeImage(cat: CatCard) {
-    if (!confirm("Remove the before photo?")) return;
-    setBeforeDeletingId(cat.id);
-    await fetch(`/api/admin/cats/${cat.id}/before`, { method: "DELETE" });
-    setCats((c) => c.map((x) => x.id === cat.id ? { ...x, beforeImage: undefined } : x));
-    setBeforeDeletingId(null);
+  async function handleDeleteCatImage(cat: CatCard, dbId: string, type: "after" | "before") {
+    if (!confirm("Remove this photo?")) return;
+    setDeletingImageDbId(dbId);
+    await fetch(`/api/admin/cats/${cat.id}/images/${dbId}`, { method: "DELETE" });
+    setCats((c) => c.map((x) => {
+      if (x.id !== cat.id) return x;
+      if (type === "after") {
+        const idx = (x.afterImageDbIds ?? []).indexOf(dbId);
+        const images = x.images.filter((_, i) => i !== idx);
+        const afterImageDbIds = (x.afterImageDbIds ?? []).filter((_, i) => i !== idx);
+        return { ...x, images, afterImageDbIds };
+      }
+      const idx = (x.beforeImageDbIds ?? []).indexOf(dbId);
+      const beforeImages = (x.beforeImages ?? []).filter((_, i) => i !== idx);
+      const beforeImageDbIds = (x.beforeImageDbIds ?? []).filter((_, i) => i !== idx);
+      return { ...x, beforeImages, beforeImageDbIds };
+    }));
+    setDeletingImageDbId(null);
   }
 
   // ── menu images ───────────────────────────────────────────────────────────
@@ -557,37 +573,68 @@ export default function AdminClient() {
                       : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
                           {items.map((cat) => (
                             <div key={cat.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, overflow: "hidden", background: BRAND.white }}>
-                              {cat.images?.[0] && <img src={cat.images[0]} alt={cat.name} style={{ width: "100%", height: 130, objectFit: "cover", display: "block" }} />}
+                              {cat.images?.[0] && <img src={cat.images[0]} alt={cat.name} style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }} />}
                               <div style={{ padding: 12 }}>
                                 <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{cat.name}</div>
-                                <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 48, overflow: "hidden" }}>{cat.description}</div>
+                                <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 40, overflow: "hidden" }}>{cat.description}</div>
 
-                                {/* Before photo */}
-                                <div style={{ marginBottom: 10 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: BRAND.textLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Before photo</div>
-                                  {!isUploadedCat(cat) ? (
-                                    <div style={{ fontSize: 11, color: BRAND.textLight, fontStyle: "italic", border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 12px" }}>
-                                      Re-upload this cat using the form to enable before/after photos
-                                    </div>
-                                  ) : cat.beforeImage ? (
-                                    <div style={{ position: "relative", display: "inline-block" }}>
-                                      <img src={cat.beforeImage} alt="Before" style={{ width: 80, height: 60, objectFit: "cover", borderRadius: 8, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
-                                      <button
-                                        onClick={() => handleDeleteBeforeImage(cat)}
-                                        disabled={beforeDeletingId === cat.id}
-                                        style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
-                                        title="Remove before photo"
-                                      >×</button>
-                                    </div>
-                                  ) : (
-                                    <label style={{ display: "inline-block", cursor: "pointer" }}>
-                                      <div style={{ border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, color: BRAND.purple, fontWeight: 700, background: beforeUploadingId === cat.id ? `${BRAND.purple}10` : "transparent", transition: "background 0.2s" }}>
-                                        {beforeUploadingId === cat.id ? "Uploading…" : "📷 + Before photo"}
+                                {isUploadedCat(cat) ? (
+                                  <>
+                                    {/* After photos */}
+                                    <div style={{ marginBottom: 10 }}>
+                                      <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.textLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>✨ After photos</div>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                                        {cat.images.map((url, i) => {
+                                          const dbId = cat.afterImageDbIds?.[i];
+                                          return (
+                                            <div key={i} style={{ position: "relative" }}>
+                                              <img src={url} alt="after" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 7, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
+                                              {dbId && (
+                                                <button onClick={() => handleDeleteCatImage(cat, dbId, "after")} disabled={deletingImageDbId === dbId}
+                                                  style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                        <label style={{ cursor: "pointer" }}>
+                                          <div style={{ width: 52, height: 52, border: `1.5px dashed ${BRAND.purple}`, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: BRAND.purple, background: uploadingImageForId === `${cat.id}-after` ? `${BRAND.purple}10` : "transparent" }}>
+                                            {uploadingImageForId === `${cat.id}-after` ? "…" : "+"}
+                                          </div>
+                                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCatImage(cat, f, "after"); e.target.value = ""; }} />
+                                        </label>
                                       </div>
-                                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadBeforeImage(cat, f); e.target.value = ""; }} />
-                                    </label>
-                                  )}
-                                </div>
+                                    </div>
+
+                                    {/* Before photos */}
+                                    <div style={{ marginBottom: 10 }}>
+                                      <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.textLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>📷 Before photos</div>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                                        {(cat.beforeImages ?? []).map((url, i) => {
+                                          const dbId = cat.beforeImageDbIds?.[i];
+                                          return (
+                                            <div key={i} style={{ position: "relative" }}>
+                                              <img src={url} alt="before" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 7, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
+                                              {dbId && (
+                                                <button onClick={() => handleDeleteCatImage(cat, dbId, "before")} disabled={deletingImageDbId === dbId}
+                                                  style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                        <label style={{ cursor: "pointer" }}>
+                                          <div style={{ width: 52, height: 52, border: `1.5px dashed ${BRAND.purple}`, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: BRAND.purple, background: uploadingImageForId === `${cat.id}-before` ? `${BRAND.purple}10` : "transparent" }}>
+                                            {uploadingImageForId === `${cat.id}-before` ? "…" : "+"}
+                                          </div>
+                                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCatImage(cat, f, "before"); e.target.value = ""; }} />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize: 11, color: BRAND.textLight, fontStyle: "italic", border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+                                    Re-upload this cat to enable before/after photos
+                                  </div>
+                                )}
 
                                 <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id}>
                                   {deletingCatId === cat.id ? "Removing…" : "Remove"}

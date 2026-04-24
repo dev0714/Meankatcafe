@@ -72,6 +72,7 @@ export default function MeanKatCafe() {
   const [catFilter, setCatFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
   const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [modalBeforeIndex, setModalBeforeIndex] = useState(0);
   const [modalView, setModalView] = useState<"after" | "before">("after");
   const [menuData, setMenuData] = useState<MenuSection[]>(DEFAULT_MENU);
   const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
@@ -450,7 +451,7 @@ export default function MeanKatCafe() {
                 const currentImageIndex = selectedCatImage[cat.name] || 0;
                 const displayImage = cat.images ? cat.images[currentImageIndex] : null;
                 return (
-                <div key={cat.name} className="mk-card" style={{ cursor: "pointer" }} onClick={() => { setModalCat(cat); setModalImageIndex(currentImageIndex); setModalView("after"); }}>
+                <div key={cat.name} className="mk-card" style={{ cursor: "pointer" }} onClick={() => { setModalCat(cat); setModalImageIndex(currentImageIndex); setModalBeforeIndex(0); setModalView("after"); }}>
                   {displayImage ? (
                     <div style={{ width: "100%", height: 200, marginBottom: 16, borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 12px rgba(155,142,196,0.12)" }}>
                       <img src={displayImage} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -760,12 +761,10 @@ export default function MeanKatCafe() {
             >×</button>
 
             {/* Before / After toggle */}
-            {modalCat.beforeImage && (
+            {modalCat.beforeImages && modalCat.beforeImages.length > 0 && (
               <div style={{ display: "flex", gap: 0, marginBottom: 14, background: `${BRAND.purpleLight}30`, borderRadius: 10, padding: 3 }}>
                 {(["after", "before"] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setModalView(v)}
+                  <button key={v} onClick={() => setModalView(v)}
                     style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, transition: "all 0.2s", background: modalView === v ? BRAND.purple : "transparent", color: modalView === v ? "white" : BRAND.textLight }}
                   >
                     {v === "after" ? "✨ After" : "📷 Before"}
@@ -774,32 +773,38 @@ export default function MeanKatCafe() {
               </div>
             )}
 
-            {(modalView === "after" ? modalCat.images?.[modalImageIndex] : modalCat.beforeImage) ? (
-              <div style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 16, boxShadow: "0 8px 24px rgba(155,142,196,0.18)", position: "relative" }}>
-                <img
-                  src={modalView === "after" ? modalCat.images[modalImageIndex] : modalCat.beforeImage!}
-                  alt={`${modalCat.name} ${modalView}`}
-                  style={{ width: "100%", maxHeight: 380, objectFit: "cover", display: "block" }}
-                />
-                {modalCat.beforeImage && (
-                  <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.52)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "white", letterSpacing: 1, textTransform: "uppercase" }}>
-                    {modalView === "after" ? "After" : "Before"}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ fontSize: 80, textAlign: "center", marginBottom: 16 }}>{modalCat.emoji}</div>
-            )}
+            {/* Main image */}
+            {(() => {
+              const src = modalView === "after" ? modalCat.images?.[modalImageIndex] : modalCat.beforeImages?.[modalBeforeIndex];
+              return src ? (
+                <div style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 16, boxShadow: "0 8px 24px rgba(155,142,196,0.18)", position: "relative" }}>
+                  <img src={src} alt={`${modalCat.name} ${modalView}`} style={{ width: "100%", maxHeight: 380, objectFit: "cover", display: "block" }} />
+                  {modalCat.beforeImages && modalCat.beforeImages.length > 0 && (
+                    <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.52)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "white", letterSpacing: 1, textTransform: "uppercase" }}>
+                      {modalView === "after" ? "After" : "Before"}
+                    </div>
+                  )}
+                </div>
+              ) : <div style={{ fontSize: 80, textAlign: "center", marginBottom: 16 }}>{modalCat.emoji}</div>;
+            })()}
 
+            {/* After thumbnails */}
             {modalView === "after" && modalCat.images && modalCat.images.length > 1 && (
               <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 {modalCat.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt={`${modalCat.name} ${i + 1}`}
-                    onClick={() => setModalImageIndex(i)}
+                  <img key={i} src={img} alt={`${modalCat.name} ${i + 1}`} onClick={() => setModalImageIndex(i)}
                     style={{ width: 60, height: 60, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: modalImageIndex === i ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, boxShadow: modalImageIndex === i ? `0 0 0 3px rgba(240,216,74,0.35)` : "none", transition: "all 0.2s" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Before thumbnails */}
+            {modalView === "before" && modalCat.beforeImages && modalCat.beforeImages.length > 1 && (
+              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+                {modalCat.beforeImages.map((img, i) => (
+                  <img key={i} src={img} alt={`${modalCat.name} before ${i + 1}`} onClick={() => setModalBeforeIndex(i)}
+                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: modalBeforeIndex === i ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, boxShadow: modalBeforeIndex === i ? `0 0 0 3px rgba(240,216,74,0.35)` : "none", transition: "all 0.2s" }}
                   />
                 ))}
               </div>
