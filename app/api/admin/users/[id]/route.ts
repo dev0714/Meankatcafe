@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { createPasswordHash } from "@/lib/auth.js";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
   is_admin: z.boolean().optional(),
   is_approved: z.boolean().optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(8).optional(),
 });
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -22,18 +25,26 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const body = await request.json().catch(() => ({}));
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid data." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0]?.message ?? "Invalid data." }, { status: 400 });
+
+  const { email, password, ...rest } = parsed.data;
+  const updates: Record<string, unknown> = { ...rest };
+  if (email) updates.email = email.toLowerCase().trim();
+  if (password) updates.password_hash = createPasswordHash(password);
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("users")
-    .update(parsed.data)
+    .update(updates)
     .eq("id", id)
     .select("id, email, is_admin, is_approved, created_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    const msg = error.message.includes("unique") ? "A user with that email already exists." : error.message;
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, user: data });
 }
 

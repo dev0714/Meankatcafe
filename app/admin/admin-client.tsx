@@ -80,6 +80,9 @@ export default function AdminClient() {
   const [userSaving, setUserSaving] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editUserForm, setEditUserForm] = useState({ email: "", password: "" });
+  const [editUserSaving, setEditUserSaving] = useState(false);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -338,6 +341,33 @@ export default function AdminClient() {
     if (res.ok) setAdminUsers((u) => u.map((x) => x.id === user.id ? data.user : x));
     else setUserMsg(data.error ?? "Update failed.");
     setTogglingUserId(null);
+  }
+
+  function handleStartEditUser(user: AdminUser) {
+    setEditingUserId(user.id);
+    setEditUserForm({ email: user.email, password: "" });
+    setUserMsg("");
+  }
+
+  async function handleSaveEditUser(e: FormEvent<HTMLFormElement>, userId: string) {
+    e.preventDefault();
+    setEditUserSaving(true); setUserMsg("");
+    const body: Record<string, string> = {};
+    const orig = adminUsers.find((u) => u.id === userId);
+    if (editUserForm.email !== orig?.email) body.email = editUserForm.email;
+    if (editUserForm.password) body.password = editUserForm.password;
+    if (Object.keys(body).length === 0) { setEditingUserId(null); setEditUserSaving(false); return; }
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEditUserSaving(false);
+    if (!res.ok) { setUserMsg(data.error ?? "Update failed."); return; }
+    setAdminUsers((u) => u.map((x) => x.id === userId ? data.user : x));
+    setEditingUserId(null);
+    setUserMsg("User updated successfully.");
   }
 
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
@@ -860,38 +890,52 @@ export default function AdminClient() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {adminUsers.map((user) => (
-                      <div key={user.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, flexWrap: "wrap" }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, wordBreak: "break-all" }}>{user.email}</div>
-                          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_admin ? `${BRAND.purple}18` : "rgba(0,0,0,0.05)", color: user.is_admin ? BRAND.purple : BRAND.textLight }}>
-                              {user.is_admin ? "Admin" : "Non-admin"}
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_approved ? "rgba(22,163,74,0.1)" : "rgba(180,35,24,0.08)", color: user.is_approved ? "#16a34a" : "#b42318" }}>
-                              {user.is_approved ? "Approved" : "Pending"}
-                            </span>
+                      <div key={user.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, overflow: "hidden" }}>
+                        {editingUserId === user.id ? (
+                          <form onSubmit={(e) => handleSaveEditUser(e, user.id)} style={{ padding: "16px" }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text, marginBottom: 12 }}>Edit {user.email}</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                              <label>
+                                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 5, fontSize: 10 }}>Email address</div>
+                                <input className="mk-input" type="email" value={editUserForm.email} onChange={(e) => setEditUserForm((f) => ({ ...f, email: e.target.value }))} required />
+                              </label>
+                              <label>
+                                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 5, fontSize: 10 }}>New password (leave blank to keep current)</div>
+                                <input className="mk-input" type="password" value={editUserForm.password} onChange={(e) => setEditUserForm((f) => ({ ...f, password: e.target.value }))} placeholder="••••••••" minLength={8} />
+                              </label>
+                              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                                <button className="mk-primary" type="submit" disabled={editUserSaving} style={{ flex: 1 }}>{editUserSaving ? "Saving…" : "Save changes"}</button>
+                                <button className="mk-outline" type="button" onClick={() => setEditingUserId(null)} style={{ flex: 1 }}>Cancel</button>
+                              </div>
+                            </div>
+                          </form>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", flexWrap: "wrap" }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, wordBreak: "break-all" }}>{user.email}</div>
+                              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_admin ? `${BRAND.purple}18` : "rgba(0,0,0,0.05)", color: user.is_admin ? BRAND.purple : BRAND.textLight }}>
+                                  {user.is_admin ? "Admin" : "Non-admin"}
+                                </span>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_approved ? "rgba(22,163,74,0.1)" : "rgba(180,35,24,0.08)", color: user.is_approved ? "#16a34a" : "#b42318" }}>
+                                  {user.is_approved ? "Approved" : "Pending"}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: BRAND.textLight, marginTop: 4 }}>
+                                Created {new Date(user.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                              <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleStartEditUser(user)}>Edit</button>
+                              <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleToggleUser(user, "is_approved")} disabled={togglingUserId === user.id}>
+                                {user.is_approved ? "Revoke" : "Approve"}
+                              </button>
+                              <button className="mk-danger" onClick={() => handleDeleteUser(user)} disabled={deletingUserId === user.id}>
+                                {deletingUserId === user.id ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
                           </div>
-                          <div style={{ fontSize: 11, color: BRAND.textLight, marginTop: 4 }}>
-                            Created {new Date(user.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
-                          <button
-                            className="mk-outline"
-                            style={{ padding: "6px 12px", fontSize: 12 }}
-                            onClick={() => handleToggleUser(user, "is_approved")}
-                            disabled={togglingUserId === user.id}
-                          >
-                            {user.is_approved ? "Revoke" : "Approve"}
-                          </button>
-                          <button
-                            className="mk-danger"
-                            onClick={() => handleDeleteUser(user)}
-                            disabled={deletingUserId === user.id}
-                          >
-                            {deletingUserId === user.id ? "Deleting…" : "Delete"}
-                          </button>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
