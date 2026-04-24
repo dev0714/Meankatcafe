@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 function sanitizeFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -15,7 +15,8 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = params.id?.trim();
+  const { id: rawId } = await params;
+  const id = rawId?.trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   const formData = await request.formData();
@@ -70,7 +71,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = params.id?.trim();
+  const { id: rawDeleteId } = await params;
+  const id = rawDeleteId?.trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   const supabase = getSupabaseAdminClient();

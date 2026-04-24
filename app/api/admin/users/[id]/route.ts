@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
   is_admin: z.boolean().optional(),
@@ -16,7 +16,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = params.id?.trim();
+  const { id: rawId } = await params;
+  const id = rawId?.trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   const body = await request.json().catch(() => ({}));
@@ -42,7 +43,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = params.id?.trim();
+  const { id: rawDeleteId } = await params;
+  const id = rawDeleteId?.trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   if (id === session.userId) {

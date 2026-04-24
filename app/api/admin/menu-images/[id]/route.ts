@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function DELETE(_req: Request, { params }: RouteContext) {
   const session = await getSession();
@@ -10,7 +10,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const id = params.id?.trim();
+  const { id: rawId } = await params;
+  const id = rawId?.trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   const supabase = getSupabaseAdminClient();

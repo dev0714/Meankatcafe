@@ -3,9 +3,7 @@ import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
 type RouteContext = {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 };
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
@@ -15,7 +13,8 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const catId = params.id?.trim();
+  const { id } = await params;
+  const catId = id?.trim();
   if (!catId) {
     return NextResponse.json({ error: "Missing cat id." }, { status: 400 });
   }
