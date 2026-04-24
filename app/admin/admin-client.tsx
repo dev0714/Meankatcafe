@@ -563,29 +563,31 @@ export default function AdminClient() {
                                 <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 48, overflow: "hidden" }}>{cat.description}</div>
 
                                 {/* Before photo */}
-                                {isUploadedCat(cat) && (
-                                  <div style={{ marginBottom: 10 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: BRAND.textLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Before photo</div>
-                                    {cat.beforeImage ? (
-                                      <div style={{ position: "relative", display: "inline-block" }}>
-                                        <img src={cat.beforeImage} alt="Before" style={{ width: 80, height: 60, objectFit: "cover", borderRadius: 8, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
-                                        <button
-                                          onClick={() => handleDeleteBeforeImage(cat)}
-                                          disabled={beforeDeletingId === cat.id}
-                                          style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
-                                          title="Remove before photo"
-                                        >×</button>
+                                <div style={{ marginBottom: 10 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: BRAND.textLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Before photo</div>
+                                  {!isUploadedCat(cat) ? (
+                                    <div style={{ fontSize: 11, color: BRAND.textLight, fontStyle: "italic", border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 12px" }}>
+                                      Re-upload this cat using the form to enable before/after photos
+                                    </div>
+                                  ) : cat.beforeImage ? (
+                                    <div style={{ position: "relative", display: "inline-block" }}>
+                                      <img src={cat.beforeImage} alt="Before" style={{ width: 80, height: 60, objectFit: "cover", borderRadius: 8, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
+                                      <button
+                                        onClick={() => handleDeleteBeforeImage(cat)}
+                                        disabled={beforeDeletingId === cat.id}
+                                        style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+                                        title="Remove before photo"
+                                      >×</button>
+                                    </div>
+                                  ) : (
+                                    <label style={{ display: "inline-block", cursor: "pointer" }}>
+                                      <div style={{ border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, color: BRAND.purple, fontWeight: 700, background: beforeUploadingId === cat.id ? `${BRAND.purple}10` : "transparent", transition: "background 0.2s" }}>
+                                        {beforeUploadingId === cat.id ? "Uploading…" : "📷 + Before photo"}
                                       </div>
-                                    ) : (
-                                      <label style={{ display: "inline-block", cursor: "pointer" }}>
-                                        <div style={{ border: `1.5px dashed ${BRAND.purpleLight}`, borderRadius: 8, padding: "8px 14px", fontSize: 12, color: BRAND.textLight, fontWeight: 700, background: beforeUploadingId === cat.id ? `${BRAND.purple}10` : "transparent" }}>
-                                          {beforeUploadingId === cat.id ? "Uploading…" : "+ Before photo"}
-                                        </div>
-                                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadBeforeImage(cat, f); e.target.value = ""; }} />
-                                      </label>
-                                    )}
-                                  </div>
-                                )}
+                                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadBeforeImage(cat, f); e.target.value = ""; }} />
+                                    </label>
+                                  )}
+                                </div>
 
                                 <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id}>
                                   {deletingCatId === cat.id ? "Removing…" : "Remove"}
