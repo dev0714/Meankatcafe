@@ -558,77 +558,93 @@ export default function AdminClient() {
             </div>
 
             <form onSubmit={handleSaveSettings}>
-              {/* Entrance Fees */}
-              <div className="panel" style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>🎟️ Entrance Fees</div>
-                <div style={{ display: "grid", gap: 16 }}>
-                  {([
-                    ["entrance_fee_1_price", "entrance_fee_1_label", "Row 1"],
-                    ["entrance_fee_2_price", "entrance_fee_2_label", "Row 2"],
-                    ["entrance_fee_3_price", "entrance_fee_3_label", "Row 3"],
-                    ["entrance_fee_4_price", "entrance_fee_4_label", "Row 4"],
-                  ] as [keyof SiteSettings, keyof SiteSettings, string][]).map(([priceKey, labelKey, row]) => (
-                    <div key={row} style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 12, alignItems: "end" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+
+                {/* Left column */}
+                <div>
+                  {/* Stats */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📊 Homepage Stats</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Numbers shown on the home page stat cards.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                       <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>{row} — Price</div>
-                        <input className="mk-input" value={settings[priceKey]} onChange={(e) => setSettings((s) => ({ ...s, [priceKey]: e.target.value }))} placeholder="R50" />
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>☕ Drinks on Menu</div>
+                        <input className="mk-input" value={settings.stat_drinks} onChange={(e) => setSettings((s) => ({ ...s, stat_drinks: e.target.value }))} placeholder="30+" />
                       </label>
                       <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>{row} — Description</div>
-                        <input className="mk-input" value={settings[labelKey]} onChange={(e) => setSettings((s) => ({ ...s, [labelKey]: e.target.value }))} placeholder="Per person" />
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>🍰 Fresh Desserts</div>
+                        <input className="mk-input" value={settings.stat_desserts} onChange={(e) => setSettings((s) => ({ ...s, stat_desserts: e.target.value }))} placeholder="8+" />
                       </label>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Hours */}
+                  <div className="panel">
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🕐 Opening Hours</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown in the footer and on the Contact page.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday (footer)</div>
+                        <input className="mk-input" value={settings.hours_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_weekday: e.target.value }))} placeholder="Mon – Fri: 8am–6pm" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Saturday (footer)</div>
+                        <input className="mk-input" value={settings.hours_saturday} onChange={(e) => setSettings((s) => ({ ...s, hours_saturday: e.target.value }))} placeholder="Sat: 9am–6pm" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Sunday (footer)</div>
+                        <input className="mk-input" value={settings.hours_sunday} onChange={(e) => setSettings((s) => ({ ...s, hours_sunday: e.target.value }))} placeholder="Sun: 9am–5pm" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday line (contact page)</div>
+                        <input className="mk-input" value={settings.hours_contact_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekday: e.target.value }))} placeholder="Mon – Fri: 08:00 – 17:00" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekend line (contact page)</div>
+                        <input className="mk-input" value={settings.hours_contact_weekend} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekend: e.target.value }))} placeholder="Sat – Sun: 09:00 – 16:00" />
+                      </label>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Right column */}
+                <div>
+                  {/* Entrance Fees */}
+                  <div className="panel">
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🎟️ Entrance Fees</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown on the home page fee card and the Menu page notice.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {[
+                        ["entrance_fee_1_price", "entrance_fee_1_label", "Adult"],
+                        ["entrance_fee_2_price", "entrance_fee_2_label", "Student"],
+                        ["entrance_fee_3_price", "entrance_fee_3_label", "Pensioner"],
+                        ["entrance_fee_4_price", "entrance_fee_4_label", "Child"],
+                      ].map(([priceKey, labelKey, row]) => (
+                        <div key={row} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "14px 16px" }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text, marginBottom: 10 }}>{row}</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10 }}>
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Price</div>
+                              <input className="mk-input" value={settings[priceKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [priceKey]: e.target.value }))} placeholder="R50" />
+                            </label>
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Description</div>
+                              <input className="mk-input" value={settings[labelKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [labelKey]: e.target.value }))} placeholder="Per person" />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
-              {/* Stats */}
-              <div className="panel" style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>📊 Homepage Stats</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>☕ Drinks on Menu</div>
-                    <input className="mk-input" value={settings.stat_drinks} onChange={(e) => setSettings((s) => ({ ...s, stat_drinks: e.target.value }))} placeholder="30+" />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>🍰 Fresh Desserts</div>
-                    <input className="mk-input" value={settings.stat_desserts} onChange={(e) => setSettings((s) => ({ ...s, stat_desserts: e.target.value }))} placeholder="8+" />
-                  </label>
-                </div>
-              </div>
-
-              {/* Hours */}
-              <div className="panel" style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>🕐 Opening Hours</div>
-                <div style={{ display: "grid", gap: 14 }}>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday (footer)</div>
-                    <input className="mk-input" value={settings.hours_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_weekday: e.target.value }))} placeholder="Mon – Fri: 8am–6pm" />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Saturday (footer)</div>
-                    <input className="mk-input" value={settings.hours_saturday} onChange={(e) => setSettings((s) => ({ ...s, hours_saturday: e.target.value }))} placeholder="Sat: 9am–6pm" />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Sunday (footer)</div>
-                    <input className="mk-input" value={settings.hours_sunday} onChange={(e) => setSettings((s) => ({ ...s, hours_sunday: e.target.value }))} placeholder="Sun: 9am–5pm" />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday line (contact page)</div>
-                    <input className="mk-input" value={settings.hours_contact_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekday: e.target.value }))} placeholder="Mon – Fri: 08:00 – 17:00" />
-                  </label>
-                  <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekend line (contact page)</div>
-                    <input className="mk-input" value={settings.hours_contact_weekend} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekend: e.target.value }))} placeholder="Sat – Sun: 09:00 – 16:00" />
-                  </label>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
                 <button className="mk-primary" type="submit" disabled={settingsSaving} style={{ fontSize: 15, padding: "13px 28px" }}>
                   {settingsSaving ? "Saving…" : "Save Settings"}
                 </button>
-                {settingsMsg && <div style={{ fontSize: 13, color: settingsMsg.includes("success") ? "#16a34a" : BRAND.textLight }}>{settingsMsg}</div>}
+                {settingsMsg && <div style={{ fontSize: 13, fontWeight: 700, color: settingsMsg.includes("success") ? "#16a34a" : "#b42318" }}>{settingsMsg}</div>}
               </div>
             </form>
           </>
