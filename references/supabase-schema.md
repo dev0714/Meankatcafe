@@ -101,6 +101,20 @@ create table meankatcafe.menu_items (
 );
 ```
 
+### site_settings
+
+Key-value store for editable site content (entrance fees, stats, hours).
+
+```sql
+create table meankatcafe.site_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+```
+
+Keys: `entrance_fee_1_price`, `entrance_fee_1_label`, `entrance_fee_2_price`, `entrance_fee_2_label`, `entrance_fee_3_price`, `entrance_fee_3_label`, `entrance_fee_4_price`, `entrance_fee_4_label`, `stat_drinks`, `stat_desserts`, `hours_weekday`, `hours_saturday`, `hours_sunday`, `hours_contact_weekday`, `hours_contact_weekend`.
+
 ## Storage
 
 - Bucket name: `cat-images`
@@ -120,3 +134,5 @@ create table meankatcafe.menu_items (
 - `app/api/admin/menu/sections` creates a section
 - `app/api/admin/menu/sections/[id]` deletes a section (cascade) or adds an item (POST)
 - `app/api/admin/menu/items/[id]` deletes a single item
+- `app/api/settings` returns all site settings (falls back to defaults)
+- `app/api/admin/settings` upserts key-value settings (POST)

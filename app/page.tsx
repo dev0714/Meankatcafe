@@ -6,6 +6,25 @@ import { emojify } from "@/lib/emojify";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
 import { DEFAULT_MENU, type MenuSection } from "@/lib/menu";
 
+const SETTINGS_DEFAULTS = {
+  entrance_fee_1_price: "R50",
+  entrance_fee_1_label: "Per person",
+  entrance_fee_2_price: "R40",
+  entrance_fee_2_label: "Students · weekdays (card req.)",
+  entrance_fee_3_price: "R40",
+  entrance_fee_3_label: "Pensioners",
+  entrance_fee_4_price: "Free",
+  entrance_fee_4_label: "Children under 1 year",
+  stat_drinks: "30+",
+  stat_desserts: "8+",
+  hours_weekday: "Mon – Fri: 8am–6pm",
+  hours_saturday: "Sat: 9am–6pm",
+  hours_sunday: "Sun: 9am–5pm",
+  hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
+  hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
+};
+type SiteSettings = typeof SETTINGS_DEFAULTS;
+
 const BRAND = {
   cream: "#f5f0d8",
   purple: "#9b8ec4",
@@ -56,6 +75,7 @@ export default function MeanKatCafe() {
   const [menuData, setMenuData] = useState<MenuSection[]>(DEFAULT_MENU);
   const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
   const [menuModalImage, setMenuModalImage] = useState<{ id: string; url: string } | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -85,6 +105,9 @@ export default function MeanKatCafe() {
   useEffect(() => {
     fetch("/api/menu").then(r => r.ok ? r.json() : null).then((data: MenuSection[] | null) => {
       if (data && data.length > 0 && data[0].id) setMenuData(data);
+    }).catch(() => {});
+    fetch("/api/settings").then(r => r.ok ? r.json() : null).then((data: SiteSettings | null) => {
+      if (data) setSettings({ ...SETTINGS_DEFAULTS, ...data });
     }).catch(() => {});
     fetch("/api/menu-images").then(r => r.ok ? r.json() : null).then((data) => {
       if (data && data.length > 0) {
@@ -272,7 +295,12 @@ export default function MeanKatCafe() {
                   </div>
                   <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
                   <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 26px)", color: BRAND.text, marginBottom: 18 }}>Visit the Cats 🐱</div>
-                  {[["R50", "Per person"], ["R40", "Students · weekdays (card req.)"], ["R40", "Pensioners"], ["Free", "Children under 1 year"]].map(([p, l]) => (
+                  {[
+                    [settings.entrance_fee_1_price, settings.entrance_fee_1_label],
+                    [settings.entrance_fee_2_price, settings.entrance_fee_2_label],
+                    [settings.entrance_fee_3_price, settings.entrance_fee_3_label],
+                    [settings.entrance_fee_4_price, settings.entrance_fee_4_label],
+                  ].map(([p, l]) => (
                     <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(58,48,96,0.15)", fontSize: "clamp(12px, 2vw, 13px)" }}>
                       <span style={{ fontWeight: 800, color: BRAND.text }}>{p}</span>
                       <span style={{ fontSize: "clamp(10px, 1.5vw, 13px)", color: BRAND.textLight }}>{l}</span>
@@ -281,7 +309,7 @@ export default function MeanKatCafe() {
                 </div>
                 {/* Stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                  {[{ icon: "😾", num: String(catEntries.length), label: "Resident Cats" }, { icon: "☕", num: "30+", label: "Drinks on Menu" }, { icon: "🍰", num: "8+", label: "Fresh Desserts" }, { icon: "📍", num: "DBN", label: "Durban, KZN" }].map(s => (
+                  {[{ icon: "😾", num: String(catEntries.length), label: "Resident Cats" }, { icon: "☕", num: settings.stat_drinks, label: "Drinks on Menu" }, { icon: "🍰", num: settings.stat_desserts, label: "Fresh Desserts" }, { icon: "📍", num: "DBN", label: "Durban, KZN" }].map(s => (
                     <div key={s.label} style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 14, padding: "clamp(14px, 2vw, 18px)", textAlign: "center", transition: "all 0.3s", cursor: "pointer", boxShadow: "0 4px 12px rgba(155,142,196,0.08)" }}>
                       <div style={{ fontSize: "clamp(18px, 4vw, 22px)", marginBottom: 6 }}>{s.icon}</div>
                       <div style={{ fontWeight: 900, fontSize: "clamp(16px, 3vw, 22px)", background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{s.num}</div>
@@ -381,7 +409,7 @@ export default function MeanKatCafe() {
               <div>
                 <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", color: BRAND.text, marginBottom: 6 }}>Don't forget the entrance fee!</div>
                 <div style={{ fontSize: "clamp(12px, 2vw, 13px)", color: BRAND.textLight, lineHeight: 1.7 }}>
-                  R50 per person · R40 students on weekdays (student card required) · R40 pensioners · Free for children under 1 year
+                  {settings.entrance_fee_1_price} {settings.entrance_fee_1_label} · {settings.entrance_fee_2_price} {settings.entrance_fee_2_label} · {settings.entrance_fee_3_price} {settings.entrance_fee_3_label} · {settings.entrance_fee_4_price} {settings.entrance_fee_4_label}
                 </div>
               </div>
             </div>
@@ -640,7 +668,7 @@ export default function MeanKatCafe() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {[
                   { icon: "📍", label: "Location", value: "Durban, KwaZulu-Natal\nSouth Africa" },
-                  { icon: "🕐", label: "Hours", value: "Mon – Fri: 08:00 – 17:00\nSat – Sun: 09:00 – 16:00" },
+                  { icon: "🕐", label: "Hours", value: `${settings.hours_contact_weekday}\n${settings.hours_contact_weekend}` },
                   { icon: "📱", label: "Social Media", value: "@meankatcafe_durban\nInstagram · TikTok · Facebook" },
                   { icon: "🐾", label: "Adoption Enquiries", value: "Ask us about adopting any of our resident cats. Mention adoption in your message!" },
                 ].map(info => (
@@ -680,7 +708,7 @@ export default function MeanKatCafe() {
             <div>
               <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>Hours</div>
               <div style={{ fontSize: "clamp(12px, 2vw, 13px)", opacity: 0.9, lineHeight: 1.8 }}>
-                Mon – Fri: 8am–6pm<br />Sat: 9am–6pm<br />Sun: 9am–5pm
+                {settings.hours_weekday}<br />{settings.hours_saturday}<br />{settings.hours_sunday}
               </div>
             </div>
           </div>

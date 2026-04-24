@@ -21,7 +21,26 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images";
+type AdminTab = "cats" | "menu-images" | "settings";
+
+const SETTINGS_DEFAULTS = {
+  entrance_fee_1_price: "R50",
+  entrance_fee_1_label: "Per person",
+  entrance_fee_2_price: "R40",
+  entrance_fee_2_label: "Students · weekdays (card req.)",
+  entrance_fee_3_price: "R40",
+  entrance_fee_3_label: "Pensioners",
+  entrance_fee_4_price: "Free",
+  entrance_fee_4_label: "Children under 1 year",
+  stat_drinks: "30+",
+  stat_desserts: "8+",
+  hours_weekday: "Mon – Fri: 8am–6pm",
+  hours_saturday: "Sat: 9am–6pm",
+  hours_sunday: "Sun: 9am–5pm",
+  hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
+  hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
+};
+type SiteSettings = typeof SETTINGS_DEFAULTS;
 
 const emptyUpload: { name: string; description: string; category: CatCategory } = {
   name: "",
@@ -45,6 +64,11 @@ export default function AdminClient() {
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [catMsg, setCatMsg] = useState("");
   const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
+
+  // --- settings ---
+  const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
+  const [settingsMsg, setSettingsMsg] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -96,6 +120,14 @@ export default function AdminClient() {
     fetch("/api/menu-images")
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setMenuImages(imgs.filter((i) => !hiddenBuiltinIds.includes(i.id))))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: SiteSettings | null) => { if (data) setSettings({ ...SETTINGS_DEFAULTS, ...data }); })
       .catch(() => {});
   }, [auth.user]);
 
@@ -213,6 +245,20 @@ export default function AdminClient() {
     setDeletingImageId(null);
   }
 
+  async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSettingsSaving(true); setSettingsMsg("");
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSettingsSaving(false);
+    if (!res.ok) { setSettingsMsg(data.error ?? "Save failed."); return; }
+    setSettingsMsg("Settings saved successfully.");
+  }
+
   const groupedCats = {
     resident: cats.filter((c) => c.category === "resident"),
     adoptable: cats.filter((c) => c.category === "adoptable"),
@@ -224,6 +270,7 @@ export default function AdminClient() {
   const NAV: { id: AdminTab; label: string; icon: string }[] = [
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
+    { id: "settings", label: "Site Settings", icon: "⚙️" },
   ];
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -498,6 +545,92 @@ export default function AdminClient() {
                 }
               </div>
             </div>
+          </>
+        )}
+
+        {/* ── Settings Tab ── */}
+        {activeTab === "settings" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Site</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Site Settings</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Edit entrance fees, stats, and opening hours shown on the public site.</p>
+            </div>
+
+            <form onSubmit={handleSaveSettings}>
+              {/* Entrance Fees */}
+              <div className="panel" style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>🎟️ Entrance Fees</div>
+                <div style={{ display: "grid", gap: 16 }}>
+                  {([
+                    ["entrance_fee_1_price", "entrance_fee_1_label", "Row 1"],
+                    ["entrance_fee_2_price", "entrance_fee_2_label", "Row 2"],
+                    ["entrance_fee_3_price", "entrance_fee_3_label", "Row 3"],
+                    ["entrance_fee_4_price", "entrance_fee_4_label", "Row 4"],
+                  ] as [keyof SiteSettings, keyof SiteSettings, string][]).map(([priceKey, labelKey, row]) => (
+                    <div key={row} style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 12, alignItems: "end" }}>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>{row} — Price</div>
+                        <input className="mk-input" value={settings[priceKey]} onChange={(e) => setSettings((s) => ({ ...s, [priceKey]: e.target.value }))} placeholder="R50" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>{row} — Description</div>
+                        <input className="mk-input" value={settings[labelKey]} onChange={(e) => setSettings((s) => ({ ...s, [labelKey]: e.target.value }))} placeholder="Per person" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="panel" style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>📊 Homepage Stats</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>☕ Drinks on Menu</div>
+                    <input className="mk-input" value={settings.stat_drinks} onChange={(e) => setSettings((s) => ({ ...s, stat_drinks: e.target.value }))} placeholder="30+" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>🍰 Fresh Desserts</div>
+                    <input className="mk-input" value={settings.stat_desserts} onChange={(e) => setSettings((s) => ({ ...s, stat_desserts: e.target.value }))} placeholder="8+" />
+                  </label>
+                </div>
+              </div>
+
+              {/* Hours */}
+              <div className="panel" style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 20, color: BRAND.text }}>🕐 Opening Hours</div>
+                <div style={{ display: "grid", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday (footer)</div>
+                    <input className="mk-input" value={settings.hours_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_weekday: e.target.value }))} placeholder="Mon – Fri: 8am–6pm" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Saturday (footer)</div>
+                    <input className="mk-input" value={settings.hours_saturday} onChange={(e) => setSettings((s) => ({ ...s, hours_saturday: e.target.value }))} placeholder="Sat: 9am–6pm" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Sunday (footer)</div>
+                    <input className="mk-input" value={settings.hours_sunday} onChange={(e) => setSettings((s) => ({ ...s, hours_sunday: e.target.value }))} placeholder="Sun: 9am–5pm" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday line (contact page)</div>
+                    <input className="mk-input" value={settings.hours_contact_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekday: e.target.value }))} placeholder="Mon – Fri: 08:00 – 17:00" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekend line (contact page)</div>
+                    <input className="mk-input" value={settings.hours_contact_weekend} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekend: e.target.value }))} placeholder="Sat – Sun: 09:00 – 16:00" />
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <button className="mk-primary" type="submit" disabled={settingsSaving} style={{ fontSize: 15, padding: "13px 28px" }}>
+                  {settingsSaving ? "Saving…" : "Save Settings"}
+                </button>
+                {settingsMsg && <div style={{ fontSize: 13, color: settingsMsg.includes("success") ? "#16a34a" : BRAND.textLight }}>{settingsMsg}</div>}
+              </div>
+            </form>
           </>
         )}
 
