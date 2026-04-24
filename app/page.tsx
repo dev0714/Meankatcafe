@@ -36,7 +36,7 @@ const BRAND = {
   white: "#fffef5",
 };
 
-  const navLinks = ["Home", "Menu", "Cats", "Story", "About", "Contact"];
+  const navLinks = ["Home", "Menu", "Cats", "Events", "Story", "About", "Contact"];
 
 
 function seededPawPrints() {
@@ -78,6 +78,7 @@ export default function MeanKatCafe() {
   const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
   const [menuModalImage, setMenuModalImage] = useState<{ id: string; url: string } | null>(null);
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
+  const [events, setEvents] = useState<{ id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null }[]>([]);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -121,6 +122,7 @@ export default function MeanKatCafe() {
         }
       }
     }).catch(() => {});
+    fetch("/api/events").then(r => r.ok ? r.json() : []).then(setEvents).catch(() => {});
   }, []);
 
   const navigate = (p: string) => { setPage(p); setMobileOpen(false); };
@@ -621,6 +623,66 @@ export default function MeanKatCafe() {
               </div>
               <button className="mk-primary" style={{ background: BRAND.yellow, color: BRAND.text }} onClick={() => navigate("Contact")}>Enquire About Adoption</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ EVENTS ══════════ */}
+      {page === "Events" && (
+        <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, #f5f0d8, ${BRAND.cream})`, minHeight: "60vh" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
+              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
+                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
+                What's on
+              </div>
+              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1.05, margin: "0 0 14px" }}>
+                Events &<br /><span style={{ WebkitTextFillColor: BRAND.purple }}>Happenings</span>
+              </h1>
+              <p style={{ fontSize: "clamp(14px, 2.5vw, 16px)", color: BRAND.textLight, lineHeight: 1.7, maxWidth: 520 }}>
+                From cat yoga mornings to themed evenings — there&apos;s always something brewing at MeanKat.
+              </p>
+            </div>
+
+            {events.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "80px 20px", background: BRAND.white, borderRadius: 20, border: `2px dashed ${BRAND.purpleLight}` }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🐾</div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: BRAND.text, marginBottom: 8 }}>No events right now</div>
+                <div style={{ fontSize: 14, color: BRAND.textLight }}>Check back soon — the cats are plotting something.</div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 420px), 1fr))" }}>
+                {events.map((ev) => {
+                  const d = new Date(ev.date);
+                  const isPast = d < new Date(new Date().toDateString());
+                  const day = d.toLocaleDateString("en-ZA", { day: "numeric" });
+                  const month = d.toLocaleDateString("en-ZA", { month: "short" }).toUpperCase();
+                  const year = d.getFullYear();
+                  return (
+                    <div key={ev.id} style={{ background: BRAND.white, borderRadius: 20, overflow: "hidden", border: `2px solid ${BRAND.purpleLight}`, boxShadow: "0 4px 20px rgba(155,142,196,0.1)", opacity: isPast ? 0.7 : 1, display: "flex", flexDirection: "column" }}>
+                      {ev.imageUrl && (
+                        <img src={ev.imageUrl} alt={ev.title} style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
+                      )}
+                      <div style={{ padding: "20px 24px", display: "flex", gap: 18, flex: 1 }}>
+                        <div style={{ textAlign: "center", minWidth: 52, background: isPast ? "#f0f0f0" : `${BRAND.yellow}33`, border: `2px solid ${isPast ? "#ddd" : BRAND.yellow}`, borderRadius: 12, padding: "10px 6px", alignSelf: "flex-start" }}>
+                          <div style={{ fontWeight: 900, fontSize: 22, color: BRAND.text, lineHeight: 1 }}>{day}</div>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: BRAND.purple, letterSpacing: 1.5, marginTop: 2 }}>{month}</div>
+                          <div style={{ fontSize: 10, color: BRAND.textLight }}>{year}</div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <div style={{ fontWeight: 900, fontSize: 17, color: BRAND.text }}>{ev.title}</div>
+                            {isPast && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f0f0f0", color: "#999" }}>Past</span>}
+                          </div>
+                          {ev.time && <div style={{ fontSize: 12, color: BRAND.purple, fontWeight: 700, marginBottom: 8 }}>🕐 {ev.time}</div>}
+                          <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.7 }}>{ev.description}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

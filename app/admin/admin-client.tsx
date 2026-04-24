@@ -21,7 +21,8 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events";
+type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
 type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; created_at: string };
 
 const SETTINGS_DEFAULTS = {
@@ -83,6 +84,14 @@ export default function AdminClient() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState({ email: "", password: "" });
   const [editUserSaving, setEditUserSaving] = useState(false);
+
+  // --- events ---
+  const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
+  const [newEvent, setNewEvent] = useState({ title: "", description: "", date: "", time: "" });
+  const [newEventImage, setNewEventImage] = useState<File | null>(null);
+  const [eventMsg, setEventMsg] = useState("");
+  const [eventSaving, setEventSaving] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -150,6 +159,14 @@ export default function AdminClient() {
     fetch("/api/admin/users")
       .then((r) => r.ok ? r.json() : [])
       .then((data: AdminUser[]) => setAdminUsers(data))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/events")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminEvent[]) => setAdminEvents(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -343,6 +360,35 @@ export default function AdminClient() {
     setTogglingUserId(null);
   }
 
+  async function handleCreateEvent(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEventSaving(true); setEventMsg("");
+    const fd = new FormData();
+    fd.append("title", newEvent.title);
+    fd.append("description", newEvent.description);
+    fd.append("date", newEvent.date);
+    if (newEvent.time) fd.append("time", newEvent.time);
+    if (newEventImage) fd.append("image", newEventImage);
+    const res = await fetch("/api/admin/events", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setEventSaving(false);
+    if (!res.ok) { setEventMsg(data.error ?? "Failed to create event."); return; }
+    setAdminEvents((ev) => [data.event, ...ev].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    setNewEvent({ title: "", description: "", date: "", time: "" });
+    setNewEventImage(null);
+    setEventMsg("Event created successfully.");
+  }
+
+  async function handleDeleteEvent(ev: AdminEvent) {
+    if (!confirm(`Delete "${ev.title}"? This cannot be undone.`)) return;
+    setDeletingEventId(ev.id);
+    const res = await fetch(`/api/admin/events/${ev.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setEventMsg(data.error ?? "Delete failed."); setDeletingEventId(null); return; }
+    setAdminEvents((evs) => evs.filter((x) => x.id !== ev.id));
+    setDeletingEventId(null);
+  }
+
   function handleStartEditUser(user: AdminUser) {
     setEditingUserId(user.id);
     setEditUserForm({ email: user.email, password: "" });
@@ -395,6 +441,7 @@ export default function AdminClient() {
   const NAV: { id: AdminTab; label: string; icon: string }[] = [
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
+    { id: "events", label: "Events", icon: "🎉" },
     { id: "settings", label: "Site Settings", icon: "⚙️" },
     { id: "users", label: "Users", icon: "👤" },
   ];
@@ -728,6 +775,91 @@ export default function AdminClient() {
                       ))}
                     </div>
                 }
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Events Tab ── */}
+        {activeTab === "events" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Events</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Events</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Add and manage upcoming events shown on the public Events page.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+              {/* Create form */}
+              <div className="panel" style={{ position: "sticky", top: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Add New Event</div>
+                <form onSubmit={handleCreateEvent} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Event title</div>
+                    <input className="mk-input" value={newEvent.title} onChange={(e) => setNewEvent((v) => ({ ...v, title: e.target.value }))} placeholder="Cat Yoga Morning" required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Date</div>
+                    <input className="mk-input" type="date" value={newEvent.date} onChange={(e) => setNewEvent((v) => ({ ...v, date: e.target.value }))} required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Time (optional)</div>
+                    <input className="mk-input" value={newEvent.time} onChange={(e) => setNewEvent((v) => ({ ...v, time: e.target.value }))} placeholder="7pm – 9pm" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Description</div>
+                    <textarea className="mk-input" value={newEvent.description} onChange={(e) => setNewEvent((v) => ({ ...v, description: e.target.value }))} placeholder="A few lines about the event…" required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Banner image (optional)</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setNewEventImage(e.target.files?.[0] ?? null)} />
+                  </label>
+                  {eventMsg && (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: eventMsg.includes("success") ? "#16a34a" : "#b42318", background: eventMsg.includes("success") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${eventMsg.includes("success") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px" }}>
+                      {eventMsg}
+                    </div>
+                  )}
+                  <button className="mk-primary" type="submit" disabled={eventSaving}>{eventSaving ? "Creating…" : "Create event"}</button>
+                </form>
+              </div>
+
+              {/* Events list */}
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Events ({adminEvents.length})</div>
+                {adminEvents.length === 0 ? (
+                  <div style={{ color: BRAND.textLight, fontSize: 14 }}>No events yet. Create one to get started.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {adminEvents.map((ev) => {
+                      const d = new Date(ev.date);
+                      const isPast = d < new Date(new Date().toDateString());
+                      return (
+                        <div key={ev.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, overflow: "hidden", opacity: isPast ? 0.75 : 1 }}>
+                          {ev.imageUrl && (
+                            <img src={ev.imageUrl} alt={ev.title} style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />
+                          )}
+                          <div style={{ padding: "14px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                            <div style={{ textAlign: "center", minWidth: 46, background: isPast ? "#f0f0f0" : `${BRAND.yellow}33`, border: `2px solid ${isPast ? "#ddd" : BRAND.yellow}`, borderRadius: 10, padding: "8px 4px", flexShrink: 0 }}>
+                              <div style={{ fontWeight: 900, fontSize: 18, color: BRAND.text, lineHeight: 1 }}>{d.getDate()}</div>
+                              <div style={{ fontSize: 9, fontWeight: 800, color: BRAND.purple, letterSpacing: 1.5, marginTop: 2 }}>{d.toLocaleDateString("en-ZA", { month: "short" }).toUpperCase()}</div>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{ev.title}</div>
+                                {isPast && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f0f0f0", color: "#999" }}>Past</span>}
+                              </div>
+                              {ev.time && <div style={{ fontSize: 12, color: BRAND.purple, fontWeight: 700, marginTop: 2 }}>🕐 {ev.time}</div>}
+                              <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 4, lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{ev.description}</div>
+                            </div>
+                            <button className="mk-danger" onClick={() => handleDeleteEvent(ev)} disabled={deletingEventId === ev.id} style={{ flexShrink: 0 }}>
+                              {deletingEventId === ev.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </>
