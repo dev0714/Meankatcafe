@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("cats")
-    .select("id, name, description, category, image_path, created_at")
+    .select("id, name, description, category, image_path, before_image_path, created_at")
     .order("created_at", { ascending: false });
 
   if (error || !data) {
@@ -21,9 +21,13 @@ export async function GET() {
   const bucket = getSupabaseBucketName();
   const cats = data.map((row) => {
     const imagePath = row.image_path as string | null;
+    const beforeImagePath = row.before_image_path as string | null;
     const imageUrl = imagePath
       ? supabase.storage.from(bucket).getPublicUrl(imagePath).data.publicUrl
       : "";
+    const beforeImageUrl = beforeImagePath
+      ? supabase.storage.from(bucket).getPublicUrl(beforeImagePath).data.publicUrl
+      : null;
 
     return {
       id: row.id,
@@ -31,6 +35,7 @@ export async function GET() {
       description: row.description,
       category: row.category,
       images: imageUrl ? [imageUrl] : [],
+      beforeImage: beforeImageUrl ?? undefined,
       createdAt: row.created_at,
     };
   });

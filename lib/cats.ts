@@ -9,6 +9,7 @@ export type CatCard = {
   mood?: string;
   emoji?: string;
   images: string[];
+  beforeImage?: string;
   createdAt?: string;
 };
 
