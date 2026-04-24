@@ -84,6 +84,7 @@ export default function AdminClient() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editUserForm, setEditUserForm] = useState({ email: "", password: "" });
   const [editUserSaving, setEditUserSaving] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // --- events ---
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
@@ -469,22 +470,26 @@ export default function AdminClient() {
           .mk-primary { background: linear-gradient(135deg, ${BRAND.purple}, ${BRAND.purpleDark}); color: white; border: none; border-radius: 10px; padding: 13px 22px; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; }
           .mk-primary:hover { opacity: 0.9; transform: translateY(-1px); }
           .login-info-pill { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; }
+          .login-brand { flex: 1; background: ${SIDEBAR_BG}; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(32px, 6vw, 64px); position: relative; overflow: hidden; }
+          .login-form-panel { width: clamp(340px, 42vw, 520px); background: ${BRAND.cream}; display: flex; align-items: center; justify-content: center; padding: clamp(32px, 5vw, 64px); }
+          @media (max-width: 640px) {
+            .login-brand { display: none !important; }
+            .login-form-panel { width: 100% !important; min-height: 100vh; align-items: flex-start; padding: 48px 24px 32px; }
+          }
         `}</style>
 
         {/* ── Left: Branding panel ── */}
-        <div style={{ flex: 1, background: SIDEBAR_BG, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "clamp(32px, 6vw, 64px)", position: "relative", overflow: "hidden" }}>
-          {/* decorative circles */}
+        <div className="login-brand">
           <div style={{ position: "absolute", top: -80, right: -80, width: 340, height: 340, borderRadius: "50%", background: "rgba(155,142,196,0.12)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", bottom: -60, left: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(240,216,74,0.07)", pointerEvents: "none" }} />
 
           <div>
-            <Link href="/" style={{ display: "block", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", fontWeight: 700, letterSpacing: 0.3, marginBottom: 48, transition: "color 0.2s" }}
+            <Link href="/" style={{ display: "block", fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none", fontWeight: 700, letterSpacing: 0.3, marginBottom: 48, transition: "color 0.2s" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.85)")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
             >
               ← Back to site
             </Link>
-
             <div style={{ display: "inline-block", background: `${BRAND.yellow}22`, border: `1px solid ${BRAND.yellow}44`, borderRadius: 999, padding: "4px 14px", marginBottom: 20 }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: BRAND.yellow }}>Admin Portal</span>
             </div>
@@ -497,39 +502,31 @@ export default function AdminClient() {
           </div>
 
           <div>
-            <div className="login-info-pill">
-              <span style={{ fontSize: 24 }}>🐾</span>
-              <div>
-                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Cat profiles</div>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Add, remove &amp; categorise cats</div>
+            {[["🐾","Cat profiles","Add, remove & categorise cats"],["📸","Menu photos","Upload & manage menu images"],["🔒","Secure access","Approved admins only"]].map(([icon, title, sub], i, arr) => (
+              <div key={title} className="login-info-pill" style={{ marginBottom: i === arr.length - 1 ? 0 : 14 }}>
+                <span style={{ fontSize: 24 }}>{icon}</span>
+                <div>
+                  <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>{title}</div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>{sub}</div>
+                </div>
               </div>
-            </div>
-            <div className="login-info-pill">
-              <span style={{ fontSize: 24 }}>📸</span>
-              <div>
-                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Menu photos</div>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Upload &amp; manage menu images</div>
-              </div>
-            </div>
-            <div className="login-info-pill" style={{ marginBottom: 0 }}>
-              <span style={{ fontSize: 24 }}>🔒</span>
-              <div>
-                <div style={{ fontWeight: 800, color: "white", fontSize: 14 }}>Secure access</div>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>Approved admins only</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* ── Right: Login form ── */}
-        <div style={{ width: "clamp(340px, 42vw, 520px)", background: BRAND.cream, display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(32px, 5vw, 64px)" }}>
+        <div className="login-form-panel">
           <div style={{ width: "100%", maxWidth: 380 }}>
+            {/* mobile-only back link */}
+            <Link href="/" style={{ display: "none", fontSize: 13, color: BRAND.textLight, textDecoration: "none", fontWeight: 700, marginBottom: 32 }}
+              className="mobile-back-link">
+              ← Back to site
+            </Link>
             <div style={{ marginBottom: 36 }}>
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 10 }}>Sign in</div>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Welcome back</h2>
               <p style={{ margin: "8px 0 0", fontSize: 14, color: BRAND.textLight }}>Enter your credentials to access the admin panel.</p>
             </div>
-
             <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <label>
                 <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Email address</div>
@@ -546,7 +543,6 @@ export default function AdminClient() {
               )}
               <button className="mk-primary" type="submit">Log in →</button>
             </form>
-
             <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px solid ${BRAND.purpleLight}50`, fontSize: 12, color: BRAND.textLight, lineHeight: 1.6 }}>
               Don&apos;t have access? Contact the café owner to get your account approved.
             </div>
@@ -558,8 +554,51 @@ export default function AdminClient() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
+        * { box-sizing: border-box; }
+        .mk-input { width: 100%; border: 1.5px solid ${BRAND.purpleLight}; border-radius: 10px; padding: 12px 14px; font-family: 'Nunito', sans-serif; font-size: 14px; background: ${BRAND.white}; color: ${BRAND.text}; outline: none; transition: all 0.2s; font-weight: 500; }
+        .mk-input:focus { border-color: ${BRAND.purple}; box-shadow: 0 0 0 3px rgba(155,142,196,0.15); }
+        .mk-input::placeholder { color: ${BRAND.purpleLight}; }
+        textarea.mk-input { resize: vertical; min-height: 100px; }
+        .tag { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+        .mk-primary { background: linear-gradient(135deg, ${BRAND.purple}, ${BRAND.purpleDark}); color: white; border: none; border-radius: 8px; padding: 11px 22px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .mk-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .mk-outline { background: transparent; color: ${BRAND.purpleDark}; border: 1.5px solid ${BRAND.purpleLight}; border-radius: 8px; padding: 9px 18px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .mk-outline:hover { background: ${BRAND.purpleLight}20; }
+        .mk-danger { background: transparent; color: #b42318; border: 1.5px solid #f4c2be; border-radius: 8px; padding: 7px 14px; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .mk-danger:hover { background: #fff0ee; }
+        .panel { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .admin-sidebar { width: 220px; background: ${SIDEBAR_BG}; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; transition: transform 0.25s ease; }
+        .admin-main { margin-left: 220px; flex: 1; background: #f4f0e8; min-height: 100vh; padding: clamp(24px, 4vw, 40px); }
+        .admin-topbar { display: none; }
+        .sidebar-overlay { display: none; }
+        @media (max-width: 768px) {
+          .admin-sidebar { transform: translateX(-100%); }
+          .admin-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.3); }
+          .admin-main { margin-left: 0 !important; padding: 16px; padding-top: 72px; }
+          .admin-topbar { display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; height: 56px; background: ${SIDEBAR_BG}; z-index: 40; padding: 0 16px; }
+          .sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 45; }
+          .panel { padding: 18px; }
+          .tab-grid { grid-template-columns: 1fr !important; }
+          .settings-grid { grid-template-columns: 1fr !important; }
+          .sticky-form { position: static !important; }
+        }
+      `}</style>
+
+      {/* ── Mobile top bar ── */}
+      <div className="admin-topbar">
+        <div style={{ fontWeight: 900, fontSize: 16, color: "white" }}>MeanKat Admin</div>
+        <button onClick={() => setMobileNavOpen((v) => !v)} style={{ background: "none", border: "none", cursor: "pointer", padding: 8, display: "flex", flexDirection: "column", gap: 5 }}>
+          {[0,1,2].map((i) => <span key={i} style={{ display: "block", width: 22, height: 2, background: "white", borderRadius: 2 }} />)}
+        </button>
+      </div>
+
+      {/* ── Sidebar overlay (mobile) ── */}
+      {mobileNavOpen && <div className="sidebar-overlay" onClick={() => setMobileNavOpen(false)} />}
+
       {/* ── Sidebar ── */}
-      <aside style={{ width: 220, background: SIDEBAR_BG, display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50 }}>
+      <aside className={`admin-sidebar${mobileNavOpen ? " open" : ""}`}>
         <div style={{ padding: "28px 20px 20px" }}>
           <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>Admin</div>
           <div style={{ fontWeight: 900, fontSize: 18, color: "white", lineHeight: 1.2 }}>MeanKat<br />Content</div>
@@ -568,7 +607,7 @@ export default function AdminClient() {
           {NAV.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, border: "none", cursor: "pointer", marginBottom: 4, background: activeTab === item.id ? SIDEBAR_ACTIVE : "transparent", color: activeTab === item.id ? "white" : "rgba(255,255,255,0.6)", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, transition: "all 0.2s", textAlign: "left" }}
             >
               <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -586,23 +625,7 @@ export default function AdminClient() {
       </aside>
 
       {/* ── Main ── */}
-      <main style={{ marginLeft: 220, flex: 1, background: "#f4f0e8", minHeight: "100vh", padding: "clamp(24px, 4vw, 40px)" }}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Courier+Prime:wght@400;700&display=swap');
-          * { box-sizing: border-box; }
-          .mk-input { width: 100%; border: 1.5px solid ${BRAND.purpleLight}; border-radius: 10px; padding: 12px 14px; font-family: 'Nunito', sans-serif; font-size: 14px; background: ${BRAND.white}; color: ${BRAND.text}; outline: none; transition: all 0.2s; font-weight: 500; }
-          .mk-input:focus { border-color: ${BRAND.purple}; box-shadow: 0 0 0 3px rgba(155,142,196,0.15); }
-          .mk-input::placeholder { color: ${BRAND.purpleLight}; }
-          textarea.mk-input { resize: vertical; min-height: 100px; }
-          .tag { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
-          .mk-primary { background: linear-gradient(135deg, ${BRAND.purple}, ${BRAND.purpleDark}); color: white; border: none; border-radius: 8px; padding: 11px 22px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-          .mk-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-          .mk-outline { background: transparent; color: ${BRAND.purpleDark}; border: 1.5px solid ${BRAND.purpleLight}; border-radius: 8px; padding: 9px 18px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-          .mk-outline:hover { background: ${BRAND.purpleLight}20; }
-          .mk-danger { background: transparent; color: #b42318; border: 1.5px solid #f4c2be; border-radius: 8px; padding: 7px 14px; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-          .mk-danger:hover { background: #fff0ee; }
-          .panel { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
-        `}</style>
+      <main className="admin-main">
 
         {/* ── Cats Tab ── */}
         {activeTab === "cats" && (
@@ -612,9 +635,9 @@ export default function AdminClient() {
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Cat Management</h1>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
               {/* Upload form */}
-              <div className="panel" style={{ position: "sticky", top: 20 }}>
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
                 <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Upload a Cat</div>
                 <form onSubmit={handleUploadCat} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
@@ -740,7 +763,7 @@ export default function AdminClient() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
-              <div className="panel" style={{ position: "sticky", top: 20 }}>
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
                 <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Upload Photo</div>
                 <form onSubmit={handleUploadMenuImage} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
@@ -789,9 +812,9 @@ export default function AdminClient() {
               <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Add and manage upcoming events shown on the public Events page.</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
               {/* Create form */}
-              <div className="panel" style={{ position: "sticky", top: 20 }}>
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
                 <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Add New Event</div>
                 <form onSubmit={handleCreateEvent} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
@@ -875,7 +898,7 @@ export default function AdminClient() {
             </div>
 
             <form onSubmit={handleSaveSettings}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+              <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
 
                 {/* Left column */}
                 <div>
@@ -976,9 +999,9 @@ export default function AdminClient() {
               <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Create and manage admin accounts. Only approved admins can log in.</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
               {/* Create user form */}
-              <div className="panel" style={{ position: "sticky", top: 20 }}>
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
                 <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Create New User</div>
                 <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
