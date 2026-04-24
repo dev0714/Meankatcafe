@@ -234,7 +234,7 @@ export default function AdminClient() {
     const data = await res.json().catch(() => ({}));
     setUploadingImageForId(null);
     if (!res.ok) { setCatMsg(data.error ?? "Upload failed."); return; }
-    const { url, dbId: newDbId } = data.image as { url: string; dbId: string };
+    const { url, id: newDbId } = data.image as { url: string; id: string };
     setCats((c) => c.map((x) => {
       if (x.id !== cat.id) return x;
       if (type === "after") return { ...x, images: [...x.images, url], afterImageDbIds: [...(x.afterImageDbIds ?? []), newDbId] };
