@@ -7,7 +7,7 @@ import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 const uploadSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().min(1).max(2000),
-  category: z.enum(["resident", "other"]),
+  category: z.enum(["resident", "adoptable", "dual", "other"]),
 });
 
 function sanitizeFileName(name: string) {
