@@ -367,6 +367,24 @@
     .perks-grid { grid-template-columns: 1fr !important; }
   }
 
+  /* ====== BOOK A VISIT ====== */
+  .book-section { background: var(--cream); padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px); }
+  .book-inner { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+  .book-card { background: var(--white); border-radius: 22px; padding: clamp(24px, 3vw, 36px); box-shadow: 0 8px 26px rgba(135,76,158,0.1); border: 2px solid var(--lilac-pale); }
+  .book-summary { margin-top: 14px; background: var(--yellow-soft); color: var(--purple-dark); padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+  .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+  .slot-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 11px 14px; border-radius: 12px; border: 2px solid var(--lilac-pale); background: var(--cream); transition: all .2s; cursor: pointer; }
+  .slot-chip:hover:not(:disabled) { border-color: var(--purple-mid); }
+  .slot-chip.on { background: var(--purple-dark); border-color: var(--purple-dark); }
+  .slot-chip.on .slot-time, .slot-chip.on .slot-left { color: var(--white); }
+  .slot-chip.full { opacity: .5; cursor: not-allowed; }
+  .slot-time { font-weight: 800; font-size: 15px; color: var(--ink); }
+  .slot-left { font-size: 11px; font-weight: 700; color: var(--purple-dark); letter-spacing: .5px; }
+  .book-selected { margin: 18px 0 4px; padding: 12px 16px; border-radius: 12px; background: var(--cream-2); font-size: 14px; color: var(--ink); }
+  @media (max-width: 760px) {
+    .book-inner { grid-template-columns: 1fr; }
+  }
+
   /* ====== VOLUNTEER FORM ====== */
   .vol-section { background: var(--cream); padding: clamp(40px, 6vw, 72px) clamp(20px, 5vw, 56px); }
   .vol-inner { max-width: 760px; margin: 0 auto; }

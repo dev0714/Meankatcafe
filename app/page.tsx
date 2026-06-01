@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
+import { todayInCafeTZ } from "@/lib/hours";
+import type { DayAvailability } from "@/lib/bookings";
 import {
   VOLUNTEER_SECTIONS,
   VOLUNTEER_TERMS,
@@ -27,7 +29,7 @@ type SiteEvent = {
   imageUrl?: string | null;
 };
 
-type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer";
+type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer" | "Book";
 
 const NAV_LINKS: Page[] = [
   "Home",
@@ -35,6 +37,7 @@ const NAV_LINKS: Page[] = [
   "Cats",
   "Cafe",
   "Events",
+  "Book",
   "How to Help",
   "Contact",
 ];
@@ -231,6 +234,7 @@ export default function MeanKatCafe() {
       {page === "Events" && <EventsPage setPage={setPage} />}
       {page === "How to Help" && <HowToHelpPage setPage={setPage} />}
       {page === "Volunteer" && <VolunteerPage setPage={setPage} />}
+      {page === "Book" && <BookPage setPage={setPage} />}
       {page === "Contact" && <ContactPage setPage={setPage} />}
     </div>
   );
@@ -379,7 +383,7 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               Whether you&apos;re here for cat cuddles, iced lattes, or accidentally falling in love with your future furry roommate, every visit helps give rescue cats the second chance they deserve.
             </p>
             <div className="hero-cta">
-              <button className="btn btn-light" onClick={() => setPage("Cats")}>Book a Visit</button>
+              <button className="btn btn-light" onClick={() => setPage("Book")}>Book a Visit</button>
               <button className="btn btn-outline" onClick={() => setPage("Cats")}>Meet the Cats</button>
               <button className="btn btn-outline" onClick={() => setPage("How to Help")}>Donate</button>
             </div>
@@ -410,7 +414,7 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               <span className="accent">sat on your lap</span> &amp; now <br />
               you legally can&apos;t leave.
             </div>
-            <button className="btn btn-purple" onClick={() => setPage("Cats")}>Book a Visit</button>
+            <button className="btn btn-purple" onClick={() => setPage("Book")}>Book a Visit</button>
           </div>
         </div>
       </section>
@@ -856,6 +860,196 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
               )}
             </div>
           ))}
+        </div>
+      </section>
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// BOOK A VISIT PAGE
+// ─────────────────────────────────────────────────────────────
+
+function formatSlot(slot: string) {
+  const [h, m] = slot.split(":").map(Number);
+  const period = h < 12 ? "am" : "pm";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}${m ? `:${String(m).padStart(2, "0")}` : ""}${period}`;
+}
+
+function prettyDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-ZA", {
+    weekday: "long", day: "numeric", month: "long", timeZone: "UTC",
+  });
+}
+
+function BookPage({ setPage }: { setPage: (p: Page) => void }) {
+  const today = todayInCafeTZ();
+  const [date, setDate] = useState(today);
+  const [avail, setAvail] = useState<DayAvailability | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [slot, setSlot] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", phone: "", partySize: "1" });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [confirmed, setConfirmed] = useState<{ date: string; slot: string } | null>(null);
+
+  const loadAvailability = (d: string) => {
+    setLoading(true);
+    setSlot("");
+    fetch(`/api/bookings/availability?date=${d}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: DayAvailability | null) => setAvail(data))
+      .catch(() => setAvail(null))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadAvailability(date);
+  }, [date]);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    if (!slot) { setError("Please pick an available time slot."); return; }
+    setSending(true);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, partySize: Number(form.partySize), date, slot }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Something went wrong. Please try again.");
+      setConfirmed({ date, slot });
+      setForm({ name: "", email: "", phone: "", partySize: "1" });
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      loadAvailability(date); // refresh in case the slot just filled
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const isToday = date === today;
+  const totalRemaining = avail?.slots.reduce((s, x) => s + x.remaining, 0) ?? 0;
+
+  return (
+    <div data-screen-label="Book">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Book a</div>
+          <h1 className="page-title">Visit.</h1>
+          <p className="page-sub">Reserve your spot with the cats. Pick a day and an available time below — slots are limited, so the cats don&apos;t get overwhelmed.</p>
+        </div>
+      </section>
+
+      <section className="book-section">
+        <div className="book-inner">
+          {confirmed ? (
+            <div className="vol-success" style={{ gridColumn: "1 / -1" }}>
+              <div style={{ fontSize: 54, marginBottom: 12 }}>🎉</div>
+              <h2 className="vol-success-h">You&apos;re booked!</h2>
+              <p className="vol-success-p">
+                See you on <strong>{prettyDate(confirmed.date)}</strong> at <strong>{formatSlot(confirmed.slot)}</strong>.
+                A little reminder: the entrance fee is payable on arrival, and please read our cat-hero rules before visiting.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 22, flexWrap: "wrap" }}>
+                <button className="btn btn-purple" onClick={() => { setConfirmed(null); loadAvailability(date); }}>Book Another</button>
+                <button className="btn btn-outline-dark" onClick={() => setPage("Home")}>Back to Home</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Left: date + slots */}
+              <div className="book-card">
+                <div className="contact-h">Pick a day & time</div>
+
+                <label className="field-label" htmlFor="book-date">Date</label>
+                <input
+                  id="book-date"
+                  className="input-field"
+                  type="date"
+                  min={today}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value || today)}
+                />
+
+                {isToday && avail && avail.open && (
+                  <div className="book-summary">
+                    🐾 <strong>{avail.totalBooked}</strong> {avail.totalBooked === 1 ? "booking" : "bookings"} so far today · <strong>{totalRemaining}</strong> spaces still open
+                  </div>
+                )}
+
+                <div style={{ marginTop: 18 }}>
+                  <span className="field-label">Available times</span>
+                  {loading ? (
+                    <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>Checking availability…</p>
+                  ) : !avail || !avail.open ? (
+                    <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
+                      We&apos;re closed on {prettyDate(date)}. Please choose another day. 🐱
+                    </p>
+                  ) : (
+                    <div className="slot-grid">
+                      {avail.slots.map((s) => {
+                        const full = s.remaining <= 0;
+                        return (
+                          <button
+                            key={s.slot}
+                            type="button"
+                            className={`slot-chip ${slot === s.slot ? "on" : ""} ${full ? "full" : ""}`}
+                            disabled={full}
+                            onClick={() => setSlot(s.slot)}
+                          >
+                            <span className="slot-time">{formatSlot(s.slot)}</span>
+                            <span className="slot-left">{full ? "Full" : `${s.remaining} left`}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: details */}
+              <div className="book-card">
+                <div className="contact-h">Your details</div>
+                {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
+                <form onSubmit={submit}>
+                  <label className="field-label" htmlFor="bk-name">Full name</label>
+                  <input id="bk-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
+
+                  <label className="field-label" htmlFor="bk-email">Email</label>
+                  <input id="bk-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
+
+                  <label className="field-label" htmlFor="bk-phone">Phone / WhatsApp</label>
+                  <input id="bk-phone" className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+27 ..." />
+
+                  <label className="field-label" htmlFor="bk-party">Number of guests</label>
+                  <select id="bk-party" className="input-field" value={form.partySize} onChange={(e) => setForm({ ...form, partySize: e.target.value })}>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>{n} {n === 1 ? "guest" : "guests"}</option>
+                    ))}
+                  </select>
+
+                  <div className="book-selected">
+                    {slot
+                      ? <>Booking for <strong>{prettyDate(date)}</strong> at <strong>{formatSlot(slot)}</strong></>
+                      : <span style={{ color: "var(--ink-soft)" }}>Select a time slot on the left to continue.</span>}
+                  </div>
+
+                  <button type="submit" className="btn btn-purple" disabled={sending || !slot} style={{ marginTop: 8, width: "100%" }}>
+                    {sending ? "Booking…" : "Confirm Booking"}
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

@@ -25,7 +25,8 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings";
+type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
 type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; created_at: string };
 type VolunteerApplication = { id: string; fullName: string; email: string; whatsappNumber?: string | null; suburb?: string | null; agreeTerms: boolean; answers: VolunteerAnswers; createdAt: string };
@@ -46,6 +47,7 @@ const SETTINGS_DEFAULTS = {
   hours_sunday: "Sun: 9am–5pm",
   hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
   hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
+  bookings_per_slot: "6",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -105,6 +107,11 @@ export default function AdminClient() {
   const [expandedVolunteerId, setExpandedVolunteerId] = useState<string | null>(null);
   const [deletingVolunteerId, setDeletingVolunteerId] = useState<string | null>(null);
   const [volunteerMsg, setVolunteerMsg] = useState("");
+
+  const [bookings, setBookings] = useState<AdminBooking[]>([]);
+  const [bookingMonth, setBookingMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
+  const [selectedBookingDate, setSelectedBookingDate] = useState<string | null>(null);
+  const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -188,6 +195,14 @@ export default function AdminClient() {
     fetch("/api/admin/volunteers")
       .then((r) => r.ok ? r.json() : [])
       .then((data: VolunteerApplication[]) => setVolunteers(data))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/admin/bookings")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminBooking[]) => setBookings(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -460,6 +475,14 @@ export default function AdminClient() {
     setDeletingVolunteerId(null);
   }
 
+  async function handleDeleteBooking(b: AdminBooking) {
+    if (!confirm(`Cancel ${b.name}'s booking on ${b.date} at ${b.slot}? This frees up the slot.`)) return;
+    setDeletingBookingId(b.id);
+    const res = await fetch(`/api/admin/bookings/${b.id}`, { method: "DELETE" });
+    if (res.ok) setBookings((bs) => bs.filter((x) => x.id !== b.id));
+    setDeletingBookingId(null);
+  }
+
   function handleStartEditUser(user: AdminUser) {
     setEditingUserId(user.id);
     setEditUserForm({ email: user.email, password: "" });
@@ -513,6 +536,7 @@ export default function AdminClient() {
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
     { id: "events", label: "Events", icon: "🎉" },
+    { id: "bookings", label: "Bookings", icon: "📅" },
     { id: "volunteers", label: "Volunteers", icon: "🙌" },
     { id: "settings", label: "Site Settings", icon: "⚙️" },
     { id: "users", label: "Users", icon: "👤" },
@@ -971,6 +995,94 @@ export default function AdminClient() {
           </>
         )}
 
+        {/* ── Bookings Tab ── */}
+        {activeTab === "bookings" && (() => {
+          const [yy, mm] = bookingMonth.split("-").map(Number);
+          const firstWeekday = new Date(Date.UTC(yy, mm - 1, 1)).getUTCDay();
+          const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+          const byDate = new Map<string, AdminBooking[]>();
+          for (const b of bookings) {
+            const list = byDate.get(b.date) ?? [];
+            list.push(b);
+            byDate.set(b.date, list);
+          }
+          const monthLabel = new Date(Date.UTC(yy, mm - 1, 1)).toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" });
+          const shiftMonth = (delta: number) => {
+            const d = new Date(Date.UTC(yy, mm - 1 + delta, 1));
+            setBookingMonth(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+            setSelectedBookingDate(null);
+          };
+          const cells: (string | null)[] = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => `${bookingMonth}-${String(i + 1).padStart(2, "0")}`)];
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const selectedList = selectedBookingDate ? (byDate.get(selectedBookingDate) ?? []).slice().sort((a, b) => a.slot.localeCompare(b.slot)) : [];
+          return (
+            <>
+              <div style={{ marginBottom: 28 }}>
+                <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Calendar</div>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Bookings</h1>
+                <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Visit reservations from the public site. Click a day to see and manage its bookings. The per-hour limit is set in Site Settings.</p>
+              </div>
+
+              <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+                <div className="panel">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <button className="mk-outline" style={{ padding: "6px 12px" }} onClick={() => shiftMonth(-1)}>‹</button>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: BRAND.text }}>{monthLabel}</div>
+                    <button className="mk-outline" style={{ padding: "6px 12px" }} onClick={() => shiftMonth(1)}>›</button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                      <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 800, color: BRAND.textLight, letterSpacing: 1, padding: "4px 0" }}>{d.toUpperCase()}</div>
+                    ))}
+                    {cells.map((dateStr, i) => {
+                      if (!dateStr) return <div key={`b${i}`} />;
+                      const count = (byDate.get(dateStr) ?? []).length;
+                      const day = Number(dateStr.slice(-2));
+                      const isSel = selectedBookingDate === dateStr;
+                      const isToday = dateStr === todayStr;
+                      return (
+                        <button key={dateStr} onClick={() => setSelectedBookingDate(dateStr)}
+                          style={{ aspectRatio: "1", borderRadius: 10, border: isSel ? `2px solid ${BRAND.purpleDark}` : isToday ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, background: count ? `${BRAND.purple}1a` : BRAND.white, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, padding: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.text }}>{day}</span>
+                          {count > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: "white", background: BRAND.purpleDark, borderRadius: 999, padding: "1px 6px" }}>{count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 14, color: BRAND.text }}>
+                    {selectedBookingDate ? new Date(`${selectedBookingDate}T00:00:00Z`).toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : "Select a day"}
+                  </div>
+                  {!selectedBookingDate ? (
+                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>Pick a day on the calendar to see its bookings.</div>
+                  ) : selectedList.length === 0 ? (
+                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>No bookings for this day.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {selectedList.map((b) => (
+                        <div key={b.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 10, padding: "10px 12px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                          <div style={{ textAlign: "center", minWidth: 52, background: `${BRAND.yellow}33`, border: `2px solid ${BRAND.yellow}`, borderRadius: 8, padding: "6px 4px", flexShrink: 0 }}>
+                            <div style={{ fontWeight: 900, fontSize: 13, color: BRAND.text }}>{b.slot}</div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{b.name} · {b.partySize} {b.partySize === 1 ? "guest" : "guests"}</div>
+                            <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{b.email}{b.phone ? ` · ${b.phone}` : ""}</div>
+                          </div>
+                          <button className="mk-danger" onClick={() => handleDeleteBooking(b)} disabled={deletingBookingId === b.id} style={{ flexShrink: 0 }}>
+                            {deletingBookingId === b.id ? "…" : "Cancel"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
         {/* ── Volunteers Tab ── */}
         {activeTab === "volunteers" && (
           <>
@@ -1063,6 +1175,16 @@ export default function AdminClient() {
                         <input className="mk-input" value={settings.stat_desserts} onChange={(e) => setSettings((s) => ({ ...s, stat_desserts: e.target.value }))} placeholder="8+" />
                       </label>
                     </div>
+                  </div>
+
+                  {/* Bookings */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📅 Bookings</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>How many bookings can be taken for each hourly time slot.</p>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Max bookings per hour</div>
+                      <input className="mk-input" type="number" min={1} value={settings.bookings_per_slot} onChange={(e) => setSettings((s) => ({ ...s, bookings_per_slot: e.target.value }))} placeholder="6" />
+                    </label>
                   </div>
 
                   {/* Hours */}

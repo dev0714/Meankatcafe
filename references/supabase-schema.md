@@ -172,6 +172,31 @@ and `PATCH /api/admin/cats/[id]/images/[imageId]` (extras, body `{ transform }`)
 Returned from `GET /api/cats` as `imageTransforms` / `beforeImageTransforms` arrays
 parallel to `images` / `beforeImages`.
 
+### bookings
+
+Visit reservations from the public Book page. Capacity per hourly slot is the
+`bookings_per_slot` site setting (default 6). Slots are derived from the café
+opening hours in `lib/hours.ts`. Auto-confirmed on submit if the slot has space.
+
+```sql
+create table meankatcafe.bookings (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  slot text not null,                 -- arrival hour, e.g. "14:00"
+  name text not null,
+  email text not null,
+  phone text,
+  party_size integer not null default 1,
+  status text not null default 'confirmed' check (status in ('confirmed','cancelled')),
+  created_at timestamptz not null default now()
+);
+create index bookings_date_slot_idx on meankatcafe.bookings (date, slot);
+```
+
+Endpoints: `GET /api/bookings/availability?date=` (per-slot remaining + today's count),
+`POST /api/bookings` (create, capacity-checked), `GET /api/admin/bookings` (calendar list),
+`DELETE /api/admin/bookings/[id]` (cancel/free the slot). New setting key: `bookings_per_slot`.
+
 ## Storage
 
 - Bucket name: `cat-images`
