@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import { transformToStyle } from "@/lib/image-transform";
 import {
   VOLUNTEER_SECTIONS,
   VOLUNTEER_TERMS,
@@ -544,6 +545,8 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
   const [filter, setFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
   const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
+  const [modalView, setModalView] = useState<"after" | "before">("after");
+  const [modalIndex, setModalIndex] = useState(0);
 
   useEffect(() => {
     fetch("/api/cats")
@@ -555,9 +558,19 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
       .catch(() => {});
   }, []);
 
+  const openCat = (cat: CatCard) => {
+    setModalCat(cat);
+    setModalView("after");
+    setModalIndex(0);
+  };
+
   const visible = filter === "All" ? cats : cats.filter((c) => c.category === filter);
   const labelFor = (cat: CatCard) =>
     cat.category === "resident" ? "Resident cat" : cat.category === "dual" ? "Dual adoption" : "Adoptable cat";
+
+  const hasBefore = !!(modalCat?.beforeImages && modalCat.beforeImages.length > 0);
+  const activeImages = modalCat ? (modalView === "before" ? modalCat.beforeImages ?? [] : modalCat.images) : [];
+  const activeTransforms = modalCat ? (modalView === "before" ? modalCat.beforeImageTransforms : modalCat.imageTransforms) : undefined;
 
   return (
     <div data-screen-label="Cats">
@@ -585,8 +598,10 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
           ) : (
             <div className="cat-grid">
               {visible.map((cat) => (
-                <div key={cat.id} className="cat-card" onClick={() => setModalCat(cat)}>
-                  <img className="cat-photo" src={cat.images[0]} alt={cat.name} />
+                <div key={cat.id} className="cat-card" onClick={() => openCat(cat)}>
+                  <div className="cat-photo-wrap">
+                    <img src={cat.images[0]} alt={cat.name} style={transformToStyle(cat.imageTransforms?.[0])} />
+                  </div>
                   <div className="cat-body">
                     <div className={`cat-tag tag-${cat.category}`}>{labelFor(cat)}</div>
                     <div className="cat-name">{cat.name}</div>
@@ -605,16 +620,32 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="modal-backdrop" onClick={() => setModalCat(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setModalCat(null)}>✕</button>
-            <img className="modal-img" src={modalCat.images[0]} alt={modalCat.name} />
+
+            {hasBefore && (
+              <div className="ba-toggle">
+                <button className={`ba-btn ${modalView === "after" ? "on" : ""}`} onClick={() => { setModalView("after"); setModalIndex(0); }}>After</button>
+                <button className={`ba-btn ${modalView === "before" ? "on" : ""}`} onClick={() => { setModalView("before"); setModalIndex(0); }}>Before</button>
+              </div>
+            )}
+
+            {activeImages[modalIndex] && (
+              <div className="modal-img-wrap">
+                <img src={activeImages[modalIndex]} alt={modalCat.name} style={transformToStyle(activeTransforms?.[modalIndex])} />
+              </div>
+            )}
+
             <div className={`cat-tag tag-${modalCat.category}`}>{labelFor(modalCat)}</div>
             <div className="cat-name" style={{ fontSize: 40, marginTop: 10 }}>{modalCat.name}</div>
             {modalCat.breed && <div className="cat-breed">{modalCat.breed}</div>}
             {modalCat.mood && <div className="cat-mood" style={{ marginTop: 10 }}>Currently: {modalCat.mood}</div>}
             <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18 }}>{modalCat.description}</p>
-            {modalCat.images && modalCat.images.length > 1 && (
+
+            {activeImages.length > 1 && (
               <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-                {modalCat.images.map((src, i) => (
-                  <img key={i} src={src} alt={`${modalCat.name} ${i + 1}`} style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", border: "2px solid var(--lilac)" }} />
+                {activeImages.map((src, i) => (
+                  <div key={i} className={`modal-thumb ${i === modalIndex ? "on" : ""}`} onClick={() => setModalIndex(i)}>
+                    <img src={src} alt={`${modalCat.name} ${i + 1}`} style={transformToStyle(activeTransforms?.[i])} />
+                  </div>
                 ))}
               </div>
             )}

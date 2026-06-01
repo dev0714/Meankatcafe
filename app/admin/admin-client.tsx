@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, categoryLabel } from "@/lib/cats";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, type ImageTransform, categoryLabel } from "@/lib/cats";
+import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
+
+type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -70,6 +73,8 @@ export default function AdminClient() {
   const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
   const [uploadingImageForId, setUploadingImageForId] = useState<string | null>(null);
   const [deletingImageDbId, setDeletingImageDbId] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
+  const [cropSaving, setCropSaving] = useState(false);
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
@@ -273,8 +278,8 @@ export default function AdminClient() {
     const { url, id: newDbId } = data.image as { url: string; id: string };
     setCats((c) => c.map((x) => {
       if (x.id !== cat.id) return x;
-      if (type === "after") return { ...x, images: [...x.images, url], afterImageDbIds: [...(x.afterImageDbIds ?? []), newDbId] };
-      return { ...x, beforeImages: [...(x.beforeImages ?? []), url], beforeImageDbIds: [...(x.beforeImageDbIds ?? []), newDbId] };
+      if (type === "after") return { ...x, images: [...x.images, url], afterImageDbIds: [...(x.afterImageDbIds ?? []), newDbId], imageTransforms: [...(x.imageTransforms ?? []), null] };
+      return { ...x, beforeImages: [...(x.beforeImages ?? []), url], beforeImageDbIds: [...(x.beforeImageDbIds ?? []), newDbId], beforeImageTransforms: [...(x.beforeImageTransforms ?? []), null] };
     }));
   }
 
@@ -288,14 +293,53 @@ export default function AdminClient() {
         const idx = (x.afterImageDbIds ?? []).indexOf(dbId);
         const images = x.images.filter((_, i) => i !== idx);
         const afterImageDbIds = (x.afterImageDbIds ?? []).filter((_, i) => i !== idx);
-        return { ...x, images, afterImageDbIds };
+        const imageTransforms = (x.imageTransforms ?? []).filter((_, i) => i !== idx);
+        return { ...x, images, afterImageDbIds, imageTransforms };
       }
       const idx = (x.beforeImageDbIds ?? []).indexOf(dbId);
       const beforeImages = (x.beforeImages ?? []).filter((_, i) => i !== idx);
       const beforeImageDbIds = (x.beforeImageDbIds ?? []).filter((_, i) => i !== idx);
-      return { ...x, beforeImages, beforeImageDbIds };
+      const beforeImageTransforms = (x.beforeImageTransforms ?? []).filter((_, i) => i !== idx);
+      return { ...x, beforeImages, beforeImageDbIds, beforeImageTransforms };
     }));
     setDeletingImageDbId(null);
+  }
+
+  async function handleSaveCrop(target: CropTarget, transform: ImageTransform) {
+    setCropSaving(true);
+    try {
+      const url = target.dbId
+        ? `/api/admin/cats/${target.catId}/images/${target.dbId}`
+        : `/api/admin/cats/${target.catId}`;
+      const body = target.dbId
+        ? { transform }
+        : { target: target.type, transform };
+      const res = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setCatMsg(data.error ?? "Could not save crop."); return; }
+      const saved = (data.transform ?? null) as ImageTransform | null;
+      setCats((c) => c.map((x) => {
+        if (x.id !== target.catId) return x;
+        if (target.type === "after") {
+          const imageTransforms = [...(x.imageTransforms ?? x.images.map(() => null))];
+          imageTransforms[target.index] = saved;
+          return { ...x, imageTransforms };
+        }
+        const beforeImageTransforms = [...(x.beforeImageTransforms ?? (x.beforeImages ?? []).map(() => null))];
+        beforeImageTransforms[target.index] = saved;
+        return { ...x, beforeImageTransforms };
+      }));
+      setCropTarget(null);
+    } finally {
+      setCropSaving(false);
+    }
+  }
+
+  function openCrop(cat: CatCard, type: "after" | "before", index: number) {
+    const dbId = (type === "after" ? cat.afterImageDbIds?.[index] : cat.beforeImageDbIds?.[index]) ?? null;
+    const url = (type === "after" ? cat.images[index] : (cat.beforeImages ?? [])[index]) ?? "";
+    const transform = (type === "after" ? cat.imageTransforms?.[index] : cat.beforeImageTransforms?.[index]) ?? null;
+    setCropTarget({ catId: cat.id, type, index, dbId, url, transform: transform ?? { ...DEFAULT_IMAGE_TRANSFORM } });
   }
 
   // ── menu images ───────────────────────────────────────────────────────────
@@ -700,7 +744,11 @@ export default function AdminClient() {
                       : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
                           {items.map((cat) => (
                             <div key={cat.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, overflow: "hidden", background: BRAND.white }}>
-                              {cat.images?.[0] && <img src={cat.images[0]} alt={cat.name} style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }} />}
+                              {cat.images?.[0] && (
+                                <div style={{ width: "100%", height: 120, overflow: "hidden", display: "block", background: BRAND.purpleLight }}>
+                                  <img src={cat.images[0]} alt={cat.name} style={transformToStyle(cat.imageTransforms?.[0])} />
+                                </div>
+                              )}
                               <div style={{ padding: 12 }}>
                                 <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{cat.name}</div>
                                 <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 40, overflow: "hidden" }}>{cat.description}</div>
@@ -715,7 +763,11 @@ export default function AdminClient() {
                                           const dbId = cat.afterImageDbIds?.[i];
                                           return (
                                             <div key={i} style={{ position: "relative" }}>
-                                              <img src={url} alt="after" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 7, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
+                                              <div style={{ width: 52, height: 52, borderRadius: 7, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}` }}>
+                                                <img src={url} alt="after" style={transformToStyle(cat.imageTransforms?.[i])} />
+                                              </div>
+                                              <button onClick={() => openCrop(cat, "after", i)} title="Adjust crop & zoom"
+                                                style={{ position: "absolute", bottom: -5, left: -5, width: 18, height: 18, borderRadius: "50%", background: BRAND.purpleDark, border: "none", color: "white", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>⤢</button>
                                               {dbId && (
                                                 <button onClick={() => handleDeleteCatImage(cat, dbId, "after")} disabled={deletingImageDbId === dbId}
                                                   style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
@@ -740,7 +792,11 @@ export default function AdminClient() {
                                           const dbId = cat.beforeImageDbIds?.[i];
                                           return (
                                             <div key={i} style={{ position: "relative" }}>
-                                              <img src={url} alt="before" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 7, border: `1.5px solid ${BRAND.purpleLight}`, display: "block" }} />
+                                              <div style={{ width: 52, height: 52, borderRadius: 7, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}` }}>
+                                                <img src={url} alt="before" style={transformToStyle(cat.beforeImageTransforms?.[i])} />
+                                              </div>
+                                              <button onClick={() => openCrop(cat, "before", i)} title="Adjust crop & zoom"
+                                                style={{ position: "absolute", bottom: -5, left: -5, width: 18, height: 18, borderRadius: "50%", background: BRAND.purpleDark, border: "none", color: "white", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>⤢</button>
                                               {dbId && (
                                                 <button onClick={() => handleDeleteCatImage(cat, dbId, "before")} disabled={deletingImageDbId === dbId}
                                                   style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, borderRadius: "50%", background: "#b42318", border: "none", color: "white", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
@@ -1192,6 +1248,77 @@ export default function AdminClient() {
         )}
 
       </main>
+
+      {cropTarget && (
+        <CropEditor
+          target={cropTarget}
+          saving={cropSaving}
+          onCancel={() => setCropTarget(null)}
+          onSave={(t) => handleSaveCrop(cropTarget, t)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CropEditor({ target, saving, onSave, onCancel }: { target: CropTarget; saving: boolean; onSave: (t: ImageTransform) => void; onCancel: () => void }) {
+  const [t, setT] = useState<ImageTransform>(target.transform);
+  const dragging = useRef(false);
+  const last = useRef({ x: 0, y: 0 });
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  function onPointerDown(e: ReactPointerEvent) {
+    dragging.current = true;
+    last.current = { x: e.clientX, y: e.clientY };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }
+  function onPointerMove(e: ReactPointerEvent) {
+    if (!dragging.current || !boxRef.current) return;
+    const w = boxRef.current.clientWidth;
+    const h = boxRef.current.clientHeight;
+    const dx = e.clientX - last.current.x;
+    const dy = e.clientY - last.current.y;
+    last.current = { x: e.clientX, y: e.clientY };
+    setT((p) => ({
+      zoom: p.zoom,
+      x: Math.min(100, Math.max(0, p.x - (dx / w) * 100)),
+      y: Math.min(100, Math.max(0, p.y - (dy / h) * 100)),
+    }));
+  }
+  function onPointerUp() {
+    dragging.current = false;
+  }
+
+  return (
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.white, borderRadius: 18, padding: 24, width: 380, maxWidth: "100%", boxShadow: "0 30px 80px rgba(0,0,0,0.3)" }}>
+        <div style={{ fontWeight: 900, fontSize: 17, color: BRAND.text, marginBottom: 4 }}>Adjust photo</div>
+        <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 16 }}>Drag the photo to reposition · use the slider to zoom. This is exactly how it appears on the site.</div>
+
+        <div
+          ref={boxRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+          style={{ width: "100%", aspectRatio: "1", overflow: "hidden", borderRadius: 14, background: BRAND.purpleLight, cursor: dragging.current ? "grabbing" : "grab", touchAction: "none", border: `2px solid ${BRAND.purpleLight}` }}
+        >
+          <img src={target.url} alt="crop preview" draggable={false} style={transformToStyle(t)} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: BRAND.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+            <span>Zoom</span><span>{t.zoom.toFixed(2)}×</span>
+          </div>
+          <input type="range" min={1} max={4} step={0.05} value={t.zoom} onChange={(e) => setT((p) => ({ ...p, zoom: Number(e.target.value) }))} style={{ width: "100%", accentColor: BRAND.purple }} />
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <button className="mk-outline" type="button" onClick={() => setT({ zoom: 1, x: 50, y: 50 })} style={{ flex: 1 }}>Reset</button>
+          <button className="mk-outline" type="button" onClick={onCancel} style={{ flex: 1 }}>Cancel</button>
+          <button className="mk-primary" type="button" onClick={() => onSave(t)} disabled={saving} style={{ flex: 1.4, width: "auto" }}>{saving ? "Saving…" : "Save"}</button>
+        </div>
+      </div>
     </div>
   );
 }

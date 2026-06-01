@@ -204,6 +204,7 @@
   .cat-card { background: var(--white); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 24px rgba(135,76,158,0.12); transition: transform .25s, box-shadow .25s; cursor: pointer; border: 2px solid transparent; }
   .cat-card:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(135,76,158,0.22); border-color: var(--yellow); }
   .cat-photo { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--lilac); }
+  .cat-photo-wrap { width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--lilac); display: block; }
   .cat-body { padding: 22px 24px 24px; }
   .cat-tag { display: inline-block; font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; margin-bottom: 12px; }
   .tag-resident { background: var(--lilac-pale); color: var(--purple-dark); }
@@ -292,6 +293,12 @@
   .modal-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: var(--lilac-pale); color: var(--purple-dark); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
   .modal-close:hover { background: var(--purple-dark); color: var(--white); transform: rotate(90deg); }
   .modal-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 16px; margin-bottom: 20px; }
+  .modal-img-wrap { width: 100%; aspect-ratio: 4/3; overflow: hidden; border-radius: 16px; margin-bottom: 16px; background: var(--lilac); }
+  .ba-toggle { display: inline-flex; gap: 4px; background: var(--cream-2); border-radius: 999px; padding: 4px; margin-bottom: 16px; }
+  .ba-btn { padding: 8px 20px; border-radius: 999px; font-weight: 800; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--purple-dark); transition: all .2s; }
+  .ba-btn.on { background: var(--purple-dark); color: var(--white); }
+  .modal-thumb { width: 84px; height: 84px; border-radius: 10px; overflow: hidden; border: 2px solid var(--lilac); cursor: pointer; flex-shrink: 0; background: var(--lilac); transition: border-color .2s; }
+  .modal-thumb.on { border-color: var(--purple-dark); }
 
   /* ====== RESPONSIVE ====== */
   @media (max-width: 1024px) {

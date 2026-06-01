@@ -155,6 +155,23 @@ create index volunteer_applications_created_at_idx
   on meankatcafe.volunteer_applications (created_at desc);
 ```
 
+### Image framing (crop / zoom / focal point)
+
+Cat photos store a non-destructive framing transform applied as CSS on display
+(both admin and public site, so it's WYSIWYG). Shape: `{ "zoom": number, "x": number, "y": number }`
+where `x`/`y` are focal-point percentages (0–100); `null` means default/centre.
+
+```sql
+alter table meankatcafe.cats add column image_transform jsonb;         -- primary ("after") photo
+alter table meankatcafe.cats add column before_image_transform jsonb;  -- legacy before photo
+alter table meankatcafe.cat_images add column transform jsonb;         -- each extra after/before photo
+```
+
+Edited via `PATCH /api/admin/cats/[id]` (primary/legacy, body `{ target, transform }`)
+and `PATCH /api/admin/cats/[id]/images/[imageId]` (extras, body `{ transform }`).
+Returned from `GET /api/cats` as `imageTransforms` / `beforeImageTransforms` arrays
+parallel to `images` / `beforeImages`.
+
 ## Storage
 
 - Bucket name: `cat-images`
