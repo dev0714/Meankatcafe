@@ -115,6 +115,22 @@ create table meankatcafe.site_settings (
 
 Keys: `entrance_fee_1_price`, `entrance_fee_1_label`, `entrance_fee_2_price`, `entrance_fee_2_label`, `entrance_fee_3_price`, `entrance_fee_3_label`, `entrance_fee_4_price`, `entrance_fee_4_label`, `stat_drinks`, `stat_desserts`, `hours_weekday`, `hours_saturday`, `hours_sunday`, `hours_contact_weekday`, `hours_contact_weekend`.
 
+### contact_messages
+
+Stores submissions from the public Contact form (`app/api/contact`). The route
+degrades gracefully — if this table is missing it still returns success — so the
+form works before the table exists, and persists once it does.
+
+```sql
+create table meankatcafe.contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  message text not null,
+  created_at timestamptz not null default now()
+);
+```
+
 ## Storage
 
 - Bucket name: `cat-images`
@@ -136,3 +152,4 @@ Keys: `entrance_fee_1_price`, `entrance_fee_1_label`, `entrance_fee_2_price`, `e
 - `app/api/admin/menu/items/[id]` deletes a single item
 - `app/api/settings` returns all site settings (falls back to defaults)
 - `app/api/admin/settings` upserts key-value settings (POST)
+- `app/api/contact` accepts public Contact form submissions (POST); stores to `contact_messages` when Supabase is configured
