@@ -73,16 +73,16 @@
 
   /* ====== BUTTONS ====== */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 26px; border-radius: 999px; font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 12.5px; letter-spacing: 2px; text-transform: uppercase; transition: all .25s ease; cursor: pointer; border: 2px solid transparent; white-space: nowrap; }
-  .btn-light { background: var(--white); color: var(--purple-dark); }
-  .btn-light:hover { background: var(--yellow); color: var(--ink); transform: translateY(-2px); }
+  .btn-light { background: var(--white); color: var(--purple-dark); border-color: var(--purple-dark); }
+  .btn-light:hover { background: var(--yellow); color: var(--ink); border-color: var(--ink); transform: translateY(-2px); }
   .btn-outline { background: transparent; color: var(--white); border-color: rgba(255,255,255,.7); }
-  .btn-outline:hover { background: white; color: var(--purple-dark); transform: translateY(-2px); }
+  .btn-outline:hover { background: white; color: var(--purple-dark); border-color: white; transform: translateY(-2px); }
   .btn-outline-dark { background: transparent; color: var(--purple-dark); border-color: var(--purple-dark); }
   .btn-outline-dark:hover { background: var(--purple-dark); color: var(--white); transform: translateY(-2px); }
-  .btn-purple { background: var(--purple-dark); color: var(--white); }
-  .btn-purple:hover { background: var(--purple-deep); transform: translateY(-2px); }
-  .btn-yellow { background: var(--yellow); color: var(--ink); }
-  .btn-yellow:hover { background: var(--yellow-soft); transform: translateY(-2px); }
+  .btn-purple { background: var(--purple-dark); color: var(--white); border-color: var(--purple-deep); }
+  .btn-purple:hover { background: var(--purple-deep); color: var(--white); border-color: var(--ink); transform: translateY(-2px); }
+  .btn-yellow { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+  .btn-yellow:hover { background: var(--yellow-soft); color: var(--ink); border-color: var(--ink); transform: translateY(-2px); }
 
   /* ====== HERO ====== */
   .hero { background: linear-gradient(180deg, var(--lilac) 0%, var(--purple) 100%); position: relative; padding: 0; overflow: hidden; height: calc(100svh - 170px); min-height: 380px; max-height: 640px; display: flex; align-items: stretch; }
