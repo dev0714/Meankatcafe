@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import {
+  VOLUNTEER_SECTIONS,
+  VOLUNTEER_TERMS,
+  VOLUNTEER_ALL_FIELDS,
+  type VolunteerAnswers,
+  type VolunteerField,
+} from "@/lib/volunteer";
 import "./meankat.css";
 
 // ─────────────────────────────────────────────────────────────
@@ -19,7 +26,7 @@ type SiteEvent = {
   imageUrl?: string | null;
 };
 
-type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact";
+type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer";
 
 const NAV_LINKS: Page[] = [
   "Home",
@@ -222,6 +229,7 @@ export default function MeanKatCafe() {
       {page === "Cafe" && <CafePage setPage={setPage} />}
       {page === "Events" && <EventsPage setPage={setPage} />}
       {page === "How to Help" && <HowToHelpPage setPage={setPage} />}
+      {page === "Volunteer" && <VolunteerPage setPage={setPage} />}
       {page === "Contact" && <ContactPage setPage={setPage} />}
     </div>
   );
@@ -800,7 +808,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => setPage("Contact")}>{h.cta}</button>
+                    <button className="btn btn-purple" onClick={() => setPage(h.cta === "Apply to Volunteer" ? "Volunteer" : "Contact")}>{h.cta}</button>
                   </div>
                 </>
               ) : (
@@ -810,13 +818,185 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => setPage("Contact")}>{h.cta}</button>
+                    <button className="btn btn-purple" onClick={() => setPage(h.cta === "Apply to Volunteer" ? "Volunteer" : "Contact")}>{h.cta}</button>
                   </div>
                   <div className="help-icon-big">{h.icon}</div>
                 </>
               )}
             </div>
           ))}
+        </div>
+      </section>
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// VOLUNTEER PAGE
+// ─────────────────────────────────────────────────────────────
+
+function initialVolunteerAnswers(): VolunteerAnswers {
+  const out: VolunteerAnswers = {};
+  for (const f of VOLUNTEER_ALL_FIELDS) out[f.key] = f.kind === "checkboxes" ? [] : "";
+  return out;
+}
+
+function VolunteerPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [answers, setAnswers] = useState<VolunteerAnswers>(initialVolunteerAnswers);
+  const [otherAvailability, setOtherAvailability] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const setText = (key: string, value: string) => setAnswers((a) => ({ ...a, [key]: value }));
+
+  const toggleCheckbox = (key: string, option: string) =>
+    setAnswers((a) => {
+      const current = Array.isArray(a[key]) ? (a[key] as string[]) : [];
+      const next = current.includes(option) ? current.filter((o) => o !== option) : [...current, option];
+      return { ...a, [key]: next };
+    });
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+
+    // Fold the free-text "Other" availability into the availability list.
+    const payload: VolunteerAnswers = { ...answers };
+    if (otherAvailability.trim()) {
+      const list = Array.isArray(payload.availability) ? [...(payload.availability as string[])] : [];
+      payload.availability = [...list, `Other: ${otherAvailability.trim()}`];
+    }
+
+    try {
+      const res = await fetch("/api/volunteer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+      }
+      setSent(true);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderField = (f: VolunteerField) => {
+    if (f.kind === "textarea") {
+      return (
+        <div className="vol-field" key={f.key}>
+          <label className="field-label" htmlFor={`v-${f.key}`}>{f.label}{f.required && <span className="req"> *</span>}</label>
+          <textarea id={`v-${f.key}`} className="input-field" required={f.required} value={(answers[f.key] as string) ?? ""} onChange={(e) => setText(f.key, e.target.value)} placeholder={f.placeholder} />
+        </div>
+      );
+    }
+    if (f.kind === "yesno") {
+      return (
+        <div className="vol-field" key={f.key}>
+          <span className="field-label">{f.label}{f.required && <span className="req"> *</span>}</span>
+          <div className="radio-row">
+            {["Yes", "No"].map((opt) => (
+              <label key={opt} className={`radio-pill ${answers[f.key] === opt ? "on" : ""}`}>
+                <input type="radio" name={f.key} value={opt} checked={answers[f.key] === opt} required={f.required} onChange={() => setText(f.key, opt)} />
+                {opt}
+              </label>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (f.kind === "checkboxes") {
+      const selected = Array.isArray(answers[f.key]) ? (answers[f.key] as string[]) : [];
+      return (
+        <div className="vol-field" key={f.key}>
+          <span className="field-label">{f.label}{f.required && <span className="req"> *</span>}</span>
+          <div className="check-grid">
+            {(f.options ?? []).map((opt) => (
+              <label key={opt} className={`check-item ${selected.includes(opt) ? "on" : ""}`}>
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleCheckbox(f.key, opt)} />
+                {opt}
+              </label>
+            ))}
+          </div>
+          {f.allowOther && (
+            <input className="input-field" style={{ marginTop: 10 }} value={otherAvailability} onChange={(e) => setOtherAvailability(e.target.value)} placeholder="Other (please specify)…" />
+          )}
+        </div>
+      );
+    }
+    return (
+      <div className="vol-field" key={f.key}>
+        <label className="field-label" htmlFor={`v-${f.key}`}>{f.label}{f.required && <span className="req"> *</span>}</label>
+        <input id={`v-${f.key}`} className="input-field" type={f.kind === "email" ? "email" : "text"} required={f.required} value={(answers[f.key] as string) ?? ""} onChange={(e) => setText(f.key, e.target.value)} placeholder={f.placeholder} />
+      </div>
+    );
+  };
+
+  return (
+    <div data-screen-label="Volunteer">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Lend us a</div>
+          <h1 className="page-title">Helping Paw.</h1>
+          <p className="page-sub">Fill in the volunteer application below and our team will be in touch. Every paw on deck helps the cats.</p>
+        </div>
+      </section>
+
+      <section className="vol-section">
+        <div className="vol-inner">
+          {sent ? (
+            <div className="vol-success">
+              <div style={{ fontSize: 54, marginBottom: 12 }}>🐾</div>
+              <h2 className="vol-success-h">Application received!</h2>
+              <p className="vol-success-p">Thanks for wanting to join the MeanKat family. We&apos;ll review your application and get back to you soon.</p>
+              <button className="btn btn-purple" style={{ marginTop: 22 }} onClick={() => setPage("Home")}>Back to Home</button>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="vol-form">
+              {error && <div className="vol-error">{error}</div>}
+
+              {VOLUNTEER_SECTIONS.map((section) => (
+                <div className="vol-block" key={section.heading}>
+                  <h2 className="vol-heading">{section.heading}</h2>
+                  {section.intro && <p className="vol-intro">{section.intro}</p>}
+                  {section.fields.map(renderField)}
+                </div>
+              ))}
+
+              <div className="vol-block">
+                <h2 className="vol-heading">The fine print 📋</h2>
+                <p className="vol-intro">By submitting this form, I understand that:</p>
+                <ul className="vol-terms">
+                  {VOLUNTEER_TERMS.map((t) => <li key={t}>{t}</li>)}
+                </ul>
+                <div className="vol-field">
+                  <span className="field-label">Do you agree to these terms?<span className="req"> *</span></span>
+                  <div className="radio-row">
+                    {["Yes", "No"].map((opt) => (
+                      <label key={opt} className={`radio-pill ${answers.agree_terms === opt ? "on" : ""}`}>
+                        <input type="radio" name="agree_terms" value={opt} checked={answers.agree_terms === opt} required onChange={() => setText("agree_terms", opt)} />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-purple" disabled={sending} style={{ alignSelf: "flex-start" }}>
+                {sending ? "Submitting…" : "Submit Application"}
+              </button>
+            </form>
+          )}
         </div>
       </section>
 

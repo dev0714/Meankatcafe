@@ -131,6 +131,30 @@ create table meankatcafe.contact_messages (
 );
 ```
 
+### volunteer_applications
+
+Stores submissions from the public "Apply to Volunteer" form (`app/api/volunteer`).
+The full question/answer set is kept in the `answers` JSONB column, keyed by the
+field keys defined in `lib/volunteer.ts` (the single source of truth shared by the
+public form and the admin portal). A few fields are promoted to columns for quick
+scanning. The admin "Volunteers" tab lists and expands these via `/api/admin/volunteers`.
+
+```sql
+create table meankatcafe.volunteer_applications (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  email text not null,
+  whatsapp_number text,
+  suburb text,
+  agree_terms boolean not null default false,
+  answers jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index volunteer_applications_created_at_idx
+  on meankatcafe.volunteer_applications (created_at desc);
+```
+
 ## Storage
 
 - Bucket name: `cat-images`
@@ -153,3 +177,5 @@ create table meankatcafe.contact_messages (
 - `app/api/settings` returns all site settings (falls back to defaults)
 - `app/api/admin/settings` upserts key-value settings (POST)
 - `app/api/contact` accepts public Contact form submissions (POST); stores to `contact_messages` when Supabase is configured
+- `app/api/volunteer` accepts public volunteer applications (POST); stores to `volunteer_applications`
+- `app/api/admin/volunteers` lists volunteer applications (admin only); `app/api/admin/volunteers/[id]` deletes one

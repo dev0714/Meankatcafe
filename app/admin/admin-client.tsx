@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, categoryLabel } from "@/lib/cats";
+import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 
 const BRAND = {
   cream: "#f5f0d8",
@@ -21,9 +22,10 @@ const SIDEBAR_ACTIVE = "#9b8ec4";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers";
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
 type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; created_at: string };
+type VolunteerApplication = { id: string; fullName: string; email: string; whatsappNumber?: string | null; suburb?: string | null; agreeTerms: boolean; answers: VolunteerAnswers; createdAt: string };
 
 const SETTINGS_DEFAULTS = {
   entrance_fee_1_price: "R50",
@@ -93,6 +95,11 @@ export default function AdminClient() {
   const [eventMsg, setEventMsg] = useState("");
   const [eventSaving, setEventSaving] = useState(false);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+
+  const [volunteers, setVolunteers] = useState<VolunteerApplication[]>([]);
+  const [expandedVolunteerId, setExpandedVolunteerId] = useState<string | null>(null);
+  const [deletingVolunteerId, setDeletingVolunteerId] = useState<string | null>(null);
+  const [volunteerMsg, setVolunteerMsg] = useState("");
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -168,6 +175,14 @@ export default function AdminClient() {
     fetch("/api/events")
       .then((r) => r.ok ? r.json() : [])
       .then((data: AdminEvent[]) => setAdminEvents(data))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/admin/volunteers")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: VolunteerApplication[]) => setVolunteers(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -390,6 +405,17 @@ export default function AdminClient() {
     setDeletingEventId(null);
   }
 
+  async function handleDeleteVolunteer(v: VolunteerApplication) {
+    if (!confirm(`Delete the application from ${v.fullName}? This cannot be undone.`)) return;
+    setDeletingVolunteerId(v.id);
+    const res = await fetch(`/api/admin/volunteers/${v.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setVolunteerMsg(data.error ?? "Delete failed."); setDeletingVolunteerId(null); return; }
+    setVolunteers((vs) => vs.filter((x) => x.id !== v.id));
+    if (expandedVolunteerId === v.id) setExpandedVolunteerId(null);
+    setDeletingVolunteerId(null);
+  }
+
   function handleStartEditUser(user: AdminUser) {
     setEditingUserId(user.id);
     setEditUserForm({ email: user.email, password: "" });
@@ -443,6 +469,7 @@ export default function AdminClient() {
     { id: "cats", label: "Cats", icon: "🐾" },
     { id: "menu-images", label: "Menu Photos", icon: "📸" },
     { id: "events", label: "Events", icon: "🎉" },
+    { id: "volunteers", label: "Volunteers", icon: "🙌" },
     { id: "settings", label: "Site Settings", icon: "⚙️" },
     { id: "users", label: "Users", icon: "👤" },
   ];
@@ -884,6 +911,70 @@ export default function AdminClient() {
                   </div>
                 )}
               </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Volunteers Tab ── */}
+        {activeTab === "volunteers" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Applications</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Volunteers</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Volunteer applications submitted from the public “Apply to Volunteer” form.</p>
+            </div>
+
+            {volunteerMsg && (
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#b42318", background: "#fff0ee", border: "1px solid #f4c2be", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+                {volunteerMsg}
+              </div>
+            )}
+
+            <div className="panel">
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Applications ({volunteers.length})</div>
+              {volunteers.length === 0 ? (
+                <div style={{ color: BRAND.textLight, fontSize: 14 }}>No volunteer applications yet.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {volunteers.map((v) => {
+                    const open = expandedVolunteerId === v.id;
+                    return (
+                      <div key={v.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "14px 16px", flexWrap: "wrap" }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: BRAND.text }}>{v.fullName}</div>
+                            <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 3, wordBreak: "break-all" }}>{v.email}{v.whatsappNumber ? ` · ${v.whatsappNumber}` : ""}{v.suburb ? ` · ${v.suburb}` : ""}</div>
+                            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: v.agreeTerms ? "rgba(22,163,74,0.1)" : "rgba(180,35,24,0.08)", color: v.agreeTerms ? "#16a34a" : "#b42318" }}>
+                                {v.agreeTerms ? "Agreed to terms" : "Did not agree"}
+                              </span>
+                              <span style={{ fontSize: 11, color: BRAND.textLight, padding: "3px 0" }}>Applied {new Date(v.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                            <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setExpandedVolunteerId(open ? null : v.id)}>
+                              {open ? "Hide" : "View"}
+                            </button>
+                            <button className="mk-danger" onClick={() => handleDeleteVolunteer(v)} disabled={deletingVolunteerId === v.id}>
+                              {deletingVolunteerId === v.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                        {open && (
+                          <div style={{ borderTop: `1px solid ${BRAND.purpleLight}`, padding: "16px", display: "flex", flexDirection: "column", gap: 12, background: "#faf8ff" }}>
+                            {VOLUNTEER_ALL_FIELDS.map((f) => (
+                              <div key={f.key}>
+                                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: BRAND.purple, marginBottom: 3 }}>{f.label}</div>
+                                <div style={{ fontSize: 14, color: BRAND.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{answerToText(v.answers?.[f.key])}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}
