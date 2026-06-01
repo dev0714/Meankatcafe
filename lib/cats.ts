@@ -1,5 +1,10 @@
 export type CatCategory = "resident" | "adoptable" | "dual";
 
+// Non-destructive image framing: focal point (x/y as 0–100 percentages) + zoom.
+export type ImageTransform = { zoom: number; x: number; y: number };
+
+export const DEFAULT_IMAGE_TRANSFORM: ImageTransform = { zoom: 1, x: 50, y: 50 };
+
 export type CatCard = {
   id: string;
   name: string;
@@ -10,8 +15,10 @@ export type CatCard = {
   emoji?: string;
   images: string[];
   afterImageDbIds?: (string | null)[];
+  imageTransforms?: (ImageTransform | null)[];
   beforeImages?: string[];
   beforeImageDbIds?: (string | null)[];
+  beforeImageTransforms?: (ImageTransform | null)[];
   createdAt?: string;
 };
 
