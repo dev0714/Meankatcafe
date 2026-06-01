@@ -1,893 +1,947 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { emojify } from "@/lib/emojify";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, categoryLabel, mergeCatsByName, type CatCard } from "@/lib/cats";
-import { DEFAULT_MENU, type MenuSection } from "@/lib/menu";
+import { useState, useEffect } from "react";
+import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import "./meankat.css";
 
-const SETTINGS_DEFAULTS = {
-  entrance_fee_1_price: "R50",
-  entrance_fee_1_label: "Per person",
-  entrance_fee_2_price: "R40",
-  entrance_fee_2_label: "Students · weekdays (card req.)",
-  entrance_fee_3_price: "R40",
-  entrance_fee_3_label: "Pensioners",
-  entrance_fee_4_price: "Free",
-  entrance_fee_4_label: "Children under 1 year",
-  stat_drinks: "30+",
-  stat_desserts: "8+",
-  hours_weekday: "Mon – Fri: 8am–6pm",
-  hours_saturday: "Sat: 9am–6pm",
-  hours_sunday: "Sun: 9am–5pm",
-  hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
-  hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
-};
-type SiteSettings = typeof SETTINGS_DEFAULTS;
+// ─────────────────────────────────────────────────────────────
+// TYPES & DEFAULTS
+// ─────────────────────────────────────────────────────────────
 
-const BRAND = {
-  cream: "#f5f0d8",
-  purple: "#9b8ec4",
-  purpleDark: "#7a6fa8",
-  purpleLight: "#c5bce0",
-  yellow: "#f0d84a",
-  text: "#3a3060",
-  textLight: "#6b609a",
-  white: "#fffef5",
+type MenuImage = { id: string; url: string };
+
+type SiteEvent = {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time?: string;
+  imageUrl?: string | null;
 };
 
-  const navLinks = ["Home", "Menu", "Cats", "Events", "Story", "About", "Contact"];
+type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact";
 
+const NAV_LINKS: Page[] = [
+  "Home",
+  "About",
+  "Cats",
+  "Cafe",
+  "Events",
+  "How to Help",
+  "Contact",
+];
 
-function seededPawPrints() {
-  let s = 2847;
-  const rand = () => {
-    s = (Math.imul(s, 1664525) + 1013904223) | 0;
-    return (s >>> 0) / 4294967296;
-  };
-  return Array.from({ length: 20 }, (_, i) => {
-    const xr = rand();
-    // Zone away from hero text column (≈18–55% x)
-    const x = i % 3 === 0 ? xr * 16 : 56 + xr * 42;
-    return {
-      x,
-      y: rand() * 90,
-      r: rand() * 360 - 180,
-      s: 0.55 + rand() * 0.95,
-      o: 0.18 + rand() * 0.22,
-    };
-  });
-}
+const ENTRANCE_FEES: Array<[string, string]> = [
+  ["R50", "Per person"],
+  ["R40", "Students (weekdays) — card req."],
+  ["R40", "Pensioners"],
+  ["Free", "Children under 1 year"],
+];
 
-const PAW_PRINTS = seededPawPrints();
+const HOURS: Array<[string, string]> = [
+  ["MON", "CLOSED"],
+  ["TUE – THU", "09:00 – 17:00"],
+  ["FRI", "09:00 – 12:00 / 13:30 – 22:00"],
+  ["SAT", "09:00 – 22:00"],
+  ["SUN", "09:00 – 12:00"],
+];
+
+const PILLARS = [
+  {
+    icon: "📍",
+    title: "Durban",
+    body: (
+      <>
+        87 Smiso Nkwanyana Road
+        <br />
+        Morningside, Kwa-Zulu Natal.
+      </>
+    ),
+    cta: "Directions",
+    target: "Contact" as Page,
+  },
+  {
+    icon: "☕",
+    title: "Café",
+    body: <>Coffee to milkshakes, croissants to cookies. Have a look!</>,
+    cta: "View the Menu",
+    target: "Cafe" as Page,
+  },
+  {
+    icon: "🐱",
+    title: "Rules",
+    body: <>Please teach kiddies our cat hero rules before visiting.</>,
+    cta: "Cat Hero Guide",
+    target: "Cats" as Page,
+  },
+];
+
+const HELP_ITEMS = [
+  {
+    emoji: "🐾",
+    h: "Rescue & Rehabilitation",
+    p: "We help provide rescued cats with safety, care, socialisation, enrichment, and lots of naps in sunny spots.",
+  },
+  {
+    emoji: "🏡",
+    h: "Foster & Adoption Support",
+    p: "We work with rescue partners and fosters to help cats find loving forever homes (preferably with excellent snack budgets).",
+  },
+  {
+    emoji: "🎉",
+    h: "Community & Events",
+    p: "From art days to movie nights and cat-themed events, MeanKat Café is built for cat people to connect, relax, and support rescue together.",
+  },
+];
+
+const HOW_TO_HELP = [
+  {
+    icon: "🏡",
+    title: "Adopt",
+    body: "Our goal is to find safe, loving, forever homes for our rescue cats.",
+    cta: "How to Adopt",
+  },
+  {
+    icon: "🙌",
+    title: "Volunteer",
+    body: "Donate your time and become part of the MeanKat family.",
+    cta: "Volunteer",
+  },
+  {
+    icon: "💜",
+    title: "Donate",
+    body: "Support our cause with food, supplies, or financial donations.",
+    cta: "Donate Now",
+  },
+  {
+    icon: "🎉",
+    title: "Events",
+    body: "Be part of fun events that build our cat-loving community.",
+    cta: "See Events",
+  },
+];
+
+const RESCUE_SITUATIONS = [
+  "Abandonment",
+  "Neglect",
+  "Illness or Injury",
+  "Unsafe Living Conditions",
+  "Lack of Proper Care",
+];
+
+const PERKS = [
+  { icon: "🥣", title: "Quality Food" },
+  { icon: "🩺", title: "Medical Care" },
+  { icon: "🛏️", title: "Safe Space to Rest" },
+  { icon: "🧸", title: "Enrichment & Play" },
+  { icon: "🫶", title: "Love & Socialisation" },
+  { icon: "🏡", title: "Loving New Family" },
+];
+
+const HELP_DETAIL = [
+  {
+    icon: "🏡",
+    script: "Find your",
+    title: "Forever Friend",
+    body: "Every cat at MeanKat is looking for a safe, loving forever home. When you adopt, you're not just bringing home a companion — you're freeing up a foster space for the next rescue cat in need.",
+    list: [
+      "Meet the cats in person at the café",
+      "Chat with our team about temperament fits",
+      "Approved adopters get pre-visit & post-visit support",
+      "All cats are vetted, vaccinated & sterilised",
+    ],
+    cta: "Start the Adoption Process",
+  },
+  {
+    icon: "🙌",
+    script: "Lend us a",
+    title: "Helping Paw",
+    body: "Whether you can spare a few hours a week or just want to drop by and spend time socialising the cats, we'd love to have you on the MeanKat team.",
+    list: [
+      "Cat socialisation & enrichment shifts",
+      "Café floor support during busy hours",
+      "Event setup for cat-themed evenings",
+      "Photography & social media help",
+    ],
+    cta: "Apply to Volunteer",
+  },
+  {
+    icon: "💜",
+    script: "Help us help",
+    title: "More Cats",
+    body: "Guest fees cover daily care, but vet bills, rescues from urgent situations, and ongoing rehabilitation always need extra support. Every rand goes straight to the cats.",
+    list: [
+      "Food, treats & litter donations always welcome",
+      "Vet care contributions for rescues in need",
+      "Toys, scratchers, beds & enrichment items",
+      "Monthly recurring support for the bigger picture",
+    ],
+    cta: "Donate Now",
+  },
+  {
+    icon: "🎉",
+    script: "Come hang",
+    title: "With Us",
+    body: "We host weekly events designed for cat lovers and curious humans alike — from cat & canvas painting nights to movie evenings with the residents.",
+    list: [
+      "Cat & Canvas — paint with feline supervision",
+      "Movie nights with snacks & cuddles",
+      "Cat yoga in a calm, kitty-approved setting",
+      "Special adoption days & community fundraisers",
+    ],
+    cta: "See Upcoming Events",
+  },
+];
+
+const CAT_FILTERS = [
+  { value: "All" as const, label: "All Cats" },
+  { value: "resident" as const, label: "Resident Cats" },
+  { value: "adoptable" as const, label: "Adoptable Cats" },
+  { value: "dual" as const, label: "Dual Adoptions" },
+];
+
+// ─────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────
 
 export default function MeanKatCafe() {
-  const [page, setPage] = useState("Home");
+  const [page, setPage] = useState<Page>("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [menuFilter, setMenuFilter] = useState("All");
-  const [form, setForm] = useState({ name: "", email: "", msg: "" });
-  const [submitted, setSubmitted] = useState(false);
-  const [selectedCatImage, setSelectedCatImage] = useState<Record<string, number>>({});
-  const [catEntries, setCatEntries] = useState<CatCard[]>(DEFAULT_CATS);
-  const [catFilter, setCatFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
-  const [modalCat, setModalCat] = useState<CatCard | null>(null);
-  const [modalImageIndex, setModalImageIndex] = useState(0);
-  const [modalBeforeIndex, setModalBeforeIndex] = useState(0);
-  const [modalView, setModalView] = useState<"after" | "before">("after");
-  const [menuData, setMenuData] = useState<MenuSection[]>(DEFAULT_MENU);
-  const [menuImages, setMenuImages] = useState<{ id: string; url: string }[]>([{ id: "b1", url: "/menu1.jpg" }, { id: "b2", url: "/menu2.jpg" }]);
-  const [menuModalImage, setMenuModalImage] = useState<{ id: string; url: string } | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
-  const [events, setEvents] = useState<{ id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null }[]>([]);
-
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const dragScrollLeft = useRef(0);
-  const dragDistance = useRef(0);
-
-  useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
   useEffect(() => {
-    const loadCats = async () => {
-      const response = await fetch("/api/cats");
-      if (!response.ok) {
-        return;
-      }
+    window.scrollTo(0, 0);
+  }, [page]);
 
-      const data = ((await response.json()) as Array<CatCard & { category: string }>).map(c => ({
-        ...c,
-        category: (c.category === "other" ? "adoptable" : c.category) as CatCard["category"],
-      }));
-      setCatEntries((current) => mergeCatsByName(current, data));
-    };
+  return (
+    <div className="mk-site">
+      <Nav page={page} setPage={setPage} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <Announcement />
+      {page === "Home" && <HomePage setPage={setPage} />}
+      {page === "About" && <AboutPage setPage={setPage} />}
+      {page === "Cats" && <CatsPage setPage={setPage} />}
+      {page === "Cafe" && <CafePage setPage={setPage} />}
+      {page === "Events" && <EventsPage setPage={setPage} />}
+      {page === "How to Help" && <HowToHelpPage setPage={setPage} />}
+      {page === "Contact" && <ContactPage setPage={setPage} />}
+    </div>
+  );
+}
 
-    loadCats();
+// ─────────────────────────────────────────────────────────────
+// NAV / ANNOUNCEMENT / HOURS / FOOTER
+// ─────────────────────────────────────────────────────────────
+
+function Nav({
+  page,
+  setPage,
+  mobileOpen,
+  setMobileOpen,
+}: {
+  page: Page;
+  setPage: (p: Page) => void;
+  mobileOpen: boolean;
+  setMobileOpen: (b: boolean) => void;
+}) {
+  return (
+    <nav className="nav" data-screen-label="Site Nav">
+      <div className="nav-inner">
+        <div className="nav-logo" onClick={() => setPage("Home")}>
+          <img src="/logo.png" alt="MeanKat Cafe" />
+        </div>
+        <button className="hamburger" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+          {mobileOpen ? "✕" : "☰"}
+        </button>
+        <div className={`nav-links ${mobileOpen ? "open" : ""}`}>
+          {NAV_LINKS.map((l) => (
+            <a
+              key={l}
+              href="#"
+              className={`nav-link ${page === l ? "on" : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setPage(l);
+                setMobileOpen(false);
+              }}
+            >
+              {l}
+            </a>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function Announcement() {
+  return (
+    <div className="announce">
+      <div className="announce-inner">
+        <span>🎉 Banner for Updates / Events / Important Notices</span>
+      </div>
+    </div>
+  );
+}
+
+function HoursBar() {
+  return (
+    <div className="hours-bar">
+      {HOURS.map(([d, t], i) => (
+        <span key={d}>
+          <strong>{d}:</strong> {t}
+          {i < HOURS.length - 1 && <span className="sep">|</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Footer({ setPage }: { setPage: (p: Page) => void }) {
+  return (
+    <footer className="footer">
+      <div className="footer-inner">
+        <div className="footer-brand">
+          <img src="/logo.png" alt="MeanKat Cafe" />
+          <p className="footer-p">
+            Durban&apos;s first dedicated cat café &amp; rescue sanctuary. Coffee, cats &amp; second chances.
+          </p>
+        </div>
+        <div>
+          <div className="footer-h">Location</div>
+          <p className="footer-p">
+            87 Smiso Nkwanyana Road
+            <br />
+            Morningside, Durban
+            <br />
+            Kwa-Zulu Natal
+          </p>
+        </div>
+        <div>
+          <div className="footer-h">Non-Profit Charity</div>
+          <p className="footer-p">
+            MeanKat Cafe NPC
+            <br />
+            NPC 2025/784731/08
+          </p>
+        </div>
+        <div>
+          <div className="footer-h">Connect With Us</div>
+          <div className="socials">
+            <a className="social" href="https://instagram.com/meankatcafe_durban" aria-label="Instagram" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+            </a>
+            <a className="social" href="https://facebook.com/" aria-label="Facebook" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 12.07C22 6.5 17.52 2 12 2S2 6.5 2 12.07c0 5 3.66 9.15 8.44 9.93v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.77l-.44 2.9h-2.33V22c4.78-.78 8.43-4.92 8.43-9.93z"/></svg>
+            </a>
+            <a className="social" href="https://wa.me/" aria-label="WhatsApp" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.89-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.87 1.22 3.07.15.2 2.1 3.21 5.09 4.5.71.31 1.27.5 1.7.64.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35zM12 2C6.48 2 2 6.48 2 12c0 1.76.46 3.42 1.27 4.85L2 22l5.27-1.38A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18.27a8.27 8.27 0 0 1-4.21-1.15l-.3-.18-3.13.82.83-3.05-.2-.31A8.27 8.27 0 1 1 12 20.27z"/></svg>
+            </a>
+            <a className="social" href="https://tiktok.com/@meankatcafe_durban" aria-label="TikTok" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.9 20.1a6.34 6.34 0 0 0 10.86-4.43V8.79a8.16 8.16 0 0 0 4.77 1.52V6.87a4.85 4.85 0 0 1-1.94-.18z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <span>© 2026 MeanKat Cafe NPC · All rights reserved</span>
+        <a href="/admin" onClick={(e) => e.stopPropagation()} style={{ color: "rgba(255,255,255,0.7)" }}>Admin</a>
+      </div>
+    </footer>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// HOME PAGE
+// ─────────────────────────────────────────────────────────────
+
+function HomePage({ setPage }: { setPage: (p: Page) => void }) {
+  return (
+    <div data-screen-label="Home">
+      <section className="hero">
+        <div className="paws-layer paws-white" />
+        <div className="hero-inner">
+          <div className="hero-text">
+            <div className="hero-script">Welcome,</div>
+            <h1 className="hero-title">Cat Lovers.</h1>
+            <div className="hero-eyebrow">Meet your new favourite spot! 🐾</div>
+            <p className="hero-body">
+              Every coffee, croissant, and sweet treat helps support rescue cats through fostering, rehabilitation, care, and adoption while they wait for their forever humans.
+            </p>
+            <p className="hero-body">
+              Whether you&apos;re here for cat cuddles, iced lattes, or accidentally falling in love with your future furry roommate, every visit helps give rescue cats the second chance they deserve.
+            </p>
+            <div className="hero-cta">
+              <button className="btn btn-light" onClick={() => setPage("Cats")}>Book a Visit</button>
+              <button className="btn btn-outline" onClick={() => setPage("Cats")}>Meet the Cats</button>
+              <button className="btn btn-outline" onClick={() => setPage("How to Help")}>Donate</button>
+            </div>
+          </div>
+          <div className="hero-img-wrap">
+            <img src="/hero-cafe.png" alt="Inside MeanKat Café — spiral staircase and cat trees" />
+          </div>
+        </div>
+      </section>
+
+      <HoursBar />
+
+      <section className="visit-section">
+        <div className="visit-inner">
+          <div className="pricing-card">
+            <div className="pricing-title">Visit the Cats 🐱</div>
+            {ENTRANCE_FEES.map(([price, label]) => (
+              <div className="pricing-row" key={label}>
+                <span className="pricing-price">{price}</span>
+                <span className="pricing-label">{label}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div className="tagline-eyebrow">Come for the vibes... ☕</div>
+            <div className="tagline">
+              Stay because a cat <br />
+              <span className="accent">sat on your lap</span> &amp; now <br />
+              you legally can&apos;t leave.
+            </div>
+            <button className="btn btn-purple" onClick={() => setPage("Cats")}>Book a Visit</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="pillars">
+        <div className="pillars-inner">
+          {PILLARS.map((p) => (
+            <div key={p.title}>
+              <div className="pillar-icon">{p.icon}</div>
+              <div className="pillar-title">{p.title}</div>
+              <p className="pillar-body">{p.body}</p>
+              <button className="btn btn-outline-dark" onClick={() => setPage(p.target)}>{p.cta}</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="second-chances">
+        <div className="paws-layer paws-purple" />
+        <div className="second-inner">
+          <div className="second-img">
+            <img src="/janice-1.jpg" alt="Cat resting at MeanKat" />
+          </div>
+          <div>
+            <h2 className="sc-title">Coffee, Cats<br />&amp; Second Chances.</h2>
+            <div className="sc-sub">How your visit helps 💜</div>
+            {HELP_ITEMS.map((item) => (
+              <div className="help-item" key={item.h}>
+                <div className="help-emoji">{item.emoji}</div>
+                <div>
+                  <div className="help-h">{item.h}</div>
+                  <p className="help-p">{item.p}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="help-bar">
+        <div className="paws-layer paws-white" />
+        <div className="help-bar-inner">
+          {HOW_TO_HELP.map((h) => (
+            <div className="help-card" key={h.title}>
+              <div className="help-card-icon">{h.icon}</div>
+              <div className="help-card-title">{h.title}</div>
+              <p className="help-card-body">{h.body}</p>
+              <button className="btn btn-outline" onClick={() => setPage(h.title === "Events" ? "Events" : "How to Help")}>{h.cta}</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ABOUT PAGE
+// ─────────────────────────────────────────────────────────────
+
+function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
+  return (
+    <div data-screen-label="About">
+      <section className="about-hero">
+        <div className="paws-layer paws-white" />
+        <div className="about-hero-inner">
+          <div className="about-img">
+            <img src="/founder-maahira.jpg" alt="Maahira, founder of MeanKat Café" />
+          </div>
+          <div>
+            <div className="about-script">How it all</div>
+            <h1 className="about-title">Started...</h1>
+            <div className="about-sub-h">Creating more second chances 🐱</div>
+            <p className="about-p">
+              After years of learning cat behaviour and understanding what makes them feel safe, our founder, Maahira, knew she wanted to do something bigger and more sustainable than just fostering a few cats at a time.
+            </p>
+            <p className="about-p">
+              She recognized a key challenge in rescue work: when cats aren&apos;t adopted, fosters can&apos;t take in new rescues. The cycle of waiting never ends. That&apos;s when MeanKat Café was born — a feline sanctuary designed to help more rescue cats find loving homes.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="purrpose">
+        <div className="purrpose-inner">
+          <div className="purrpose-card">
+            <div className="purrpose-h">Our Purr-pose 🐾</div>
+            <p className="purrpose-p">Every cat at MeanKat Café is a rescue cat. Many come from situations involving:</p>
+            <ul className="purrpose-list">
+              {RESCUE_SITUATIONS.map((s) => <li key={s}>{s}</li>)}
+            </ul>
+          </div>
+          <div className="purrpose-card">
+            <div className="purrpose-h">Our Goal Is Simple 💜</div>
+            <p className="purrpose-p">
+              Give rescue cats a loving environment where they can rest, recover and prepare for adoption — while connecting them with people who&apos;ll give them safe forever homes.
+            </p>
+            <p className="purrpose-p">
+              Inspired by the incredible work of Suzanne Kunz from PMB Kitten Fostering &amp; Rescue, we work closely with local fosters on urgent rehoming cases. Guest entry fees go directly to food, vet care, and the cats&apos; overall well-being.
+            </p>
+            <button className="btn btn-purple" onClick={() => setPage("How to Help")}>Get Involved</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="perks">
+        <div className="perks-inner">
+          <h2 className="perks-eyebrow">Perks of the MeanKat life:</h2>
+          <div className="perks-grid">
+            {PERKS.map((p) => (
+              <div className="perk" key={p.title}>
+                <div className="perk-icon">{p.icon}</div>
+                <div className="perk-title">{p.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CATS PAGE
+// ─────────────────────────────────────────────────────────────
+
+function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [filter, setFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
+  const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
+  const [modalCat, setModalCat] = useState<CatCard | null>(null);
+
+  useEffect(() => {
+    fetch("/api/cats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: CatCard[] | null) => {
+        if (!data || data.length === 0) return;
+        setCats((prev) => mergeCatsByName(prev, data));
+      })
+      .catch(() => {});
   }, []);
 
+  const visible = filter === "All" ? cats : cats.filter((c) => c.category === filter);
+  const labelFor = (cat: CatCard) =>
+    cat.category === "resident" ? "Resident cat" : cat.category === "dual" ? "Dual adoption" : "Adoptable cat";
+
+  return (
+    <div data-screen-label="Cats">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Meet the</div>
+          <h1 className="page-title">Residents.</h1>
+          <p className="page-sub">They run this place. We just make the coffee. Browse our resident cats, adoptable cats, and dual adoptions below.</p>
+          <div className="filter-row">
+            {CAT_FILTERS.map((f) => (
+              <button key={f.value} className={`filter-pill ${filter === f.value ? "on" : ""}`} onClick={() => setFilter(f.value)}>{f.label}</button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="cats-section">
+        <div className="cats-inner">
+          {visible.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--ink-soft)" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div>
+              <p>No cats in this category right now — check back soon.</p>
+            </div>
+          ) : (
+            <div className="cat-grid">
+              {visible.map((cat) => (
+                <div key={cat.id} className="cat-card" onClick={() => setModalCat(cat)}>
+                  <img className="cat-photo" src={cat.images[0]} alt={cat.name} />
+                  <div className="cat-body">
+                    <div className={`cat-tag tag-${cat.category}`}>{labelFor(cat)}</div>
+                    <div className="cat-name">{cat.name}</div>
+                    {cat.breed && <div className="cat-breed">{cat.breed}</div>}
+                    {cat.mood && <div className="cat-mood">Currently: {cat.mood}</div>}
+                    <p className="cat-desc">{cat.description.slice(0, 140)}{cat.description.length > 140 ? "…" : ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {modalCat && (
+        <div className="modal-backdrop" onClick={() => setModalCat(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setModalCat(null)}>✕</button>
+            <img className="modal-img" src={modalCat.images[0]} alt={modalCat.name} />
+            <div className={`cat-tag tag-${modalCat.category}`}>{labelFor(modalCat)}</div>
+            <div className="cat-name" style={{ fontSize: 40, marginTop: 10 }}>{modalCat.name}</div>
+            {modalCat.breed && <div className="cat-breed">{modalCat.breed}</div>}
+            {modalCat.mood && <div className="cat-mood" style={{ marginTop: 10 }}>Currently: {modalCat.mood}</div>}
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18 }}>{modalCat.description}</p>
+            {modalCat.images && modalCat.images.length > 1 && (
+              <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+                {modalCat.images.map((src, i) => (
+                  <img key={i} src={src} alt={`${modalCat.name} ${i + 1}`} style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", border: "2px solid var(--lilac)" }} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CAFE / MENU PAGE
+// ─────────────────────────────────────────────────────────────
+
+function CafePage({ setPage }: { setPage: (p: Page) => void }) {
+  const [menuImages, setMenuImages] = useState<MenuImage[]>([
+    { id: "b1", url: "/menu1.jpg" },
+    { id: "b2", url: "/menu2.jpg" },
+  ]);
+  const [modalImage, setModalImage] = useState<MenuImage | null>(null);
+
   useEffect(() => {
-    fetch("/api/menu").then(r => r.ok ? r.json() : null).then((data: MenuSection[] | null) => {
-      if (data && data.length > 0 && data[0].id) setMenuData(data);
-    }).catch(() => {});
-    fetch("/api/settings").then(r => r.ok ? r.json() : null).then((data: SiteSettings | null) => {
-      if (data) setSettings({ ...SETTINGS_DEFAULTS, ...data });
-    }).catch(() => {});
-    fetch("/api/menu-images").then(r => r.ok ? r.json() : null).then((data) => {
-      if (data && data.length > 0) {
+    fetch("/api/menu-images")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: MenuImage[] | null) => {
+        if (!data || data.length === 0) return;
         try {
           const hidden: string[] = JSON.parse(window.localStorage.getItem("meankat_hidden_menu_images") ?? "[]");
-          setMenuImages(data.filter((img: { id: string }) => !hidden.includes(img.id)));
+          setMenuImages(data.filter((img) => !hidden.includes(img.id)));
         } catch {
           setMenuImages(data);
         }
-      }
-    }).catch(() => {});
-    fetch("/api/events").then(r => r.ok ? r.json() : []).then(setEvents).catch(() => {});
+      })
+      .catch(() => {});
   }, []);
 
-  const navigate = (p: string) => { setPage(p); setMobileOpen(false); };
+  return (
+    <div data-screen-label="Cafe">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Our</div>
+          <h1 className="page-title">Café Menu</h1>
+          <p className="page-sub">Coffee to milkshakes, croissants to cookies. The one part of MeanKat genuinely happy you&apos;re here. Tap any photo to see it bigger.</p>
+        </div>
+      </section>
 
-  const menuGroups = [...new Set(menuData.map(s => s.filterGroup).filter(Boolean))];
-  const visibleSections = menuFilter === "All"
-    ? menuData
-    : menuData.filter(s => s.filterGroup === menuFilter);
-  const visibleCats = catFilter === "All"
-    ? catEntries
-    : catEntries.filter(cat => cat.category === catFilter);
+      <section className="menu-photos-wrap">
+        <div className="menu-photos-inner">
+          {menuImages.length === 0 ? (
+            <div className="menu-empty">
+              <div style={{ fontSize: 64, marginBottom: 12 }}>📋</div>
+              <p>Menu photos are being updated — check back soon.</p>
+            </div>
+          ) : (
+            <div className="menu-photo-grid">
+              {menuImages.map((img) => (
+                <div className="menu-photo-card" key={img.id} onClick={() => setModalImage(img)}>
+                  <img src={img.url} alt="MeanKat menu" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="menu-fee-card">
+            <div className="menu-fee-h">Don&apos;t forget the entrance fee 🐾</div>
+            <div className="menu-fee-p">R50 per person · R40 students (weekdays, card req.) · R40 pensioners · Free for children under 1 year</div>
+          </div>
+        </div>
+      </section>
+
+      {modalImage && (
+        <div className="modal-backdrop" onClick={() => setModalImage(null)}>
+          <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setModalImage(null)}>✕</button>
+            <img src={modalImage.url} alt="MeanKat menu" className="menu-modal-img" />
+          </div>
+        </div>
+      )}
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// EVENTS PAGE
+// ─────────────────────────────────────────────────────────────
+
+function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [events, setEvents] = useState<SiteEvent[]>([]);
+
+  useEffect(() => {
+    fetch("/api/events")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setEvents)
+      .catch(() => {});
+  }, []);
+
+  const sorted = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const today = new Date(new Date().toDateString());
+  const upcoming = sorted.filter((e) => new Date(e.date) >= today);
+  const past = sorted.filter((e) => new Date(e.date) < today);
+  const ordered = [...upcoming, ...past.reverse()];
 
   return (
-    <div style={{ background: BRAND.cream, minHeight: "100vh", fontFamily: "'Nunito', sans-serif", color: BRAND.text }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #f5f0d8; }
-        @keyframes floatSlow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-        @keyframes fadeIn { 0% { opacity: 0; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        @keyframes slideInRight { 0% { transform: translateX(20px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-        .mk-nav { background: none; border: none; cursor: pointer; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #6b609a; padding: 6px 2px; transition: all 0.3s ease; border-bottom: 2px solid transparent; position: relative; }
-        .mk-nav:hover, .mk-nav.on { color: #7a6fa8; border-bottom-color: #f0d84a; transform: scale(1.05); }
-        .mk-primary { background: linear-gradient(135deg, #9b8ec4, #7a6fa8); color: white; border: none; border-radius: 100px; padding: 14px 32px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; font-weight: 700; box-shadow: 0 4px 15px rgba(155,142,196,0.25); }
-        .mk-primary:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 28px rgba(155,142,196,0.4); }
-        .mk-outline { background: transparent; color: #7a6fa8; border: 2px solid #9b8ec4; border-radius: 100px; padding: 12px 28px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; font-weight: 700; }
-        .mk-outline:hover { background: linear-gradient(135deg, #9b8ec4, #7a6fa8); color: white; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(155,142,196,0.3); }
-        .mk-card { background: #fffef5; border: 1.5px solid #c5bce0; border-radius: 16px; padding: 28px; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; overflow: hidden; }
-        .mk-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(240,216,74,0.03) 0%, rgba(155,142,196,0.03) 100%); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-        .mk-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(155,142,196,0.22); border-color: #f0d84a; }
-        .mk-card:hover::before { opacity: 1; }
-        .mk-filter { background: transparent; border: 1.5px solid #c5bce0; border-radius: 100px; padding: 8px 20px; font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; color: #6b609a; transition: all 0.3s ease; font-weight: 700; }
-        .mk-filter.on, .mk-filter:hover { background: linear-gradient(135deg, #9b8ec4, #7a6fa8); color: white; border-color: transparent; transform: scale(1.05); box-shadow: 0 6px 16px rgba(155,142,196,0.3); }
-        .mk-input { width: 100%; border: 1.5px solid #c5bce0; border-radius: 10px; padding: 14px 16px; font-family: 'Nunito', sans-serif; font-size: 14px; background: #fffef5; color: #3a3060; outline: none; transition: all 0.3s ease; font-weight: 500; }
-        .mk-input:focus { border-color: #f0d84a; box-shadow: 0 0 0 3px rgba(240,216,74,0.15); }
-        .mk-input::placeholder { color: #c5bce0; }
-        textarea.mk-input { resize: vertical; min-height: 130px; }
-        .cat-desc-scroll {
-          max-height: 170px;
-          overflow-y: auto;
-          padding-right: 8px;
-          scrollbar-width: thin;
-          scrollbar-color: #9b8ec4 rgba(155,142,196,0.15);
-        }
-        .cat-desc-scroll::-webkit-scrollbar { width: 8px; }
-        .cat-desc-scroll::-webkit-scrollbar-track { background: rgba(155,142,196,0.12); border-radius: 999px; }
-        .cat-desc-scroll::-webkit-scrollbar-thumb { background: #9b8ec4; border-radius: 999px; }
-        .cat-desc-scroll::-webkit-scrollbar-thumb:hover { background: #7a6fa8; }
-        .tag { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
-        .float-elem { animation: floatSlow 3s ease-in-out infinite; }
-        @media (max-width: 768px) {
-          .d-nav { display: none !important; }
-          .m-btn { display: flex !important; }
-          .two-col { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .hero-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (min-width: 769px) {
-          .m-btn { display: none !important; }
-          .m-panel { display: none !important; }
-        }
-      `}</style>
-
-      {/* ── NAV ── */}
-      <nav style={{ background: "rgba(245,240,216,0.95)", backdropFilter: "blur(14px)", borderBottom: "2px solid #f0d84a", padding: "0 clamp(16px, 5vw, 40px)", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 4px 20px rgba(155,142,196,0.08)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", height: "auto", minHeight: 68, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div onClick={() => navigate("Home")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "transform 0.3s" }}>
-            <img src="/logo.png" alt="MeanKat Cafe" style={{ height: "clamp(60px, 12vw, 100px)", width: "auto", filter: "contrast(1.3) saturate(1.3) drop-shadow(0 2px 8px rgba(0,0,0,0.1))" }} />
-          </div>
-          <div className="d-nav" style={{ display: "flex", gap: 28 }}>
-            {navLinks.map(l => <button key={l} className={`mk-nav ${page === l ? "on" : ""}`} onClick={() => navigate(l)}>{l}</button>)}
-            <Link href="/admin" className="mk-nav" style={{ textDecoration: "none" }}>Admin</Link>
-          </div>
-          <button className="m-btn" onClick={() => setMobileOpen(!mobileOpen)} style={{ display: "none", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: BRAND.text }}>
-            {mobileOpen ? "✕" : "☰"}
-          </button>
+    <div data-screen-label="Events">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">What&apos;s</div>
+          <h1 className="page-title">On.</h1>
+          <p className="page-sub">From cat yoga mornings to themed movie nights — there&apos;s always something brewing at MeanKat. Grab a spot before the cats do.</p>
         </div>
-        {mobileOpen && (
-          <div className="m-panel" style={{ borderTop: "2px solid #f0d84a", padding: "20px clamp(16px, 5vw, 40px)", display: "flex", flexDirection: "column", gap: 18, background: "rgba(240,216,74,0.05)" }}>
-            {navLinks.map(l => <button key={l} className={`mk-nav ${page === l ? "on" : ""}`} onClick={() => navigate(l)}>{l}</button>)}
-            <Link href="/admin" className="mk-nav" style={{ textDecoration: "none" }}>Admin</Link>
-          </div>
-        )}
-      </nav>
+      </section>
 
-      {/* ══════════ HOME ══════════ */}
-      {page === "Home" && (
-        <div>
-          {/* Hero */}
-          <div style={{ minHeight: "clamp(80vh, 100vh, 120vh)", display: "flex", alignItems: "center", padding: "clamp(40px, 10vw, 80px) clamp(20px, 5vw, 40px)", background: `linear-gradient(135deg, ${BRAND.cream} 0%, #e8e0f8 50%, #d8d0f0 100%)`, position: "relative", overflow: "hidden" }}>
-            {/* Logo Background */}
-            <img src="/logo.png" alt="" style={{ position: "absolute", top: "50%", right: "-10%", width: "clamp(300px, 60vw, 600px)", height: "auto", opacity: 0.08, transform: "translateY(-50%)", pointerEvents: "none", mixBlendMode: "multiply" }} />
-
-            
-            {/* Scattered paw prints — 5 purple ellipses per paw, each pad floats independently */}
-            {PAW_PRINTS.map((p, i) => {
-              const size = Math.round(100 * p.s);
-              return (
-                <div
-                  key={i}
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    left: `${p.x}%`,
-                    top: `${p.y}%`,
-                    transform: `translate(-50%,-50%) rotate(${p.r}deg)`,
-                    opacity: p.o,
-                    pointerEvents: "none",
-                  }}
-                >
-                  {/* viewBox gives 8-10px gap between each pad — "apart" look */}
-                  <svg width={size} height={size} viewBox="-60 -72 120 112" overflow="visible" style={{ display: "block" }}>
-                    {/* main metacarpal pad */}
-                    <ellipse cx="0" cy="20" rx="28" ry="22" fill={BRAND.purple}
-                      style={{ animation: "floatSlow 3.0s ease-in-out infinite 0.0s" }}/>
-                    {/* left outer toe */}
-                    <ellipse cx="-38" cy="-22" rx="13" ry="15" fill={BRAND.purple}
-                      style={{ animation: "floatSlow 3.3s ease-in-out infinite 0.3s" }}/>
-                    {/* left inner toe */}
-                    <ellipse cx="-14" cy="-47" rx="12" ry="14" fill={BRAND.purple}
-                      style={{ animation: "floatSlow 2.8s ease-in-out infinite 0.6s" }}/>
-                    {/* right inner toe */}
-                    <ellipse cx="14" cy="-47" rx="12" ry="14" fill={BRAND.purple}
-                      style={{ animation: "floatSlow 3.1s ease-in-out infinite 0.9s" }}/>
-                    {/* right outer toe */}
-                    <ellipse cx="38" cy="-22" rx="13" ry="15" fill={BRAND.purple}
-                      style={{ animation: "floatSlow 2.9s ease-in-out infinite 1.2s" }}/>
-                  </svg>
-                </div>
-              );
-            })}
-
-            {/* Decorative elements */}
-            <div style={{ position: "absolute", top: "8%", right: "6%", width: 120, height: 120, background: "linear-gradient(135deg, #f0d84a, #fce4a3)", borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", opacity: 0.15, animation: "floatSlow 4s ease-in-out infinite", pointerEvents: "none", display: "none" }} />
-            <div style={{ position: "absolute", bottom: "12%", left: "4%", width: 80, height: 80, background: "#9b8ec4", borderRadius: "50%", opacity: 0.08, animation: "floatSlow 5s ease-in-out infinite 0.5s", pointerEvents: "none", display: "none" }} />
-            <div style={{ position: "absolute", top: "15%", left: "8%", fontSize: 180, opacity: 0.04, pointerEvents: "none", display: "none" }}>😾</div>
-            <div style={{ position: "absolute", bottom: "8%", right: "10%", fontSize: 140, opacity: 0.05, pointerEvents: "none", display: "none" }}>🐾</div>
-            
-            <div className="hero-grid" style={{ maxWidth: 1200, margin: "0 auto", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(20px, 8vw, 72px)", alignItems: "center", position: "relative", zIndex: 1 }}>
-              <div>
-                <div className="tag" style={{ color: BRAND.purple, marginBottom: "clamp(12px, 3vw, 20px)", display: "flex", alignItems: "center", gap: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                  <span style={{ display: "inline-block", width: 28, height: 3, background: `linear-gradient(90deg, ${BRAND.yellow}, transparent)`, borderRadius: 2 }} />
-                  Durban's First Cat Café
-                </div>
-                <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 7vw, 80px)", lineHeight: 1.05, color: BRAND.text, marginBottom: "clamp(16px, 4vw, 24px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  Great coffee.<br />
-                  <span style={{ color: BRAND.purple }}>Grumpy cats.</span><br />
-                  No apologies.
-                </h1>
-                <p style={{ fontSize: "clamp(14px, 2vw, 16px)", color: BRAND.textLight, lineHeight: 1.8, maxWidth: 420, marginBottom: "clamp(24px, 5vw, 40px)" }}>
-                  If you love caffeine with a side of cat cuddles, then this is for you. MeanKat Café is Durban's newest whisker-filled hangout where rescue cats rule the lounge while you enjoy your coffee and a bite.
-                </p>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-                  <button className="mk-primary" onClick={() => navigate("Menu")}>View Menu</button>
-                  <button className="mk-outline" onClick={() => navigate("Cats")}>Meet the Cats</button>
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-                {/* Entrance fee */}
-                <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 12px 40px rgba(240,216,74,0.25)", position: "relative", overflow: "visible" }}>
-                  {/* Cat lying on top of the card — transparent PNG, no white box */}
-                  <div aria-hidden="true" style={{ position: "absolute", top: -48, left: 16, pointerEvents: "none", zIndex: 10, animation: "floatSlow 4s ease-in-out infinite" }}>
-                    <img
-                      src="/cat-lie-down.png"
-                      alt=""
-                      style={{
-                        width: "clamp(140px, 18vw, 190px)",
-                        height: "auto",
-                        display: "block",
-                        filter: "brightness(0) saturate(100%) invert(62%) sepia(20%) saturate(600%) hue-rotate(215deg) brightness(0.88) drop-shadow(0 6px 12px rgba(58,48,96,0.2))",
-                      }}
-                    />
-                  </div>
-                  <div className="tag" style={{ color: BRAND.text, marginBottom: 10, fontSize: "clamp(10px, 2vw, 11px)" }}>Entrance Fee</div>
-                  <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 26px)", color: BRAND.text, marginBottom: 18 }}>Visit the Cats 🐱</div>
-                  {[
-                    [settings.entrance_fee_1_price, settings.entrance_fee_1_label],
-                    [settings.entrance_fee_2_price, settings.entrance_fee_2_label],
-                    [settings.entrance_fee_3_price, settings.entrance_fee_3_label],
-                    [settings.entrance_fee_4_price, settings.entrance_fee_4_label],
-                  ].map(([p, l]) => (
-                    <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(58,48,96,0.15)", fontSize: "clamp(12px, 2vw, 13px)" }}>
-                      <span style={{ fontWeight: 800, color: BRAND.text }}>{p}</span>
-                      <span style={{ fontSize: "clamp(10px, 1.5vw, 13px)", color: BRAND.textLight }}>{l}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Stats */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                  {[{ icon: "😾", num: String(catEntries.length), label: "Resident Cats" }, { icon: "☕", num: settings.stat_drinks, label: "Drinks on Menu" }, { icon: "🍰", num: settings.stat_desserts, label: "Fresh Desserts" }, { icon: "📍", num: "DBN", label: "Durban, KZN" }].map(s => (
-                    <div key={s.label} style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 14, padding: "clamp(14px, 2vw, 18px)", textAlign: "center", transition: "all 0.3s", cursor: "pointer", boxShadow: "0 4px 12px rgba(155,142,196,0.08)" }}>
-                      <div style={{ fontSize: "clamp(18px, 4vw, 22px)", marginBottom: 6 }}>{s.icon}</div>
-                      <div style={{ fontWeight: 900, fontSize: "clamp(16px, 3vw, 22px)", background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{s.num}</div>
-                      <div className="tag" style={{ fontSize: "clamp(8px, 1.5vw, 9px)", color: BRAND.textLight }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <section className="events-section">
+        <div className="events-inner">
+          {ordered.length === 0 ? (
+            <div className="events-empty">
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🐾</div>
+              <div className="events-empty-h">No events right now</div>
+              <p className="events-empty-p">Check back soon — the cats are plotting something.</p>
             </div>
-          </div>
-
-          {/* Features */}
-          <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, padding: "clamp(40px, 10vw, 64px) clamp(20px, 5vw, 40px)", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: "-10%", right: "0", width: 300, height: 300, background: "rgba(255,255,255,0.04)", borderRadius: "50%", pointerEvents: "none" }} />
-            <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "clamp(24px, 5vw, 40px)", textAlign: "center", position: "relative", zIndex: 1 }}>
-              {[
-                { icon: "☕", title: "Specialty Coffee", body: "From espresso to matcha. The one thing here genuinely delighted to see you." },
-                { icon: "😼", title: "Real Cat Encounters", body: "6 rescue cats roam freely. They may sit on you. That is a privilege." },
-                { icon: "🍰", title: "Cakes & Bakes", body: "Fresh desserts, crumble biscuits, and tiramisu buns made daily." },
-                { icon: "🏡", title: "Adoption Agency", body: "Fall in love over a latte. Our cats are available to adopt." },
-              ].map(f => (
-                <div key={f.title} style={{ transition: "transform 0.3s" }}>
-                  <div style={{ fontSize: "clamp(26px, 5vw, 34px)", marginBottom: 12, animation: "floatSlow 3s ease-in-out infinite" }}>{f.icon}</div>
-                  <div style={{ fontWeight: 800, fontSize: "clamp(15px, 3vw, 17px)", color: "white", marginBottom: 8 }}>{f.title}</div>
-                  <div style={{ fontSize: "clamp(12px, 2vw, 13px)", color: "rgba(255,255,255,0.85)", lineHeight: 1.8 }}>{f.body}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom CTA */}
-          <div style={{ padding: "clamp(40px, 10vw, 80px) clamp(20px, 5vw, 40px)", textAlign: "center", background: BRAND.cream }}>
-            <div style={{ fontWeight: 900, fontSize: "clamp(22px, 5vw, 40px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 14 }}>Ready to be ignored by a cat?</div>
-            <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", marginBottom: 32, lineHeight: 1.8 }}>Find us on Instagram @meankatcafe_durban · TikTok @meankatcafe_durban · Facebook: Meankat Cafe</p>
-            <button className="mk-primary" onClick={() => navigate("Contact")}>Get in Touch</button>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════ MENU ══════════ */}
-      {page === "Menu" && (
-       <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, ${BRAND.cream}, #f5f0d8)` }}>
-          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-            <div style={{ marginBottom: "clamp(32px, 8vw, 44px)" }}>
-              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                What we serve
-              </div>
-              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: 14 }}>Our Menu</h1>
-              <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", maxWidth: 480, lineHeight: 1.7 }}>
-                The one part of MeanKat that's genuinely happy you're here. All prices include a small cat welfare contribution.
-              </p>
-            </div>
-            
-            {/* Menu Photo Carousel */}
-            <div style={{ position: "relative", marginBottom: 48 }}>
-              <div
-                ref={carouselRef}
-                onMouseDown={(e) => {
-                  isDragging.current = true;
-                  dragStartX.current = e.pageX - (carouselRef.current?.offsetLeft ?? 0);
-                  dragScrollLeft.current = carouselRef.current?.scrollLeft ?? 0;
-                  dragDistance.current = 0;
-                  if (carouselRef.current) carouselRef.current.style.cursor = "grabbing";
-                }}
-                onMouseMove={(e) => {
-                  if (!isDragging.current) return;
-                  e.preventDefault();
-                  const x = e.pageX - (carouselRef.current?.offsetLeft ?? 0);
-                  const walk = x - dragStartX.current;
-                  dragDistance.current = Math.abs(walk);
-                  if (carouselRef.current) carouselRef.current.scrollLeft = dragScrollLeft.current - walk;
-                }}
-                onMouseUp={() => { isDragging.current = false; if (carouselRef.current) carouselRef.current.style.cursor = "grab"; }}
-                onMouseLeave={() => { isDragging.current = false; if (carouselRef.current) carouselRef.current.style.cursor = "grab"; }}
-                style={{ display: "flex", gap: "clamp(14px, 3vw, 22px)", overflowX: "auto", scrollSnapType: "x mandatory", paddingBottom: 12, scrollbarWidth: "thin", scrollbarColor: `${BRAND.purple} rgba(155,142,196,0.15)`, cursor: "grab", userSelect: "none" }}
-              >
-                {menuImages.map((img) => (
-                  <div
-                    key={img.id}
-                    onClick={() => { if (dragDistance.current < 6) setMenuModalImage(img); }}
-                    style={{ flex: "0 0 clamp(260px, 42vw, 520px)", scrollSnapAlign: "start", background: "white", borderRadius: 20, border: `2px solid ${BRAND.purpleLight}`, overflow: "hidden", boxShadow: "0 8px 28px rgba(155,142,196,0.18)", cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s" }}
-                    onMouseEnter={(e) => { if (!isDragging.current) { (e.currentTarget as HTMLDivElement).style.transform = "scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(155,142,196,0.3)"; } }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 28px rgba(155,142,196,0.18)"; }}
-                  >
-                    <img src={img.url} alt="MeanKat menu" style={{ width: "100%", height: "auto", display: "block", pointerEvents: "none" }} />
-                  </div>
-                ))}
-              </div>
-              <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: BRAND.textLight, opacity: 0.7 }}>
-                ← drag to scroll · click to enlarge →
-              </div>
-            </div>
-
-            <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 16, padding: "clamp(20px, 4vw, 26px) clamp(20px, 4vw, 30px)", display: "flex", gap: 18, alignItems: "flex-start", boxShadow: "0 8px 24px rgba(240,216,74,0.2)", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "clamp(20px, 4vw, 26px)" }}>🐾</span>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", color: BRAND.text, marginBottom: 6 }}>Don't forget the entrance fee!</div>
-                <div style={{ fontSize: "clamp(12px, 2vw, 13px)", color: BRAND.textLight, lineHeight: 1.7 }}>
-                  {settings.entrance_fee_1_price} {settings.entrance_fee_1_label} · {settings.entrance_fee_2_price} {settings.entrance_fee_2_label} · {settings.entrance_fee_3_price} {settings.entrance_fee_3_label} · {settings.entrance_fee_4_price} {settings.entrance_fee_4_label}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════ CATS ══════════ */}
-      {page === "Cats" && (
-        <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, #f5f0d8, ${BRAND.cream})` }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
-              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                The cats
-              </div>
-              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1, marginBottom: 14 }}>
-                Meet the <span style={{ color: BRAND.purple }}>Residents.</span>
-              </h1>
-              <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", maxWidth: 460, lineHeight: 1.7 }}>
-                They run this place. We just make the coffee. Use the filters below to browse resident cats, adoptable cats, and dual adoptions.
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
-              {["All", ...CAT_CATEGORY_OPTIONS.map((option) => option.value)].map((value) => (
-                <button
-                  key={value}
-                  className={`mk-filter ${catFilter === value ? "on" : ""}`}
-                  onClick={() => setCatFilter(value as "All" | "resident" | "adoptable" | "dual")}
-                >
-                  {value === "All" ? "All Cats" : CAT_CATEGORY_OPTIONS.find((option) => option.value === value)?.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "clamp(16px, 3vw, 22px)", marginBottom: 44 }}>
-              {visibleCats.map(cat => {
-                const currentImageIndex = selectedCatImage[cat.name] || 0;
-                const displayImage = cat.images ? cat.images[currentImageIndex] : null;
+          ) : (
+            <div className="event-grid">
+              {ordered.map((ev) => {
+                const d = new Date(ev.date);
+                const isPast = d < today;
+                const day = d.toLocaleDateString("en-ZA", { day: "numeric" });
+                const month = d.toLocaleDateString("en-ZA", { month: "short" }).toUpperCase();
+                const year = d.getFullYear();
                 return (
-                <div key={cat.name} className="mk-card" style={{ cursor: "pointer" }} onClick={() => { setModalCat(cat); setModalImageIndex(currentImageIndex); setModalBeforeIndex(0); setModalView("after"); }}>
-                  {displayImage ? (
-                    <div style={{ width: "100%", height: 200, marginBottom: 16, borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 12px rgba(155,142,196,0.12)" }}>
-                      <img src={displayImage} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div className={`event-card ${isPast ? "past" : ""}`} key={ev.id}>
+                    {ev.imageUrl && <img className="event-photo" src={ev.imageUrl} alt={ev.title} />}
+                    <div className="event-body">
+                      <div className="event-date-chip">
+                        <div className="event-day">{day}</div>
+                        <div className="event-month">{month}</div>
+                        <div className="event-year">{year}</div>
+                      </div>
+                      <div className="event-content">
+                        <div className="event-title-row">
+                          <h3 className="event-title">{ev.title}</h3>
+                          {isPast && <span className="event-past">Past</span>}
+                        </div>
+                        {ev.time && <div className="event-time">🕐 {ev.time}</div>}
+                        <p className="event-desc">{ev.description}</p>
+                      </div>
                     </div>
-                  ) : (
-                    <div style={{ width: 72, height: 72, background: `linear-gradient(135deg, ${BRAND.purple}33, ${BRAND.yellow}22)`, border: `2px solid ${BRAND.purpleLight}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 16, boxShadow: "0 4px 12px rgba(155,142,196,0.12)" }}>
-                      {cat.emoji}
-                    </div>
-                  )}
-                  <div style={{ fontWeight: 900, fontSize: 22, background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 3 }}>{cat.name}</div>
-                  <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 8 }}>
-                    {cat.breed || categoryLabel(cat.category)}
                   </div>
-                  <div style={{ display: "inline-flex", marginBottom: 10, padding: "6px 12px", borderRadius: 999, background: cat.category === "resident" ? "rgba(155,142,196,0.12)" : cat.category === "dual" ? "rgba(155,142,196,0.22)" : "rgba(240,216,74,0.2)", color: BRAND.text, fontSize: 11, fontWeight: 700 }}>
-                    {cat.category === "resident" ? "Resident cat" : cat.category === "dual" ? "Dual adoption" : "Adoptable cat"}
-                  </div>
-                  <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginBottom: 14, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
-                    Currently: {cat.mood || "Unknown mood"}
-                  </div>
-                  <div className="cat-desc-scroll" style={{ marginTop: 2, marginBottom: 2 }}>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8 }}>{emojify(cat.description)}</p>
-                  </div>
-                  {cat.images && cat.images.length > 1 && (
-                    <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-                      {cat.images.map((img, i) => (
-                        <img
-                          key={i}
-                          src={img}
-                          alt={`${cat.name} ${i + 1}`}
-                          onClick={(e) => { e.stopPropagation(); setSelectedCatImage({ ...selectedCatImage, [cat.name]: i }); }}
-                          style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", border: currentImageIndex === i ? `2px solid ${BRAND.yellow}` : `1px solid ${BRAND.purpleLight}`, cursor: "pointer", transition: "all 0.3s", boxShadow: currentImageIndex === i ? `0 0 8px ${BRAND.yellow}` : "none" }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
+                );
               })}
             </div>
-            <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, borderRadius: 20, padding: "36px 40px", color: "white", textAlign: "center", boxShadow: "0 12px 40px rgba(155,142,196,0.2)" }}>
-              <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 10 }}>🐾 Resident cats and visitors welcome</div>
-              <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.8, maxWidth: 580, margin: "0 auto" }}>
-                Resident cats are the house favourites. Adoptable cats and dual adoptions can be uploaded by approved admins and still appear on the public site. Please don't disturb sleeping cats, and never force an interaction — they'll come to you if they feel like it. They almost certainly won't.
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </section>
 
-      {/* ══════════ STORY ══════════ */}
-      {page === "Story" && (
-        <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, ${BRAND.cream}, #f5f0d8)` }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
-              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                Our origin
-              </div>
-              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1.05, marginBottom: 14 }}>
-                How MeanKat Café Began
-              </h1>
-              <p style={{ color: BRAND.textLight, fontSize: "clamp(13px, 2vw, 15px)", maxWidth: 600, lineHeight: 1.8 }}>
-                Founded by Maahira Essack, a lifelong animal lover with deep passion for cat welfare and rescue.
-              </p>
-            </div>
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "clamp(20px, 5vw, 32px)", marginBottom: 52 }}>
-              <div style={{ borderRadius: 20, overflow: "hidden", boxShadow: "0 12px 40px rgba(155,142,196,0.2)" }}>
-                <img src="/founder-maahira.jpg" alt="Maahira Essack, founder of MeanKat Café, with her cats" style={{ width: "100%", height: "auto", display: "block", objectFit: "cover" }} />
-              </div>
+// ─────────────────────────────────────────────────────────────
+// HOW TO HELP PAGE
+// ─────────────────────────────────────────────────────────────
 
-              <div style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 20, padding: "clamp(24px, 4vw, 36px)", boxShadow: "0 8px 24px rgba(155,142,196,0.12)" }}>
-                <div style={{ fontWeight: 800, fontSize: "clamp(15px, 3vw, 18px)", color: BRAND.purple, marginBottom: 16 }}>The Vision</div>
-                <p style={{ fontSize: "clamp(13px, 2vw, 14px)", color: BRAND.textLight, lineHeight: 1.9, marginBottom: 14 }}>
-                  After years of learning cat behaviour and understanding what makes them feel safe, Maahira knew she wanted to do something bigger and more sustainable than just fostering a few cats at a time.
-                </p>
-                <p style={{ fontSize: "clamp(13px, 2vw, 14px)", color: BRAND.textLight, lineHeight: 1.9 }}>
-                  She recognized a key challenge in rescue work: when cats aren't adopted, fosters can't take in new rescues. The cycle of waiting never ends. That's when MeanKat Café was born — a feline sanctuary designed to help more rescue cats find loving homes.
-                </p>
-              </div>
-
-              <div style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 20, padding: "clamp(24px, 4vw, 36px)", boxShadow: "0 8px 24px rgba(155,142,196,0.12)" }}>
-                <div style={{ fontWeight: 800, fontSize: "clamp(15px, 3vw, 18px)", color: BRAND.purple, marginBottom: 16 }}>The Mission</div>
-                <p style={{ fontSize: "clamp(13px, 2vw, 14px)", color: BRAND.textLight, lineHeight: 1.9, marginBottom: 14 }}>
-                  All the cats at MeanKat are rescues, many arriving from distressing or neglected environments. They need a calm, loving space to reset — just like you do.
-                </p>
-                <p style={{ fontSize: "clamp(13px, 2vw, 14px)", color: BRAND.textLight, lineHeight: 1.9 }}>
-                  Inspired by the incredible work of Suzanne Kunz from PMB Kitten Fostering & Rescue, we work closely with local fosters on urgent rehoming cases. Guest entry fees go directly to food, vet care, and the cats' overall well-being. Together, we're increasing adoption opportunities and saving more lives.
-                </p>
-              </div>
-
-              <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, borderRadius: 20, padding: "clamp(24px, 4vw, 36px)", boxShadow: "0 12px 40px rgba(240,216,74,0.2)" }}>
-                <div style={{ fontWeight: 800, fontSize: "clamp(15px, 3vw, 18px)", color: BRAND.text, marginBottom: 16 }}>What We Offer</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  {[
-                    { icon: "☕", title: "Halal Coffee & Café", desc: "Specialty coffees, frappes, desserts & light meals" },
-                    { icon: "🎨", title: "Weekly Events", desc: "Yoga, cat & canvas, beauty treatments & more" },
-                    { icon: "🐾", title: "Cat Lounge", desc: "Supervised time with rescue cats in a safe space" },
-                    { icon: "💜", title: "Adoption Support", desc: "Help rescue cats find forever homes" },
-                  ].map(item => (
-                    <div key={item.title}>
-                      <div style={{ fontSize: 20, marginBottom: 8 }}>{item.icon}</div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: BRAND.text, marginBottom: 4 }}>{item.title}</div>
-                      <div style={{ fontSize: 12, color: BRAND.textLight, lineHeight: 1.6 }}>{item.desc}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ background: BRAND.purple, borderRadius: 20, padding: "clamp(32px, 5vw, 44px)", color: "white", textAlign: "center" }}>
-                <div style={{ fontWeight: 900, fontSize: "clamp(18px, 4vw, 24px)", marginBottom: 12 }}>Located in Durban's Morningside</div>
-                <p style={{ fontSize: "clamp(12px, 2vw, 14px)", opacity: 0.9, lineHeight: 1.8, marginBottom: 24 }}>
-                  MeanKat Café is Durban's first dedicated cat café and adoption sanctuary. A place where rescue cats thrive, people find peace, and something beautiful happens over a cup of coffee.
-                </p>
-                <button className="mk-primary" onClick={() => navigate("Contact")}>Visit Us Today</button>
-              </div>
-            </div>
-          </div>
+function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
+  return (
+    <div data-screen-label="How to Help">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">How to</div>
+          <h1 className="page-title">Help.</h1>
+          <p className="page-sub">Four ways to make a real difference for rescue cats — pick the one that fits, or do all four. We won&apos;t stop you.</p>
         </div>
-      )}
+      </section>
 
-      {/* ══════════ ABOUT ══════════ */}
-      {page === "About" && (
-        <div style={{ padding: "72px 40px", background: `linear-gradient(to bottom, ${BRAND.cream}, #f5f0d8)` }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 72, alignItems: "start", marginBottom: 64 }}>
+      <section className="help-page">
+        <div className="help-inner">
+          {HELP_DETAIL.map((h, i) => (
+            <div className={`help-block ${i % 2 === 1 ? "flip" : ""}`} key={h.title}>
+              {i % 2 === 0 ? (
+                <>
+                  <div className="help-icon-big">{h.icon}</div>
+                  <div>
+                    <div className="help-script-tag">{h.script}</div>
+                    <h2 className="help-h2">{h.title}</h2>
+                    <p className="help-text">{h.body}</p>
+                    <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
+                    <button className="btn btn-purple" onClick={() => setPage("Contact")}>{h.cta}</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <div className="help-script-tag">{h.script}</div>
+                    <h2 className="help-h2">{h.title}</h2>
+                    <p className="help-text">{h.body}</p>
+                    <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
+                    <button className="btn btn-purple" onClick={() => setPage("Contact")}>{h.cta}</button>
+                  </div>
+                  <div className="help-icon-big">{h.icon}</div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CONTACT PAGE
+// ─────────────────────────────────────────────────────────────
+
+function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Something went wrong. Please try again.");
+      }
+      setSent(true);
+      setTimeout(() => setSent(false), 4500);
+      setForm({ name: "", email: "", message: "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div data-screen-label="Contact">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Drop us</div>
+          <h1 className="page-title">A Line.</h1>
+          <p className="page-sub">Booking a visit, asking about adoption, organising an event, or just want to say hi — we&apos;d love to hear from you.</p>
+        </div>
+      </section>
+
+      <HoursBar />
+
+      <section className="contact-section">
+        <div className="contact-inner">
+          <div className="contact-card">
+            <div className="contact-h">Find us 🐱</div>
+            <div className="contact-info-row">
+              <div className="contact-info-icon">📍</div>
               <div>
-                <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                  Our story
-                </div>
-                <h1 style={{ fontWeight: 900, fontSize: "clamp(36px, 5vw, 56px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1.05, marginBottom: 26 }}>
-                  Durban's most loveable grumps.
-                </h1>
-                {["MeanKat Café started with a simple idea: rescue cats deserve loving homes, and people deserve excellent coffee. We combined both and opened Durban's first cat café.",
-                  "Our rescue cats are the heart of everything we do. They're grumpy, unpredictable, and completely in charge — and visitors absolutely love them for it.",
-                  "We also run MeanKat Café Adoption Agency, helping our cats find their forever homes. Every visit you make supports our rescue mission.",
-                  "Our menu is fully halal and fully delicious — specialty coffees, frappes, desserts and light café-style meals, all enjoyed while a whiskered companion supervises your snack choices.",
-                  "We host weekly events including yoga, cat & canvas, makeup classes, beauty treatments and more stress-reducing activities surrounded by kitty love.",
-                  "Find us on Instagram, TikTok and Facebook: @meankatcafe_durban"
-                ].map((p, i) => (
-                  <p key={i} style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9, marginBottom: 18 }}>{p}</p>
-                ))}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { icon: "🐾", title: "Rescue First", body: "Every cat here came from a rescue situation. We give cats a safe, enriching environment while they find forever homes." },
-                  { icon: "☕", title: "Specialty Coffee", body: "Ethically sourced and expertly prepared. From classic espresso to matcha fusions — every cup made with care." },
-                  { icon: "🏡", title: "Adoption Agency", body: "MeanKat runs an adoption agency alongside the café. Fall in love over a latte and take one home." },
-                  { icon: "💜", title: "Community Space", body: "A gathering place for cat lovers, coffee people, and anyone who needs a quiet corner with a purring companion." },
-                ].map(v => (
-                  <div key={v.title} style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 14, padding: "20px 22px", display: "flex", gap: 14, transition: "all 0.3s", cursor: "pointer", boxShadow: "0 4px 12px rgba(155,142,196,0.08)" }}>
-                    <span style={{ fontSize: 24, minWidth: 28, marginTop: 2, animation: "floatSlow 3s ease-in-out infinite" }}>{v.icon}</span>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: BRAND.text, marginBottom: 5 }}>{v.title}</div>
-                      <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.7 }}>{v.body}</div>
-                    </div>
-                  </div>
-                ))}
+                <div className="contact-label">Location</div>
+                <div className="contact-value">87 Smiso Nkwanyana Road<br />Morningside, Durban<br />Kwa-Zulu Natal</div>
               </div>
             </div>
-            <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, borderRadius: 20, padding: "48px", textAlign: "center", color: "white", boxShadow: "0 12px 40px rgba(155,142,196,0.25)" }}>
-              <div style={{ fontSize: 48, marginBottom: 14, animation: "floatSlow 3s ease-in-out infinite" }}>😺</div>
-              <div style={{ fontWeight: 900, fontSize: 26, marginBottom: 12 }}>MeanKat Adoption Agency</div>
-              <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.8, maxWidth: 500, margin: "0 auto 28px" }}>
-                Can't leave without your new best frenemy? Our cats are available for adoption. Come meet them — they'll pretend not to care. It's part of their charm.
-              </div>
-              <button className="mk-primary" style={{ background: BRAND.yellow, color: BRAND.text }} onClick={() => navigate("Contact")}>Enquire About Adoption</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════ EVENTS ══════════ */}
-      {page === "Events" && (
-        <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, #f5f0d8, ${BRAND.cream})`, minHeight: "60vh" }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
-              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                What's on
-              </div>
-              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1.05, margin: "0 0 14px" }}>
-                Events &<br /><span style={{ WebkitTextFillColor: BRAND.purple }}>Happenings</span>
-              </h1>
-              <p style={{ fontSize: "clamp(14px, 2.5vw, 16px)", color: BRAND.textLight, lineHeight: 1.7, maxWidth: 520 }}>
-                From cat yoga mornings to themed evenings — there&apos;s always something brewing at MeanKat.
-              </p>
-            </div>
-
-            {events.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "80px 20px", background: BRAND.white, borderRadius: 20, border: `2px dashed ${BRAND.purpleLight}` }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🐾</div>
-                <div style={{ fontWeight: 800, fontSize: 18, color: BRAND.text, marginBottom: 8 }}>No events right now</div>
-                <div style={{ fontSize: 14, color: BRAND.textLight }}>Check back soon — the cats are plotting something.</div>
-              </div>
-            ) : (
-              <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 420px), 1fr))" }}>
-                {events.map((ev) => {
-                  const d = new Date(ev.date);
-                  const isPast = d < new Date(new Date().toDateString());
-                  const day = d.toLocaleDateString("en-ZA", { day: "numeric" });
-                  const month = d.toLocaleDateString("en-ZA", { month: "short" }).toUpperCase();
-                  const year = d.getFullYear();
-                  return (
-                    <div key={ev.id} style={{ background: BRAND.white, borderRadius: 20, overflow: "hidden", border: `2px solid ${BRAND.purpleLight}`, boxShadow: "0 4px 20px rgba(155,142,196,0.1)", opacity: isPast ? 0.7 : 1, display: "flex", flexDirection: "column" }}>
-                      {ev.imageUrl && (
-                        <img src={ev.imageUrl} alt={ev.title} style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
-                      )}
-                      <div style={{ padding: "20px 24px", display: "flex", gap: 18, flex: 1 }}>
-                        <div style={{ textAlign: "center", minWidth: 52, background: isPast ? "#f0f0f0" : `${BRAND.yellow}33`, border: `2px solid ${isPast ? "#ddd" : BRAND.yellow}`, borderRadius: 12, padding: "10px 6px", alignSelf: "flex-start" }}>
-                          <div style={{ fontWeight: 900, fontSize: 22, color: BRAND.text, lineHeight: 1 }}>{day}</div>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: BRAND.purple, letterSpacing: 1.5, marginTop: 2 }}>{month}</div>
-                          <div style={{ fontSize: 10, color: BRAND.textLight }}>{year}</div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                            <div style={{ fontWeight: 900, fontSize: 17, color: BRAND.text }}>{ev.title}</div>
-                            {isPast && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f0f0f0", color: "#999" }}>Past</span>}
-                          </div>
-                          {ev.time && <div style={{ fontSize: 12, color: BRAND.purple, fontWeight: 700, marginBottom: 8 }}>🕐 {ev.time}</div>}
-                          <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.7 }}>{ev.description}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ══════════ CONTACT ══════════ */}
-      {page === "Contact" && (
-        <div style={{ padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)", background: `linear-gradient(to bottom, #f5f0d8, ${BRAND.cream})` }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <div style={{ marginBottom: "clamp(32px, 8vw, 52px)" }}>
-              <div className="tag" style={{ color: BRAND.yellow, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, fontSize: "clamp(10px, 2vw, 11px)" }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, background: BRAND.yellow, borderRadius: "50%" }} />
-                Say hello
-              </div>
-              <h1 style={{ fontWeight: 900, fontSize: "clamp(28px, 6vw, 68px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", lineHeight: 1.05, marginBottom: 14 }}>
-                We reply.<br /><span style={{ color: BRAND.purple }}>The cats don't.</span>
-              </h1>
-            </div>
-            <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(32px, 8vw, 60px)", alignItems: "start" }}>
+            <div className="contact-info-row">
+              <div className="contact-info-icon">⏰</div>
               <div>
-                {submitted ? (
-                  <div style={{ background: `linear-gradient(135deg, ${BRAND.purple}, #7a6fa8)`, borderRadius: 20, padding: "48px", textAlign: "center", color: "white", boxShadow: "0 12px 40px rgba(155,142,196,0.25)" }}>
-                    <div style={{ fontSize: 48, marginBottom: 14, animation: "floatSlow 3s ease-in-out infinite" }}>😾</div>
-                    <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 10 }}>Message received.</div>
-                    <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.8 }}>We'll get back to you soon. The cats have been informed. They remain indifferent.</div>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {[
-                      { label: "Your Name", key: "name", type: "input", placeholder: "e.g. Sarah" },
-                      { label: "Email Address", key: "email", type: "input", placeholder: "sarah@email.com" },
-                      { label: "Message", key: "msg", type: "textarea", placeholder: "Reservations, events, adoption enquiries, or just to say hi..." },
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label className="tag" style={{ fontSize: 10, color: BRAND.textLight, display: "block", marginBottom: 8 }}>{f.label}</label>
-                        {f.type === "textarea"
-                          ? <textarea className="mk-input" placeholder={f.placeholder} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
-                          : <input className="mk-input" placeholder={f.placeholder} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />}
-                      </div>
-                    ))}
-                    <button className="mk-primary" style={{ alignSelf: "flex-start" }}
-                      onClick={() => { if (form.name && form.email && form.msg) setSubmitted(true); }}>
-                      Send Message
-                    </button>
-                  </div>
-                )}
+                <div className="contact-label">Opening hours</div>
+                <div className="contact-value">Mon: closed<br />Tue – Thu: 09:00 – 17:00<br />Fri: 09:00 – 12:00 / 13:30 – 22:00<br />Sat: 09:00 – 22:00<br />Sun: 09:00 – 12:00</div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {[
-                  { icon: "📍", label: "Location", value: "Durban, KwaZulu-Natal\nSouth Africa" },
-                  { icon: "🕐", label: "Hours", value: `${settings.hours_contact_weekday}\n${settings.hours_contact_weekend}` },
-                  { icon: "📱", label: "Social Media", value: "@meankatcafe_durban\nInstagram · TikTok · Facebook" },
-                  { icon: "🐾", label: "Adoption Enquiries", value: "Ask us about adopting any of our resident cats. Mention adoption in your message!" },
-                ].map(info => (
-                  <div key={info.label} style={{ background: BRAND.white, border: `2px solid ${BRAND.purpleLight}`, borderRadius: 14, padding: "20px 22px", display: "flex", gap: 14, transition: "all 0.3s", cursor: "pointer", boxShadow: "0 4px 12px rgba(155,142,196,0.08)" }}>
-                    <span style={{ fontSize: 22, minWidth: 26, animation: "floatSlow 3s ease-in-out infinite" }}>{info.icon}</span>
-                    <div>
-                      <div className="tag" style={{ fontSize: 10, color: BRAND.purple, marginBottom: 6 }}>{info.label}</div>
-                      <div style={{ fontSize: 13, color: BRAND.textLight, lineHeight: 1.8, whiteSpace: "pre-line" }}>{info.value}</div>
-                    </div>
-                  </div>
-                ))}
+            </div>
+            <div className="contact-info-row">
+              <div className="contact-info-icon">📞</div>
+              <div>
+                <div className="contact-label">Phone &amp; WhatsApp</div>
+                <div className="contact-value">+27 (0)31 000 0000<br /><a href="https://wa.me/" style={{ color: "var(--purple-dark)", fontWeight: 700 }}>Chat on WhatsApp</a></div>
+              </div>
+            </div>
+            <div className="contact-info-row">
+              <div className="contact-info-icon">✉️</div>
+              <div>
+                <div className="contact-label">Email</div>
+                <div className="contact-value">hello@meankatcafe.co.za</div>
+              </div>
+            </div>
+            <div className="contact-info-row">
+              <div className="contact-info-icon">💜</div>
+              <div>
+                <div className="contact-label">Socials</div>
+                <div className="contact-value">@meankatcafe_durban on Instagram, TikTok &amp; Facebook</div>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* FOOTER */}
-      <footer style={{ background: BRAND.purpleDark, color: BRAND.white, padding: "clamp(40px, 10vw, 72px) clamp(20px, 5vw, 40px)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "clamp(32px, 8vw, 52px)", marginBottom: "clamp(32px, 8vw, 52px)", textAlign: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
-              <img src="/logo.png" alt="MeanKat Cafe" style={{ height: "clamp(50px, 10vw, 70px)", width: "auto" }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>Location</div>
-              <div style={{ fontSize: "clamp(12px, 2vw, 13px)", opacity: 0.9, lineHeight: 1.8 }}>
-                Morningside<br />Durban, KZN<br />South Africa
-              </div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>Follow Us</div>
-              <div style={{ fontSize: "clamp(12px, 2vw, 13px)", opacity: 0.9, lineHeight: 1.8 }}>
-                Instagram<br />TikTok<br />Facebook
-              </div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "clamp(13px, 2.5vw, 15px)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>Hours</div>
-              <div style={{ fontSize: "clamp(12px, 2vw, 13px)", opacity: 0.9, lineHeight: 1.8 }}>
-                {settings.hours_weekday}<br />{settings.hours_saturday}<br />{settings.hours_sunday}
-              </div>
-            </div>
-          </div>
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "clamp(24px, 5vw, 32px)", textAlign: "center", fontSize: "clamp(11px, 1.8vw, 12px)", opacity: 0.8 }}>
-            © 2025 MeanKat Café. All rights reserved. · Durban's only cat café where humans serve, cats rule.
-          </div>
-        </div>
-      </footer>
-
-      {/* ── MENU IMAGE MODAL ── */}
-      {menuModalImage && (
-        <div
-          onClick={() => setMenuModalImage(null)}
-          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(20,16,48,0.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ position: "relative", maxWidth: "min(92vw, 860px)", width: "100%", animation: "fadeIn 0.2s ease" }}
-          >
-            <button
-              onClick={() => setMenuModalImage(null)}
-              style={{ position: "absolute", top: -16, right: -16, zIndex: 10, background: "white", border: "none", borderRadius: "50%", width: 40, height: 40, cursor: "pointer", fontSize: 20, color: BRAND.purpleDark, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}
-              aria-label="Close"
-            >×</button>
-            <img
-              src={menuModalImage.url}
-              alt="MeanKat menu"
-              style={{ width: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 20, display: "block", boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ── CAT MODAL ── */}
-      {modalCat && (
-        <div
-          onClick={() => setModalCat(null)}
-          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(30,24,60,0.72)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: "#fffef5", borderRadius: 24, padding: "clamp(24px, 4vw, 40px)", maxWidth: 540, width: "100%", boxShadow: "0 32px 80px rgba(58,48,96,0.35)", animation: "fadeIn 0.25s ease", position: "relative", maxHeight: "90vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}
-          >
-            <button
-              onClick={() => setModalCat(null)}
-              style={{ position: "absolute", top: 16, right: 16, background: "rgba(155,142,196,0.12)", border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "#7a6fa8", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
-              aria-label="Close"
-            >×</button>
-
-            {/* Before / After toggle */}
-            {modalCat.beforeImages && modalCat.beforeImages.length > 0 && (
-              <div style={{ display: "flex", gap: 0, marginBottom: 14, background: `${BRAND.purpleLight}30`, borderRadius: 10, padding: 3 }}>
-                {(["after", "before"] as const).map((v) => (
-                  <button key={v} onClick={() => setModalView(v)}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: 13, transition: "all 0.2s", background: modalView === v ? BRAND.purple : "transparent", color: modalView === v ? "white" : BRAND.textLight }}
-                  >
-                    {v === "after" ? "✨ After" : "📷 Before"}
-                  </button>
-                ))}
+          <div className="contact-card">
+            <div className="contact-h">Send a message</div>
+            {sent && (
+              <div style={{ background: "var(--yellow-soft)", color: "var(--purple-dark)", padding: "12px 16px", borderRadius: 12, marginBottom: 14, fontWeight: 800, fontSize: 14 }}>
+                🐾 Got it — we&apos;ll get back to you within 24 hours.
               </div>
             )}
-
-            {/* Main image */}
-            {(() => {
-              const src = modalView === "after" ? modalCat.images?.[modalImageIndex] : modalCat.beforeImages?.[modalBeforeIndex];
-              return src ? (
-                <div style={{ width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 16, boxShadow: "0 8px 24px rgba(155,142,196,0.18)", position: "relative" }}>
-                  <img src={src} alt={`${modalCat.name} ${modalView}`} style={{ width: "100%", maxHeight: 380, objectFit: "cover", display: "block" }} />
-                  {modalCat.beforeImages && modalCat.beforeImages.length > 0 && (
-                    <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.52)", backdropFilter: "blur(4px)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 800, color: "white", letterSpacing: 1, textTransform: "uppercase" }}>
-                      {modalView === "after" ? "After" : "Before"}
-                    </div>
-                  )}
-                </div>
-              ) : <div style={{ fontSize: 80, textAlign: "center", marginBottom: 16 }}>{modalCat.emoji}</div>;
-            })()}
-
-            {/* After thumbnails */}
-            {modalView === "after" && modalCat.images && modalCat.images.length > 1 && (
-              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-                {modalCat.images.map((img, i) => (
-                  <img key={i} src={img} alt={`${modalCat.name} ${i + 1}`} onClick={() => setModalImageIndex(i)}
-                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: modalImageIndex === i ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, boxShadow: modalImageIndex === i ? `0 0 0 3px rgba(240,216,74,0.35)` : "none", transition: "all 0.2s" }}
-                  />
-                ))}
+            {error && (
+              <div style={{ background: "#fde2e2", color: "#9b2226", padding: "12px 16px", borderRadius: 12, marginBottom: 14, fontWeight: 800, fontSize: 14 }}>
+                {error}
               </div>
             )}
+            <form onSubmit={submit}>
+              <label className="field-label" htmlFor="cf-name">Your name</label>
+              <input id="cf-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
 
-            {/* Before thumbnails */}
-            {modalView === "before" && modalCat.beforeImages && modalCat.beforeImages.length > 1 && (
-              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-                {modalCat.beforeImages.map((img, i) => (
-                  <img key={i} src={img} alt={`${modalCat.name} before ${i + 1}`} onClick={() => setModalBeforeIndex(i)}
-                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: modalBeforeIndex === i ? `2px solid ${BRAND.yellow}` : `1.5px solid ${BRAND.purpleLight}`, boxShadow: modalBeforeIndex === i ? `0 0 0 3px rgba(240,216,74,0.35)` : "none", transition: "all 0.2s" }}
-                  />
-                ))}
-              </div>
-            )}
+              <label className="field-label" htmlFor="cf-email">Email</label>
+              <input id="cf-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
 
-            <div style={{ fontWeight: 900, fontSize: "clamp(22px, 4vw, 28px)", background: `linear-gradient(135deg, ${BRAND.text}, ${BRAND.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 4 }}>{modalCat.name}</div>
-            <div className="tag" style={{ fontSize: 10, color: BRAND.textLight, marginBottom: 10 }}>{modalCat.breed || categoryLabel(modalCat.category)}</div>
-            <div style={{ display: "inline-flex", marginBottom: 12, padding: "6px 14px", borderRadius: 999, background: modalCat.category === "resident" ? "rgba(155,142,196,0.12)" : modalCat.category === "dual" ? "rgba(155,142,196,0.22)" : "rgba(240,216,74,0.2)", fontSize: 12, fontWeight: 700, color: BRAND.text }}>
-              {modalCat.category === "resident" ? "Resident cat" : modalCat.category === "dual" ? "Dual adoption" : "Adoptable cat"}
-            </div>
-            {modalCat.mood && (
-              <div style={{ background: `linear-gradient(135deg, ${BRAND.yellow}, #fce4a3)`, display: "inline-block", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, color: BRAND.text, marginLeft: 8, marginBottom: 16, boxShadow: "0 2px 8px rgba(240,216,74,0.2)" }}>
-                Currently: {modalCat.mood}
-              </div>
-            )}
-            <div style={{ overflowY: "auto", marginTop: 8, paddingRight: 4, flexShrink: 1, scrollbarWidth: "thin", scrollbarColor: "#9b8ec4 rgba(155,142,196,0.15)" }}>
-              <p style={{ fontSize: 14, color: BRAND.textLight, lineHeight: 1.9 }}>{emojify(modalCat.description)}</p>
-            </div>
+              <label className="field-label" htmlFor="cf-msg">Message</label>
+              <textarea id="cf-msg" className="input-field" required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tell us what you&apos;d like to chat about..." />
+
+              <button type="submit" className="btn btn-purple" style={{ marginTop: 6 }} disabled={sending}>{sending ? "Sending…" : "Send Message"}</button>
+            </form>
           </div>
         </div>
-      )}
+      </section>
+
+      <Footer setPage={setPage} />
     </div>
   );
 }
