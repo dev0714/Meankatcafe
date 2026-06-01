@@ -289,20 +289,26 @@ const DEFAULT_ANNOUNCEMENT = "🎉 Banner for Updates / Events / Important Notic
 
 function Announcement() {
   const [text, setText] = useState(DEFAULT_ANNOUNCEMENT);
+  const [enabled, setEnabled] = useState(true);
+  const [speed, setSpeed] = useState(30);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: Record<string, string> | null) => {
-        if (d && typeof d.announcement_text === "string") setText(d.announcement_text);
+        if (!d) return;
+        if (typeof d.announcement_text === "string") setText(d.announcement_text);
+        if (typeof d.announcement_enabled === "string") setEnabled(d.announcement_enabled !== "false");
+        const s = Number(d.announcement_speed);
+        if (Number.isFinite(s) && s > 0) setSpeed(s);
       })
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
 
-  // Admin cleared the banner → hide it entirely.
-  if (loaded && text.trim() === "") return null;
+  // Hidden by the admin (toggle off or text cleared).
+  if (loaded && (!enabled || text.trim() === "")) return null;
 
   const group = Array.from({ length: 4 }, (_, i) => (
     <span className="announce-item" key={i}>{text}</span>
@@ -310,7 +316,7 @@ function Announcement() {
 
   return (
     <div className="announce" role="status" aria-label="Announcement">
-      <div className="marquee">
+      <div className="marquee" style={{ animationDuration: `${speed}s` }}>
         {group}
         {group}
       </div>

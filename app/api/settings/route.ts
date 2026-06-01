@@ -19,6 +19,8 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
+  announcement_enabled: "true",
+  announcement_speed: "30",
 };
 
 export async function GET() {

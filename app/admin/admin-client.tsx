@@ -49,6 +49,8 @@ const SETTINGS_DEFAULTS = {
   hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
+  announcement_enabled: "true",
+  announcement_speed: "30",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -1191,11 +1193,28 @@ export default function AdminClient() {
                   {/* Announcement banner */}
                   <div className="panel" style={{ marginBottom: 20 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📣 Announcement Banner</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The scrolling banner under the nav. Leave blank to hide it.</p>
-                    <label>
-                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Banner text</div>
-                      <textarea className="mk-input" value={settings.announcement_text} onChange={(e) => setSettings((s) => ({ ...s, announcement_text: e.target.value }))} placeholder="🎉 Join us this Saturday for Cat & Canvas!" style={{ minHeight: 70, resize: "vertical" }} />
-                    </label>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The scrolling banner under the nav.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                        <input type="checkbox" checked={settings.announcement_enabled === "true"} onChange={(e) => setSettings((s) => ({ ...s, announcement_enabled: e.target.checked ? "true" : "false" }))} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>Show banner</div>
+                          <div style={{ fontSize: 11, color: BRAND.textLight }}>Uncheck to hide it from the site</div>
+                        </div>
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Banner text</div>
+                        <textarea className="mk-input" value={settings.announcement_text} onChange={(e) => setSettings((s) => ({ ...s, announcement_text: e.target.value }))} placeholder="🎉 Join us this Saturday for Cat & Canvas!" style={{ minHeight: 70, resize: "vertical" }} />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Scroll speed</div>
+                        <select className="mk-input" value={settings.announcement_speed} onChange={(e) => setSettings((s) => ({ ...s, announcement_speed: e.target.value }))}>
+                          <option value="45">Slow</option>
+                          <option value="30">Medium</option>
+                          <option value="18">Fast</option>
+                        </select>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Hours */}
