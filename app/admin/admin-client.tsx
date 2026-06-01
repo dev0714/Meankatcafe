@@ -48,6 +48,7 @@ const SETTINGS_DEFAULTS = {
   hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
   hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
   bookings_per_slot: "6",
+  announcement_text: "🎉 Banner for Updates / Events / Important Notices",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -1184,6 +1185,16 @@ export default function AdminClient() {
                     <label>
                       <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Max bookings per hour</div>
                       <input className="mk-input" type="number" min={1} value={settings.bookings_per_slot} onChange={(e) => setSettings((s) => ({ ...s, bookings_per_slot: e.target.value }))} placeholder="6" />
+                    </label>
+                  </div>
+
+                  {/* Announcement banner */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📣 Announcement Banner</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The scrolling banner under the nav. Leave blank to hide it.</p>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Banner text</div>
+                      <textarea className="mk-input" value={settings.announcement_text} onChange={(e) => setSettings((s) => ({ ...s, announcement_text: e.target.value }))} placeholder="🎉 Join us this Saturday for Cat & Canvas!" style={{ minHeight: 70, resize: "vertical" }} />
                     </label>
                   </div>
 

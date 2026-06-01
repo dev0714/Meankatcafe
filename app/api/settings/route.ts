@@ -18,6 +18,7 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
   hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
   bookings_per_slot: "6",
+  announcement_text: "🎉 Banner for Updates / Events / Important Notices",
 };
 
 export async function GET() {

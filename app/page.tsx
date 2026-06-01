@@ -285,11 +285,34 @@ function Nav({
   );
 }
 
+const DEFAULT_ANNOUNCEMENT = "🎉 Banner for Updates / Events / Important Notices";
+
 function Announcement() {
+  const [text, setText] = useState(DEFAULT_ANNOUNCEMENT);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => {
+        if (d && typeof d.announcement_text === "string") setText(d.announcement_text);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  // Admin cleared the banner → hide it entirely.
+  if (loaded && text.trim() === "") return null;
+
+  const group = Array.from({ length: 4 }, (_, i) => (
+    <span className="announce-item" key={i}>{text}</span>
+  ));
+
   return (
-    <div className="announce">
-      <div className="announce-inner">
-        <span>🎉 Banner for Updates / Events / Important Notices</span>
+    <div className="announce" role="status" aria-label="Announcement">
+      <div className="marquee">
+        {group}
+        {group}
       </div>
     </div>
   );
