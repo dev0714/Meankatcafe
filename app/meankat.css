@@ -37,7 +37,24 @@
   }
   .mk-site, .mk-site * { box-sizing: border-box; }
   .mk-site :where(h1,h2,h3,h4,p,ul,ol,li,figure,blockquote) { margin: 0; padding: 0; }
-  .mk-site { background: var(--cream); color: var(--ink); font-family: 'Rubik', sans-serif; -webkit-font-smoothing: antialiased; }
+  .mk-site { background: var(--cream); color: var(--ink); font-family: 'Rubik', sans-serif !important; -webkit-font-smoothing: antialiased; }
+  /* Body copy & UI text inherit Rubik; only the decorative headings opt out below. */
+  .mk-site p, .mk-site li, .mk-site a, .mk-site button, .mk-site input,
+  .mk-site textarea, .mk-site select, .mk-site label, .mk-site small, .mk-site strong, .mk-site em {
+    font-family: 'Rubik', sans-serif !important;
+  }
+  /* Fun headings keep their display/script fonts. */
+  .mk-site .script, .mk-site .hero-script, .mk-site .about-script, .mk-site .page-script,
+  .mk-site .pillar-title, .mk-site .help-card-title, .mk-site .help-script-tag {
+    font-family: 'Grimpt Brush', cursive !important;
+  }
+  .mk-site .display, .mk-site .hero-title, .mk-site .tagline, .mk-site .sc-title,
+  .mk-site .about-title, .mk-site .purrpose-h, .mk-site .perks-eyebrow, .mk-site .perk-title,
+  .mk-site .page-title, .mk-site .cat-name, .mk-site .menu-upload-h, .mk-site .menu-fee-h,
+  .mk-site .events-empty-h, .mk-site .help-h2, .mk-site .contact-h, .mk-site .vol-heading,
+  .mk-site .vol-success-h {
+    font-family: 'Slopes', 'Permanent Marker', cursive !important;
+  }
   .mk-site { overflow-x: hidden; }
   .mk-site a { color: inherit; text-decoration: none; }
   .mk-site button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
