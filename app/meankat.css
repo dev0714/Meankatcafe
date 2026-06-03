@@ -264,7 +264,7 @@
   .event-card { background: var(--white); border-radius: 22px; overflow: hidden; border: 2px solid var(--lilac-pale); box-shadow: 0 8px 24px rgba(135,76,158,0.10); display: flex; flex-direction: column; transition: transform .25s, box-shadow .25s; }
   .event-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(135,76,158,0.20); }
   .event-card.past { opacity: 0.72; }
-  .event-photo { width: 100%; height: 220px; object-fit: cover; display: block; background: var(--lilac); }
+  .event-photo { width: 100%; height: auto; display: block; background: var(--cream-2); cursor: zoom-in; }
   .event-body { display: flex; gap: 18px; padding: 22px 24px; flex: 1; }
   .event-date-chip { text-align: center; min-width: 60px; background: var(--yellow-soft); border: 2px solid var(--yellow); border-radius: 14px; padding: 10px 6px; align-self: flex-start; }
   .event-card.past .event-date-chip { background: #f0f0f0; border-color: #ddd; }
