@@ -77,10 +77,10 @@
   @media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
 
   /* ====== BUTTONS ====== */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 26px; border-radius: 999px; font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 12.5px; letter-spacing: 2px; text-transform: uppercase; transition: all .25s ease; cursor: pointer; border: 2.5px solid var(--purple-dark); box-shadow: 0 2px 0 rgba(58,48,96,0.18); white-space: nowrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 26px; border-radius: 999px; font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 12.5px; letter-spacing: 2px; text-transform: uppercase; transition: all .25s ease; cursor: pointer; border: 1.5px solid var(--purple-dark); box-shadow: none; white-space: nowrap; }
   .btn-light { background: var(--white); color: var(--purple-dark); border-color: var(--purple-dark); }
   .btn-light:hover { background: var(--yellow); color: var(--ink); border-color: var(--ink); transform: translateY(-2px); }
-  .btn-outline { background: transparent; color: var(--white); border-color: var(--purple-dark); box-shadow: 0 2px 0 rgba(58,48,96,0.18); }
+  .btn-outline { background: transparent; color: var(--white); border-color: var(--purple-dark); }
   .btn-outline:hover { background: white; color: var(--purple-dark); border-color: var(--purple-dark); transform: translateY(-2px); }
   .btn-outline-dark { background: transparent; color: var(--purple-dark); border-color: var(--purple-dark); }
   .btn-outline-dark:hover { background: var(--purple-dark); color: var(--white); border-color: var(--purple-dark); transform: translateY(-2px); }
