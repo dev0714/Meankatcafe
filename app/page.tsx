@@ -795,8 +795,8 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="page-header">
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
-          <div className="page-script">What&apos;s</div>
-          <h1 className="page-title">On.</h1>
+          <div className="page-script">Upcoming</div>
+          <h1 className="page-title">Events.</h1>
           <p className="page-sub">From cat yoga mornings to themed movie nights — there&apos;s always something brewing at MeanKat. Grab a spot before the cats do.</p>
         </div>
       </section>
