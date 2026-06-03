@@ -209,6 +209,7 @@ const CAT_FILTERS = [
   { value: "resident" as const, label: "Resident Cats" },
   { value: "adoptable" as const, label: "Adoptable Cats" },
   { value: "dual" as const, label: "Dual Adoptions" },
+  { value: "tlc" as const, label: "Extra TLC Cats" },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -575,7 +576,7 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
 // ─────────────────────────────────────────────────────────────
 
 function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
-  const [filter, setFilter] = useState<"All" | "resident" | "adoptable" | "dual">("All");
+  const [filter, setFilter] = useState<"All" | "resident" | "adoptable" | "dual" | "tlc">("All");
   const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
   const [modalView, setModalView] = useState<"after" | "before">("after");
@@ -599,7 +600,10 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
 
   const visible = filter === "All" ? cats : cats.filter((c) => c.category === filter);
   const labelFor = (cat: CatCard) =>
-    cat.category === "resident" ? "Resident cat" : cat.category === "dual" ? "Dual adoption" : "Adoptable cat";
+    cat.category === "resident" ? "Resident cat"
+      : cat.category === "dual" ? "Dual adoption"
+      : cat.category === "tlc" ? "Extra TLC cat"
+      : "Adoptable cat";
 
   const hasBefore = !!(modalCat?.beforeImages && modalCat.beforeImages.length > 0);
   const activeImages = modalCat ? (modalView === "before" ? modalCat.beforeImages ?? [] : modalCat.images) : [];

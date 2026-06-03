@@ -232,6 +232,7 @@
   .tag-resident { background: var(--lilac-pale); color: var(--purple-dark); }
   .tag-adoptable { background: var(--yellow); color: var(--ink); }
   .tag-dual { background: var(--lilac-purple); color: var(--white); }
+  .tag-tlc { background: var(--purple-deep); color: var(--white); }
   .cat-name { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-dark); font-size: 28px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
   .cat-breed { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
   .cat-mood { background: var(--yellow-soft); color: var(--purple-dark); padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; display: inline-block; margin-bottom: 14px; }
