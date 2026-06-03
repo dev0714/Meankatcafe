@@ -863,6 +863,36 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
 // ─────────────────────────────────────────────────────────────
 
 function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [give, setGive] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => { if (d) setGive(d); })
+      .catch(() => {});
+  }, []);
+
+  const bankRows: Array<[string, string]> = [
+    ["Account name", give.bank_account_name],
+    ["Bank", give.bank_name],
+    ["Account number", give.bank_account_number],
+    ["Branch code", give.bank_branch_code],
+    ["Account type", give.bank_account_type],
+    ["Reference", give.bank_reference],
+  ].filter(([, v]) => v && v.trim()) as Array<[string, string]>;
+
+  const backabuddy = (give.backabuddy_links ?? "")
+    .split("\n").map((l) => l.trim()).filter(Boolean)
+    .map((line) => {
+      const [a, b] = line.split("|").map((s) => s.trim());
+      return b ? { label: a, url: b } : { label: a || "Back a Buddy", url: a };
+    })
+    .filter((x) => /^https?:\/\//.test(x.url));
+
+  const wishlist = (give.donate_wishlist ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+
+  const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
+
   return (
     <div data-screen-label="How to Help">
       <section className="page-header">
@@ -905,6 +935,57 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
           ))}
         </div>
       </section>
+
+      {hasGive && (
+        <section className="give-section">
+          <div className="give-inner">
+            <div className="give-head">
+              <div className="help-script-tag">Ways to</div>
+              <h2 className="help-h2">Give 💜</h2>
+              <p className="help-text">Every contribution goes straight to the cats — food, vet care, and second chances.</p>
+            </div>
+            <div className="give-grid">
+              {bankRows.length > 0 && (
+                <div className="give-card">
+                  <div className="give-h">🏦 Banking details</div>
+                  <table className="give-bank">
+                    <tbody>
+                      {bankRows.map(([label, value]) => (
+                        <tr key={label}>
+                          <td className="give-bank-label">{label}</td>
+                          <td className="give-bank-value">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {backabuddy.length > 0 && (
+                <div className="give-card">
+                  <div className="give-h">🐾 BackaBuddy campaigns</div>
+                  <p className="give-sub">Help us reach a specific goal — every share counts.</p>
+                  <div className="give-bab">
+                    {backabuddy.map((b) => (
+                      <a key={b.url} className="btn btn-purple" href={b.url} target="_blank" rel="noopener">{b.label}</a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {wishlist.length > 0 && (
+                <div className="give-card">
+                  <div className="give-h">🎁 Our wishlist</div>
+                  <p className="give-sub">Items we always need — drop them at the café or send via a delivery.</p>
+                  <ul className="give-list">
+                    {wishlist.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer setPage={setPage} />
     </div>

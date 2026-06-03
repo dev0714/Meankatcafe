@@ -51,6 +51,14 @@ const SETTINGS_DEFAULTS = {
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
   announcement_speed: "30",
+  bank_account_name: "MeanKat Cafe NPC",
+  bank_name: "",
+  bank_account_number: "",
+  bank_branch_code: "",
+  bank_account_type: "",
+  bank_reference: "Your name + \"Donation\"",
+  backabuddy_links: "",
+  donate_wishlist: "",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -1198,6 +1206,36 @@ export default function AdminClient() {
                           <option value="30">Medium</option>
                           <option value="18">Fast</option>
                         </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Donate / Ways to Give */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>💜 Donate / Ways to Give</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown in the “Ways to Give” section on the How to Help page. Leave a field blank to hide it.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.purple }}>Banking details</div>
+                      {([
+                        ["bank_account_name", "Account name"],
+                        ["bank_name", "Bank"],
+                        ["bank_account_number", "Account number"],
+                        ["bank_branch_code", "Branch code"],
+                        ["bank_account_type", "Account type"],
+                        ["bank_reference", "Payment reference"],
+                      ] as const).map(([key, label]) => (
+                        <label key={key}>
+                          <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>{label}</div>
+                          <input className="mk-input" value={settings[key]} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
+                        </label>
+                      ))}
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>BackaBuddy campaigns — one per line, “Title | https://…”</div>
+                        <textarea className="mk-input" value={settings.backabuddy_links} onChange={(e) => setSettings((s) => ({ ...s, backabuddy_links: e.target.value }))} placeholder={"Help Smokey's surgery | https://www.backabuddy.co.za/..."} style={{ minHeight: 70, resize: "vertical" }} />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Wishlist — items we need, one per line</div>
+                        <textarea className="mk-input" value={settings.donate_wishlist} onChange={(e) => setSettings((s) => ({ ...s, donate_wishlist: e.target.value }))} placeholder={"Cat food (wet & dry)\nClumping litter\nScratching posts"} style={{ minHeight: 90, resize: "vertical" }} />
                       </label>
                     </div>
                   </div>
