@@ -1156,7 +1156,7 @@ export default function AdminClient() {
             <div style={{ marginBottom: 28 }}>
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Site</div>
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Site Settings</h1>
-              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Edit entrance fees, stats, and opening hours shown on the public site.</p>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Edit entrance fees, opening hours, bookings and the announcement banner shown on the public site.</p>
             </div>
 
             <form onSubmit={handleSaveSettings}>
@@ -1164,22 +1164,6 @@ export default function AdminClient() {
 
                 {/* Left column */}
                 <div>
-                  {/* Stats */}
-                  <div className="panel" style={{ marginBottom: 20 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📊 Homepage Stats</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Numbers shown on the home page stat cards.</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>☕ Drinks on Menu</div>
-                        <input className="mk-input" value={settings.stat_drinks} onChange={(e) => setSettings((s) => ({ ...s, stat_drinks: e.target.value }))} placeholder="30+" />
-                      </label>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>🍰 Fresh Desserts</div>
-                        <input className="mk-input" value={settings.stat_desserts} onChange={(e) => setSettings((s) => ({ ...s, stat_desserts: e.target.value }))} placeholder="8+" />
-                      </label>
-                    </div>
-                  </div>
-
                   {/* Bookings */}
                   <div className="panel" style={{ marginBottom: 20 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📅 Bookings</div>
