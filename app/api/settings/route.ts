@@ -21,6 +21,14 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
   announcement_speed: "30",
+  bank_account_name: "MeanKat Cafe NPC",
+  bank_name: "",
+  bank_account_number: "",
+  bank_branch_code: "",
+  bank_account_type: "",
+  bank_reference: "Your name + \"Donation\"",
+  backabuddy_links: "",
+  donate_wishlist: "",
 };
 
 export async function GET() {
