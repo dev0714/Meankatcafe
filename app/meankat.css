@@ -215,9 +215,9 @@
 
   /* ====== FILTER PILLS ====== */
   .filter-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 36px auto 0; max-width: 900px; }
-  .filter-pill { padding: 10px 22px; border-radius: 999px; font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all .25s; background: var(--white); color: var(--purple-dark); border: 2px solid transparent; }
-  .filter-pill:hover { background: var(--yellow); }
-  .filter-pill.on { background: var(--purple-dark); color: var(--white); }
+  .filter-pill { padding: 10px 22px; border-radius: 999px; font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all .25s; background: var(--white) !important; color: var(--purple-dark) !important; border: 1.5px solid var(--purple-dark) !important; }
+  .filter-pill:hover { background: var(--yellow) !important; color: var(--ink) !important; border-color: var(--purple-dark) !important; }
+  .filter-pill.on { background: var(--purple-dark) !important; color: var(--white) !important; border-color: var(--purple-dark) !important; }
 
   /* ====== CATS GRID ====== */
   .cats-section { background: var(--cream); padding: clamp(48px, 6vw, 80px) clamp(20px, 5vw, 56px); }
