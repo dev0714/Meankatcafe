@@ -531,6 +531,7 @@ export default function AdminClient() {
     resident: cats.filter((c) => c.category === "resident"),
     adoptable: cats.filter((c) => c.category === "adoptable"),
     dual: cats.filter((c) => c.category === "dual"),
+    tlc: cats.filter((c) => c.category === "tlc"),
   };
 
   // ── nav items ─────────────────────────────────────────────────────────────

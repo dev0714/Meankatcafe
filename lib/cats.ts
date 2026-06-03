@@ -1,4 +1,4 @@
-export type CatCategory = "resident" | "adoptable" | "dual";
+export type CatCategory = "resident" | "adoptable" | "dual" | "tlc";
 
 // Non-destructive image framing: focal point (x/y as 0–100 percentages) + zoom.
 export type ImageTransform = { zoom: number; x: number; y: number };
@@ -26,6 +26,7 @@ export const CAT_CATEGORY_OPTIONS: Array<{ value: CatCategory; label: string }> 
   { value: "resident", label: "Resident Cats" },
   { value: "adoptable", label: "Adoptable Cats" },
   { value: "dual", label: "Dual Adoptions" },
+  { value: "tlc", label: "Extra TLC Cats" },
 ];
 
 export const DEFAULT_CATS: CatCard[] = [
@@ -67,6 +68,7 @@ export const DEFAULT_CATS: CatCard[] = [
 export function categoryLabel(category: CatCategory) {
   if (category === "resident") return "Resident";
   if (category === "dual") return "Dual Adoption";
+  if (category === "tlc") return "Extra TLC";
   return "Adoptable";
 }
 

@@ -51,7 +51,7 @@ create table meankatcafe.cats (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null,
-  category text not null check (category in ('resident', 'adoptable', 'dual', 'other')),
+  category text not null check (category in ('resident', 'adoptable', 'dual', 'tlc', 'other')),
   image_path text not null,
   created_by uuid references meankatcafe.users(id),
   created_at timestamptz not null default now()
