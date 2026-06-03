@@ -893,6 +893,19 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
 
   const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
 
+  const handleCta = (cta: string) => {
+    if (cta === "Apply to Volunteer") return setPage("Volunteer");
+    if (cta === "See Upcoming Events") return setPage("Events");
+    if (cta === "Donate Now") {
+      if (hasGive) {
+        document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+      return setPage("Contact");
+    }
+    setPage("Contact");
+  };
+
   return (
     <div data-screen-label="How to Help">
       <section className="page-header">
@@ -916,7 +929,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => setPage(h.cta === "Apply to Volunteer" ? "Volunteer" : "Contact")}>{h.cta}</button>
+                    <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
                   </div>
                 </>
               ) : (
@@ -926,7 +939,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => setPage(h.cta === "Apply to Volunteer" ? "Volunteer" : "Contact")}>{h.cta}</button>
+                    <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
                   </div>
                   <div className="help-icon-big">{h.icon}</div>
                 </>
@@ -937,7 +950,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
       </section>
 
       {hasGive && (
-        <section className="give-section">
+        <section className="give-section" id="ways-to-give">
           <div className="give-inner">
             <div className="give-head">
               <div className="help-script-tag">Ways to</div>
