@@ -776,6 +776,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
 
 function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
   const [events, setEvents] = useState<SiteEvent[]>([]);
+  const [poster, setPoster] = useState<SiteEvent | null>(null);
 
   useEffect(() => {
     fetch("/api/events")
@@ -819,7 +820,7 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
                 const year = d.getFullYear();
                 return (
                   <div className={`event-card ${isPast ? "past" : ""}`} key={ev.id}>
-                    {ev.imageUrl && <img className="event-photo" src={ev.imageUrl} alt={ev.title} />}
+                    {ev.imageUrl && <img className="event-photo" src={ev.imageUrl} alt={ev.title} onClick={() => setPoster(ev)} />}
                     <div className="event-body">
                       <div className="event-date-chip">
                         <div className="event-day">{day}</div>
@@ -842,6 +843,15 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
           )}
         </div>
       </section>
+
+      {poster && poster.imageUrl && (
+        <div className="modal-backdrop" onClick={() => setPoster(null)}>
+          <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setPoster(null)}>✕</button>
+            <img src={poster.imageUrl} alt={poster.title} className="menu-modal-img" />
+          </div>
+        </div>
+      )}
 
       <Footer setPage={setPage} />
     </div>
