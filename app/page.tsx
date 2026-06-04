@@ -398,6 +398,26 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 // ─────────────────────────────────────────────────────────────
 
 function HomePage({ setPage }: { setPage: (p: Page) => void }) {
+  const [heroImages, setHeroImages] = useState<MenuImage[]>([{ id: "hero", url: "/hero-cafe.png" }]);
+  const [heroIdx, setHeroIdx] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/cafe-images")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: MenuImage[] | null) => { if (d && d.length > 0) setHeroImages(d); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroImages.length), 5000);
+    return () => clearInterval(t);
+  }, [heroImages.length]);
+
+  const heroCount = heroImages.length;
+  const heroPos = ((heroIdx % heroCount) + heroCount) % heroCount;
+  const heroImg = heroImages[heroPos];
+
   return (
     <div data-screen-label="Home">
       <section className="hero">
@@ -420,7 +440,18 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
             </div>
           </div>
           <div className="hero-img-wrap">
-            <img src="/hero-cafe.png" alt="Inside MeanKat Café — spiral staircase and cat trees" />
+            <img key={heroImg.id} src={heroImg.url} alt="Inside MeanKat Café" />
+            {heroCount > 1 && (
+              <>
+                <button className="carousel-arrow left" onClick={() => setHeroIdx((i) => i - 1)} aria-label="Previous photo">‹</button>
+                <button className="carousel-arrow right" onClick={() => setHeroIdx((i) => i + 1)} aria-label="Next photo">›</button>
+                <div className="hero-dots">
+                  {heroImages.map((im, n) => (
+                    <button key={im.id} className={`carousel-dot ${n === heroPos ? "on" : ""}`} onClick={() => setHeroIdx(n)} aria-label={`Photo ${n + 1}`} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
