@@ -306,6 +306,9 @@
   .contact-label { font-family: 'Rubik', sans-serif; font-weight: 900; color: var(--purple-dark); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
   .contact-value { color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
   .input-field { width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--lilac-pale); background: var(--cream); font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--ink); transition: border-color .25s; margin-bottom: 14px; }
+  .map-link { color: var(--purple-dark); font-weight: 700; text-decoration: none; transition: color .2s; }
+  .map-link:hover { color: var(--purple-deep); text-decoration: underline; }
+  .map-link-tag { display: block; margin-top: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; color: var(--purple); text-decoration: none; }
   .input-field:focus { outline: none; border-color: var(--purple-dark); }
   textarea.input-field { resize: vertical; min-height: 120px; font-family: 'Rubik', sans-serif; }
   .field-label { display: block; font-weight: 800; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--purple-dark); margin-bottom: 6px; }
