@@ -979,8 +979,8 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="page-header">
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
-          <div className="page-script">How to</div>
-          <h1 className="page-title">Help.</h1>
+          <div className="page-script">Become part</div>
+          <h1 className="page-title">Of Their Story</h1>
           <p className="page-sub">Four ways to make a real difference for rescue cats — pick the one that fits, or do all four. We won&apos;t stop you.</p>
         </div>
       </section>
