@@ -18,6 +18,7 @@ export type SlotAvailability = {
   slot: string;
   booked: number;
   remaining: number;
+  blocked: boolean;
 };
 
 export type DayAvailability = {
