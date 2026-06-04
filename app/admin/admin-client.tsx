@@ -60,6 +60,7 @@ const SETTINGS_DEFAULTS = {
   bank_reference: "Your name + \"Donation\"",
   backabuddy_links: "",
   donate_wishlist: "",
+  secure_pay_url: "",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",
@@ -1329,6 +1330,10 @@ export default function AdminClient() {
                           <input className="mk-input" value={settings[key]} onChange={(e) => setSettings((s) => ({ ...s, [key]: e.target.value }))} />
                         </label>
                       ))}
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Secure online-pay link (optional — PayFast / Yoco / Paystack / donation page)</div>
+                        <input className="mk-input" value={settings.secure_pay_url} onChange={(e) => setSettings((s) => ({ ...s, secure_pay_url: e.target.value }))} placeholder="https://pay.yoco.com/..." />
+                      </label>
                       <label>
                         <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>BackaBuddy campaigns — one per line, “Title | https://…”</div>
                         <textarea className="mk-input" value={settings.backabuddy_links} onChange={(e) => setSettings((s) => ({ ...s, backabuddy_links: e.target.value }))} placeholder={"Help Smokey's surgery | https://www.backabuddy.co.za/..."} style={{ minHeight: 70, resize: "vertical" }} />
