@@ -142,6 +142,12 @@ export default function AdminClient() {
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const [hiddenBuiltinIds, setHiddenBuiltinIds] = useState<string[]>([]);
 
+  const [cafeImages, setCafeImages] = useState<MenuImage[]>([]);
+  const [cafeImageFile, setCafeImageFile] = useState<File | null>(null);
+  const [cafeImageSaving, setCafeImageSaving] = useState(false);
+  const [cafeImageMsg, setCafeImageMsg] = useState("");
+  const [deletingCafeImageId, setDeletingCafeImageId] = useState<string | null>(null);
+
   // ── init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -184,6 +190,14 @@ export default function AdminClient() {
     fetch("/api/menu-images")
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setMenuImages(imgs.filter((i) => !hiddenBuiltinIds.includes(i.id))))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/cafe-images")
+      .then((r) => r.ok ? r.json() : [])
+      .then((imgs: MenuImage[]) => setCafeImages(imgs))
       .catch(() => {});
   }, [auth.user]);
 
@@ -395,6 +409,29 @@ export default function AdminClient() {
     setMenuImageMsg("Image uploaded.");
   }
 
+  async function handleUploadCafeImage(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!cafeImageFile) { setCafeImageMsg("Pick an image first."); return; }
+    setCafeImageSaving(true); setCafeImageMsg("");
+    const fd = new FormData();
+    fd.append("image", cafeImageFile);
+    const res = await fetch("/api/admin/cafe-images", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setCafeImageSaving(false);
+    if (!res.ok) { setCafeImageMsg(data.error ?? "Upload failed."); return; }
+    setCafeImages((imgs) => [...imgs, data.image]);
+    setCafeImageFile(null);
+    setCafeImageMsg("Image uploaded.");
+  }
+
+  async function handleDeleteCafeImage(img: MenuImage) {
+    if (!confirm("Delete this café photo?")) return;
+    setDeletingCafeImageId(img.id);
+    const res = await fetch(`/api/admin/cafe-images/${img.id}`, { method: "DELETE" });
+    if (res.ok) setCafeImages((imgs) => imgs.filter((i) => i.id !== img.id));
+    setDeletingCafeImageId(null);
+  }
+
   async function handleDeleteMenuImage(img: MenuImage) {
     if (img.id.startsWith("builtin-")) {
       if (!confirm("Hide this built-in menu image? It will be removed from the site. You can restore it by clearing your browser data.")) return;
@@ -575,7 +612,7 @@ export default function AdminClient() {
 
   const NAV: { id: AdminTab; label: string; icon: string }[] = [
     { id: "cats", label: "Cats", icon: "🐾" },
-    { id: "menu-images", label: "Menu Photos", icon: "📸" },
+    { id: "menu-images", label: "Café & Menu Photos", icon: "📸" },
     { id: "events", label: "Events", icon: "🎉" },
     { id: "bookings", label: "Bookings", icon: "📅" },
     { id: "volunteers", label: "Volunteers", icon: "🙌" },
@@ -904,15 +941,49 @@ export default function AdminClient() {
           <>
             <div style={{ marginBottom: 28 }}>
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Content</div>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Menu Photos</h1>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Café &amp; Menu Photos</h1>
               <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>
-                Upload photos of your physical menu or food. These appear in a scrollable carousel on the Menu page. If you upload at least one, the built-in defaults are replaced.
+                The Café page shows two carousels side by side — café photos on the left, menu photos on the right. Upload to each below.
               </p>
             </div>
 
+            {/* Café photos */}
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>🏠 Upload Café Photo</div>
+                <form onSubmit={handleUploadCafeImage} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Image of the café</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setCafeImageFile(e.target.files?.[0] ?? null)} required />
+                  </label>
+                  {cafeImageMsg && <div style={{ fontSize: 13, color: BRAND.textLight }}>{cafeImageMsg}</div>}
+                  <button className="mk-primary" type="submit" disabled={cafeImageSaving}>{cafeImageSaving ? "Uploading…" : "Upload café photo"}</button>
+                </form>
+              </div>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Café Photos ({cafeImages.length})</div>
+                {cafeImages.length === 0
+                  ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No café photos yet — the hero photo shows by default until you add some.</div>
+                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
+                      {cafeImages.map((img) => (
+                        <div key={img.id} style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                          <img src={img.url} alt="Café" style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }} />
+                          <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
+                            <button className="mk-danger" onClick={() => handleDeleteCafeImage(img)} disabled={deletingCafeImageId === img.id}>
+                              {deletingCafeImageId === img.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Menu photos */}
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
-              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Upload Photo</div>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>☕ Upload Menu Photo</div>
                 <form onSubmit={handleUploadMenuImage} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Image</div>
