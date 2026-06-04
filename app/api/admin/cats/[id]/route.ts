@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getSessionForArea } from "@/lib/permissions";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 import { sanitizeTransform } from "@/lib/image-transform";
 
@@ -8,8 +8,8 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
-  const session = await getSession();
-  if (!session?.isAdmin || !session?.isApproved) {
+  const session = await getSessionForArea("cats");
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -39,9 +39,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const session = await getSession();
+  const session = await getSessionForArea("cats");
 
-  if (!session?.isAdmin || !session?.isApproved) {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

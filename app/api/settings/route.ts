@@ -30,6 +30,7 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   backabuddy_links: "",
   donate_wishlist: "",
   secure_pay_url: "",
+  volunteer_permissions: "cats,events,bookings,volunteers",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",

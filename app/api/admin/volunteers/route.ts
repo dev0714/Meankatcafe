@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getSessionForArea } from "@/lib/permissions";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 
 export async function GET() {
-  const session = await getSession();
-  if (!session?.isAdmin || !session?.isApproved) {
+  const session = await getSessionForArea("volunteers");
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

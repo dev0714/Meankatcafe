@@ -23,13 +23,14 @@ const BRAND = {
 const SIDEBAR_BG = "#2d2550";
 const SIDEBAR_ACTIVE = "#9b8ec4";
 
-type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean };
+type UserRole = "admin" | "volunteer";
+type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
 type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings";
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
-type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; created_at: string };
+type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; role: UserRole; created_at: string };
 type VolunteerApplication = { id: string; fullName: string; email: string; whatsappNumber?: string | null; suburb?: string | null; agreeTerms: boolean; answers: VolunteerAnswers; createdAt: string };
 
 const SETTINGS_DEFAULTS = {
@@ -61,6 +62,7 @@ const SETTINGS_DEFAULTS = {
   backabuddy_links: "",
   donate_wishlist: "",
   secure_pay_url: "",
+  volunteer_permissions: "cats,events,bookings,volunteers",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",
@@ -107,7 +109,7 @@ export default function AdminClient() {
 
   // --- users ---
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
-  const [newUser, setNewUser] = useState({ email: "", password: "", is_admin: true, is_approved: true });
+  const [newUser, setNewUser] = useState<{ email: string; password: string; is_admin: boolean; is_approved: boolean; role: UserRole }>({ email: "", password: "", is_admin: true, is_approved: true, role: "admin" });
   const [userMsg, setUserMsg] = useState("");
   const [userSaving, setUserSaving] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -174,6 +176,21 @@ export default function AdminClient() {
       .then((d) => setAuth({ loading: false, user: d?.user ?? null, error: "" }))
       .catch(() => setAuth({ loading: false, user: null, error: "" }));
   }, []);
+
+  // Volunteers land on (and are kept within) their permitted tabs.
+  useEffect(() => {
+    if (!auth.user || auth.user.role !== "volunteer") return;
+    const perms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
+    const tabArea: Record<AdminTab, string | null> = {
+      cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers",
+      "menu-images": null, settings: null, users: null,
+    };
+    const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
+      const a = tabArea[t];
+      return a && perms.includes(a);
+    });
+    setActiveTab((cur) => (allowed.includes(cur) ? cur : (allowed[0] ?? cur)));
+  }, [auth.user, settings.volunteer_permissions]);
 
   useEffect(() => {
     if (!auth.user) return;
@@ -467,8 +484,36 @@ export default function AdminClient() {
     setUserSaving(false);
     if (!res.ok) { setUserMsg(data.error ?? "Failed to create user."); return; }
     setAdminUsers((u) => [data.user, ...u]);
-    setNewUser({ email: "", password: "", is_admin: true, is_approved: true });
+    setNewUser({ email: "", password: "", is_admin: true, is_approved: true, role: "admin" });
     setUserMsg("User created successfully.");
+  }
+
+  const VOLUNTEER_AREA_OPTIONS: { key: string; label: string }[] = [
+    { key: "cats", label: "Cats" },
+    { key: "events", label: "Events" },
+    { key: "bookings", label: "Bookings" },
+    { key: "volunteers", label: "Volunteer applications" },
+  ];
+
+  function toggleVolPerm(key: string) {
+    setSettings((s) => {
+      const set = new Set(s.volunteer_permissions.split(",").map((x) => x.trim()).filter(Boolean));
+      if (set.has(key)) set.delete(key); else set.add(key);
+      return { ...s, volunteer_permissions: Array.from(set).join(",") };
+    });
+  }
+
+  async function handleChangeRole(user: AdminUser, role: UserRole) {
+    setTogglingUserId(user.id);
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setAdminUsers((u) => u.map((x) => x.id === user.id ? data.user : x));
+    else setUserMsg(data.error ?? "Update failed.");
+    setTogglingUserId(null);
   }
 
   async function handleDeleteUser(user: AdminUser) {
@@ -611,15 +656,19 @@ export default function AdminClient() {
 
   // ── nav items ─────────────────────────────────────────────────────────────
 
-  const NAV: { id: AdminTab; label: string; icon: string }[] = [
-    { id: "cats", label: "Cats", icon: "🐾" },
-    { id: "menu-images", label: "Hero & Menu Photos", icon: "📸" },
-    { id: "events", label: "Events", icon: "🎉" },
-    { id: "bookings", label: "Bookings", icon: "📅" },
-    { id: "volunteers", label: "Volunteers", icon: "🙌" },
-    { id: "settings", label: "Site Settings", icon: "⚙️" },
-    { id: "users", label: "Users", icon: "👤" },
+  const NAV: { id: AdminTab; label: string; icon: string; area: string | null }[] = [
+    { id: "cats", label: "Cats", icon: "🐾", area: "cats" },
+    { id: "menu-images", label: "Hero & Menu Photos", icon: "📸", area: null },
+    { id: "events", label: "Events", icon: "🎉", area: "events" },
+    { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
+    { id: "volunteers", label: "Volunteers", icon: "🙌", area: "volunteers" },
+    { id: "settings", label: "Site Settings", icon: "⚙️", area: null },
+    { id: "users", label: "Users", icon: "👤", area: null },
   ];
+
+  const isVolunteer = auth.user?.role === "volunteer";
+  const volPerms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
+  const visibleNav = NAV.filter((item) => (isVolunteer ? !!item.area && volPerms.includes(item.area) : true));
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -778,7 +827,7 @@ export default function AdminClient() {
           <div style={{ fontWeight: 900, fontSize: 18, color: "white", lineHeight: 1.2 }}>MeanKat<br />Content</div>
         </div>
         <nav style={{ flex: 1, padding: "8px 12px" }}>
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
@@ -1284,6 +1333,24 @@ export default function AdminClient() {
                     </label>
                   </div>
 
+                  {/* Volunteer permissions */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🙌 Volunteer Permissions</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Choose which admin areas users with the <strong>Volunteer</strong> role can access. (Site Settings, Users and Photos stay admin-only.)</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {VOLUNTEER_AREA_OPTIONS.map((opt) => {
+                        const on = settings.volunteer_permissions.split(",").map((x) => x.trim()).includes(opt.key);
+                        return (
+                          <label key={opt.key} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                            <input type="checkbox" checked={on} onChange={() => toggleVolPerm(opt.key)} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
+                            <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>{opt.label}</div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: 11, color: BRAND.textLight, marginTop: 12 }}>Remember to click “Save settings” below.</p>
+                  </div>
+
                   {/* Announcement banner */}
                   <div className="panel" style={{ marginBottom: 20 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📣 Announcement Banner</div>
@@ -1473,14 +1540,14 @@ export default function AdminClient() {
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Password (min 8 chars)</div>
                     <input className="mk-input" type="password" value={newUser.password} onChange={(e) => setNewUser((u) => ({ ...u, password: e.target.value }))} placeholder="••••••••••" required minLength={8} />
                   </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Role</div>
+                    <select className="mk-input" value={newUser.role} onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value as UserRole, is_admin: e.target.value === "admin" }))}>
+                      <option value="admin">Admin — full access</option>
+                      <option value="volunteer">Volunteer — limited access</option>
+                    </select>
+                  </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                      <input type="checkbox" checked={newUser.is_admin} onChange={(e) => setNewUser((u) => ({ ...u, is_admin: e.target.checked }))} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>Admin</div>
-                        <div style={{ fontSize: 11, color: BRAND.textLight }}>Can access the admin panel</div>
-                      </div>
-                    </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                       <input type="checkbox" checked={newUser.is_approved} onChange={(e) => setNewUser((u) => ({ ...u, is_approved: e.target.checked }))} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
                       <div>
@@ -1529,13 +1596,17 @@ export default function AdminClient() {
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", flexWrap: "wrap" }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, wordBreak: "break-all" }}>{user.email}</div>
-                              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_admin ? `${BRAND.purple}18` : "rgba(0,0,0,0.05)", color: user.is_admin ? BRAND.purple : BRAND.textLight }}>
-                                  {user.is_admin ? "Admin" : "Non-admin"}
+                              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.role === "volunteer" ? "rgba(243,218,91,0.35)" : `${BRAND.purple}18`, color: user.role === "volunteer" ? "#8a6d00" : BRAND.purple }}>
+                                  {user.role === "volunteer" ? "Volunteer" : "Admin"}
                                 </span>
                                 <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: user.is_approved ? "rgba(22,163,74,0.1)" : "rgba(180,35,24,0.08)", color: user.is_approved ? "#16a34a" : "#b42318" }}>
                                   {user.is_approved ? "Approved" : "Pending"}
                                 </span>
+                                <select value={user.role} disabled={togglingUserId === user.id} onChange={(e) => handleChangeRole(user, e.target.value as UserRole)} style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, border: `1.5px solid ${BRAND.purpleLight}`, color: BRAND.text, background: BRAND.white }}>
+                                  <option value="admin">Set: Admin</option>
+                                  <option value="volunteer">Set: Volunteer</option>
+                                </select>
                               </div>
                               <div style={{ fontSize: 11, color: BRAND.textLight, marginTop: 4 }}>
                                 Created {new Date(user.created_at).toLocaleDateString()}

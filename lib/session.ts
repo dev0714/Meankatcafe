@@ -3,11 +3,14 @@ import { SESSION_COOKIE_NAME, verifySessionToken } from "./auth.js";
 
 const FALLBACK_SESSION_SECRET = "meankatcafe-session-secret-v1";
 
+export type UserRole = "admin" | "volunteer";
+
 export type SessionData = {
   userId: string;
   email: string;
   isAdmin: boolean;
   isApproved: boolean;
+  role?: UserRole;
   exp: number;
 };
 
