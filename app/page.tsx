@@ -892,10 +892,16 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
   const wishlist = (give.donate_wishlist ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
 
   const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
+  const adoptionPoster = give.adoption_poster_url?.trim() || "";
+  const [showPoster, setShowPoster] = useState(false);
 
   const handleCta = (cta: string) => {
     if (cta === "Apply to Volunteer") return setPage("Volunteer");
     if (cta === "See Upcoming Events") return setPage("Events");
+    if (cta === "Start the Adoption Process") {
+      if (adoptionPoster) return setShowPoster(true);
+      return setPage("Contact");
+    }
     if (cta === "Donate Now") {
       if (hasGive) {
         document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
@@ -998,6 +1004,15 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
             </div>
           </div>
         </section>
+      )}
+
+      {showPoster && adoptionPoster && (
+        <div className="modal-backdrop" onClick={() => setShowPoster(false)}>
+          <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowPoster(false)}>✕</button>
+            <img src={adoptionPoster} alt="Adoption process" className="menu-modal-img" />
+          </div>
+        </div>
       )}
 
       <Footer setPage={setPage} />
