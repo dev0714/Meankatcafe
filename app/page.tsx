@@ -954,8 +954,9 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
 
   const wishlist = (give.donate_wishlist ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
 
-  const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
+  const securePayUrl = (give.secure_pay_url ?? "").trim();
   const [poster, setPoster] = useState<string | null>(null);
+  const [giveModal, setGiveModal] = useState<null | "bank" | "items" | "backabuddy">(null);
 
   const downloadPoster = async (url: string) => {
     const ext = (url.split("?")[0].split(".").pop() || "jpg").slice(0, 4);
@@ -976,6 +977,11 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
   };
 
   const handleCta = (cta: string) => {
+    // Donate always scrolls to the three "Ways to Give" squares.
+    if (cta === "Donate Now") {
+      document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
     // If a poster has been uploaded for this section, pop it up.
     const slot = slotForCta(cta);
     const posterUrl = slot ? (give[posterUrlKey(slot)] ?? "").trim() : "";
@@ -984,13 +990,6 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
     // Otherwise fall back to the section's normal action.
     if (cta === "Apply to Volunteer") return setPage("Volunteer");
     if (cta === "See Upcoming Events") return setPage("Events");
-    if (cta === "Donate Now") {
-      if (hasGive) {
-        document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
-        return;
-      }
-      return setPage("Contact");
-    }
     setPage("Contact");
   };
 
@@ -1037,18 +1036,42 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </section>
 
-      {hasGive && (
-        <section className="give-section" id="ways-to-give">
-          <div className="give-inner">
-            <div className="give-head">
-              <div className="help-script-tag">Ways to</div>
-              <h2 className="help-h2">Give 💜</h2>
-              <p className="help-text">Every contribution goes straight to the cats — food, vet care, and second chances.</p>
-            </div>
-            <div className="give-grid">
-              {bankRows.length > 0 && (
-                <div className="give-card">
-                  <div className="give-h">🏦 Banking details</div>
+      <section className="give-section" id="ways-to-give">
+        <div className="give-inner">
+          <div className="give-head">
+            <div className="help-script-tag">Ways to</div>
+            <h2 className="help-h2">Give 💜</h2>
+            <p className="help-text">Pick how you&apos;d like to help — every contribution goes straight to the cats.</p>
+          </div>
+          <div className="perks-grid give-squares">
+            <button className="perk give-square" onClick={() => setGiveModal("bank")}>
+              <div className="perk-icon">🏦</div>
+              <div className="perk-title">Bank Transfer</div>
+              <div className="give-square-sub">{securePayUrl ? "Direct EFT or secure online pay" : "Direct EFT"}</div>
+            </button>
+            <button className="perk give-square" onClick={() => setGiveModal("items")}>
+              <div className="perk-icon">🎁</div>
+              <div className="perk-title">Items Wishlist</div>
+              <div className="give-square-sub">Things the cats need</div>
+            </button>
+            <button className="perk give-square" onClick={() => setGiveModal("backabuddy")}>
+              <div className="perk-icon">🐾</div>
+              <div className="perk-title">BackaBuddy</div>
+              <div className="give-square-sub">Back a campaign</div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {giveModal && (
+        <div className="modal-backdrop" onClick={() => setGiveModal(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setGiveModal(null)}>✕</button>
+
+            {giveModal === "bank" && (
+              <>
+                <div className="give-h">🏦 Bank Transfer</div>
+                {bankRows.length > 0 ? (
                   <table className="give-bank">
                     <tbody>
                       {bankRows.map(([label, value]) => (
@@ -1059,33 +1082,44 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
+                ) : (
+                  <p className="give-sub">Banking details coming soon — please get in touch via the Contact page.</p>
+                )}
+                {securePayUrl && (
+                  <a className="btn btn-purple" href={securePayUrl} target="_blank" rel="noopener" style={{ marginTop: 18, width: "100%" }}>🔒 Pay securely online</a>
+                )}
+              </>
+            )}
 
-              {backabuddy.length > 0 && (
-                <div className="give-card">
-                  <div className="give-h">🐾 BackaBuddy campaigns</div>
-                  <p className="give-sub">Help us reach a specific goal — every share counts.</p>
+            {giveModal === "items" && (
+              <>
+                <div className="give-h">🎁 Items Wishlist</div>
+                <p className="give-sub">Drop these at the café or send via a delivery — always needed.</p>
+                {wishlist.length > 0 ? (
+                  <ul className="give-list">{wishlist.map((item) => <li key={item}>{item}</li>)}</ul>
+                ) : (
+                  <p className="give-sub">Our wishlist is being updated — check back soon.</p>
+                )}
+              </>
+            )}
+
+            {giveModal === "backabuddy" && (
+              <>
+                <div className="give-h">🐾 BackaBuddy Campaigns</div>
+                <p className="give-sub">Help us reach a specific goal — every share counts.</p>
+                {backabuddy.length > 0 ? (
                   <div className="give-bab">
                     {backabuddy.map((b) => (
                       <a key={b.url} className="btn btn-purple" href={b.url} target="_blank" rel="noopener">{b.label}</a>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {wishlist.length > 0 && (
-                <div className="give-card">
-                  <div className="give-h">🎁 Our wishlist</div>
-                  <p className="give-sub">Items we always need — drop them at the café or send via a delivery.</p>
-                  <ul className="give-list">
-                    {wishlist.map((item) => <li key={item}>{item}</li>)}
-                  </ul>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <p className="give-sub">No active campaigns right now — check back soon.</p>
+                )}
+              </>
+            )}
           </div>
-        </section>
+        </div>
       )}
 
       {poster && (

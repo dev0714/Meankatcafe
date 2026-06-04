@@ -29,6 +29,7 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   bank_reference: "Your name + \"Donation\"",
   backabuddy_links: "",
   donate_wishlist: "",
+  secure_pay_url: "",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",
