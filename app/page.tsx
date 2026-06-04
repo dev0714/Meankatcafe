@@ -416,7 +416,6 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
 
   const heroCount = heroImages.length;
   const heroPos = ((heroIdx % heroCount) + heroCount) % heroCount;
-  const heroImg = heroImages[heroPos];
 
   return (
     <div data-screen-label="Home">
@@ -440,7 +439,11 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
             </div>
           </div>
           <div className="hero-img-wrap">
-            <img key={heroImg.id} src={heroImg.url} alt="Inside MeanKat Café" />
+            <div className="hero-track" style={{ transform: `translateX(-${heroPos * 100}%)` }}>
+              {heroImages.map((im) => (
+                <img key={im.id} className="hero-slide" src={im.url} alt="Inside MeanKat Café" />
+              ))}
+            </div>
             {heroCount > 1 && (
               <>
                 <button className="carousel-arrow left" onClick={() => setHeroIdx((i) => i - 1)} aria-label="Previous photo">‹</button>
