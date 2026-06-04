@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, type ImageTransform, categoryLabel } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
+import { HELP_POSTER_SLOTS, posterUrlKey } from "@/lib/help-posters";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -59,8 +60,14 @@ const SETTINGS_DEFAULTS = {
   bank_reference: "Your name + \"Donation\"",
   backabuddy_links: "",
   donate_wishlist: "",
-  adoption_poster_url: "",
-  adoption_poster_path: "",
+  adopt_poster_url: "",
+  adopt_poster_path: "",
+  volunteer_poster_url: "",
+  volunteer_poster_path: "",
+  donate_poster_url: "",
+  donate_poster_path: "",
+  events_poster_url: "",
+  events_poster_path: "",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -93,7 +100,7 @@ export default function AdminClient() {
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
-  const [posterUploading, setPosterUploading] = useState(false);
+  const [posterUploadingSlot, setPosterUploadingSlot] = useState<string | null>(null);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
 
@@ -524,22 +531,23 @@ export default function AdminClient() {
     setUserMsg("User updated successfully.");
   }
 
-  async function handleUploadAdoptionPoster(file: File) {
-    setPosterUploading(true); setSettingsMsg("");
+  async function handleUploadHelpPoster(slot: string, file: File) {
+    setPosterUploadingSlot(slot); setSettingsMsg("");
     const fd = new FormData();
+    fd.append("slot", slot);
     fd.append("image", file);
-    const res = await fetch("/api/admin/adoption-poster", { method: "POST", body: fd });
+    const res = await fetch("/api/admin/help-poster", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
-    setPosterUploading(false);
+    setPosterUploadingSlot(null);
     if (!res.ok) { setSettingsMsg(data.error ?? "Poster upload failed."); return; }
-    setSettings((s) => ({ ...s, adoption_poster_url: data.url }));
-    setSettingsMsg("Adoption poster updated.");
+    setSettings((s) => ({ ...s, [posterUrlKey(slot)]: data.url } as SiteSettings));
+    setSettingsMsg("Poster updated.");
   }
 
-  async function handleRemoveAdoptionPoster() {
-    if (!confirm("Remove the adoption poster?")) return;
-    const res = await fetch("/api/admin/adoption-poster", { method: "DELETE" });
-    if (res.ok) setSettings((s) => ({ ...s, adoption_poster_url: "" }));
+  async function handleRemoveHelpPoster(slot: string) {
+    if (!confirm("Remove this poster?")) return;
+    const res = await fetch(`/api/admin/help-poster?slot=${slot}`, { method: "DELETE" });
+    if (res.ok) setSettings((s) => ({ ...s, [posterUrlKey(slot)]: "" } as SiteSettings));
   }
 
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
@@ -1261,27 +1269,38 @@ export default function AdminClient() {
                     </div>
                   </div>
 
-                  {/* Adoption poster */}
+                  {/* How-to-Help posters */}
                   <div className="panel" style={{ marginBottom: 20 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🏡 Adoption Poster</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown as a pop-up when visitors click “Start the Adoption Process” on the How to Help page.</p>
-                    {settings.adoption_poster_url ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        <img src={settings.adoption_poster_url} alt="Adoption poster" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.cream }} />
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <label className="mk-outline" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "10px" }}>
-                            {posterUploading ? "Uploading…" : "Replace"}
-                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdoptionPoster(f); e.target.value = ""; }} />
-                          </label>
-                          <button type="button" className="mk-danger" style={{ flex: 1 }} onClick={handleRemoveAdoptionPoster}>Remove</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "12px" }}>
-                        {posterUploading ? "Uploading…" : "Upload poster image"}
-                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdoptionPoster(f); e.target.value = ""; }} />
-                      </label>
-                    )}
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🖼️ How to Help Posters</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Each poster pops up when a visitor clicks that section’s button on the How to Help page. Leave one empty to keep its normal link.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                      {HELP_POSTER_SLOTS.map(({ slot, label }) => {
+                        const url = settings[posterUrlKey(slot) as keyof SiteSettings];
+                        const busy = posterUploadingSlot === slot;
+                        return (
+                          <div key={slot}>
+                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>{label}</div>
+                            {url ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                <img src={url} alt={`${label} poster`} style={{ width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.cream }} />
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <label className="mk-outline" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "9px" }}>
+                                    {busy ? "Uploading…" : "Replace"}
+                                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f); e.target.value = ""; }} />
+                                  </label>
+                                  <button type="button" className="mk-danger" style={{ flex: 1 }} onClick={() => handleRemoveHelpPoster(slot)}>Remove</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "11px" }}>
+                                {busy ? "Uploading…" : "Upload poster"}
+                                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f); e.target.value = ""; }} />
+                              </label>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Hours */}

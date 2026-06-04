@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ } from "@/lib/hours";
+import { slotForCta, posterUrlKey } from "@/lib/help-posters";
 import type { DayAvailability } from "@/lib/bookings";
 import {
   VOLUNTEER_SECTIONS,
@@ -892,16 +893,17 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
   const wishlist = (give.donate_wishlist ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
 
   const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
-  const adoptionPoster = give.adoption_poster_url?.trim() || "";
-  const [showPoster, setShowPoster] = useState(false);
+  const [poster, setPoster] = useState<string | null>(null);
 
   const handleCta = (cta: string) => {
+    // If a poster has been uploaded for this section, pop it up.
+    const slot = slotForCta(cta);
+    const posterUrl = slot ? (give[posterUrlKey(slot)] ?? "").trim() : "";
+    if (posterUrl) return setPoster(posterUrl);
+
+    // Otherwise fall back to the section's normal action.
     if (cta === "Apply to Volunteer") return setPage("Volunteer");
     if (cta === "See Upcoming Events") return setPage("Events");
-    if (cta === "Start the Adoption Process") {
-      if (adoptionPoster) return setShowPoster(true);
-      return setPage("Contact");
-    }
     if (cta === "Donate Now") {
       if (hasGive) {
         document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
@@ -1006,11 +1008,11 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
         </section>
       )}
 
-      {showPoster && adoptionPoster && (
-        <div className="modal-backdrop" onClick={() => setShowPoster(false)}>
+      {poster && (
+        <div className="modal-backdrop" onClick={() => setPoster(null)}>
           <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowPoster(false)}>✕</button>
-            <img src={adoptionPoster} alt="Adoption process" className="menu-modal-img" />
+            <button className="modal-close" onClick={() => setPoster(null)}>✕</button>
+            <img src={poster} alt="More info" className="menu-modal-img" />
           </div>
         </div>
       )}
