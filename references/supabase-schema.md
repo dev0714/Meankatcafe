@@ -38,9 +38,17 @@ create table meankatcafe.users (
   password_hash text not null,
   is_admin boolean not null default false,
   is_approved boolean not null default false,
+  role text not null default 'admin' check (role in ('admin','volunteer')),
   created_at timestamptz not null default now()
 );
 ```
+
+`role` gates admin access: `admin` = full access; `volunteer` = limited to the
+areas listed in the `volunteer_permissions` setting (comma-separated:
+`cats,events,bookings,volunteers`). Enforcement is server-side via
+`lib/permissions.ts` (`getSessionForArea`), applied to the cats/events/bookings/
+volunteers admin routes; all other admin routes remain admin-only. Volunteers
+are never `is_admin = true`.
 
 ### cats
 

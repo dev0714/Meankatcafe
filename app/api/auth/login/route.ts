@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const { data: user, error } = await supabase
       .schema("meankatcafe")
       .from("users")
-      .select("id, email, password_hash, is_admin, is_approved")
+      .select("id, email, password_hash, is_admin, is_approved, role")
       .eq("email", email)
       .maybeSingle();
 
@@ -45,8 +45,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User row is missing a password hash." }, { status: 500 });
     }
 
-    if (!user.is_admin || !user.is_approved) {
-      return NextResponse.json({ error: "User is not approved as an admin." }, { status: 401 });
+    const role = user.role === "volunteer" ? "volunteer" : "admin";
+    const isAdmin = role === "admin" && !!user.is_admin;
+
+    // Allow full admins and approved volunteers to log in.
+    if (!user.is_approved || (!isAdmin && role !== "volunteer")) {
+      return NextResponse.json({ error: "This account isn't approved for access." }, { status: 401 });
     }
 
     if (!verifyPasswordHash(parsed.data.password, user.password_hash)) {
@@ -58,8 +62,9 @@ export async function POST(request: Request) {
       {
         userId: user.id,
         email: user.email,
-        isAdmin: true,
+        isAdmin,
         isApproved: true,
+        role,
       },
       sessionSecret,
       60 * 60 * 24 * 7
@@ -70,8 +75,9 @@ export async function POST(request: Request) {
       user: {
         id: user.id,
         email: user.email,
-        isAdmin: true,
+        isAdmin,
         isApproved: true,
+        role,
       },
     });
 

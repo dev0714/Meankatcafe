@@ -11,6 +11,7 @@ const patchSchema = z.object({
   is_approved: z.boolean().optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
+  role: z.enum(["admin", "volunteer"]).optional(),
 });
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -31,6 +32,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const updates: Record<string, unknown> = { ...rest };
   if (email) updates.email = email.toLowerCase().trim();
   if (password) updates.password_hash = createPasswordHash(password);
+  // Volunteers are never full admins.
+  if (updates.role === "volunteer") updates.is_admin = false;
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -38,7 +41,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("users")
     .update(updates)
     .eq("id", id)
-    .select("id, email, is_admin, is_approved, created_at")
+    .select("id, email, is_admin, is_approved, role, created_at")
     .single();
 
   if (error) {

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/session";
+import { getSessionForArea } from "@/lib/permissions";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
 function sanitizeFileName(name: string) {
@@ -16,8 +16,8 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session?.isAdmin || !session?.isApproved) {
+  const session = await getSessionForArea("events");
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

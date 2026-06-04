@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getSessionForArea } from "@/lib/permissions";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -10,8 +10,8 @@ function sanitizeFileName(name: string) {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const session = await getSession();
-  if (!session?.isAdmin || !session?.isApproved) {
+  const session = await getSessionForArea("cats");
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -66,8 +66,8 @@ export async function POST(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: Request, { params }: RouteContext) {
-  const session = await getSession();
-  if (!session?.isAdmin || !session?.isApproved) {
+  const session = await getSessionForArea("cats");
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

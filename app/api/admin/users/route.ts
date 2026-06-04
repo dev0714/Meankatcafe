@@ -9,6 +9,7 @@ const createSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   is_admin: z.boolean().default(true),
   is_approved: z.boolean().default(true),
+  role: z.enum(["admin", "volunteer"]).default("admin"),
 });
 
 export async function GET() {
@@ -21,7 +22,7 @@ export async function GET() {
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("users")
-    .select("id, email, is_admin, is_approved, created_at")
+    .select("id, email, is_admin, is_approved, role, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -40,15 +41,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.errors[0]?.message ?? "Invalid data." }, { status: 400 });
   }
 
-  const { email, password, is_admin, is_approved } = parsed.data;
+  const { email, password, is_admin, is_approved, role } = parsed.data;
   const password_hash = createPasswordHash(password);
+  // Volunteers are never full admins.
+  const effectiveIsAdmin = role === "volunteer" ? false : is_admin;
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("users")
-    .insert({ email: email.toLowerCase().trim(), password_hash, is_admin, is_approved })
-    .select("id, email, is_admin, is_approved, created_at")
+    .insert({ email: email.toLowerCase().trim(), password_hash, is_admin: effectiveIsAdmin, is_approved, role })
+    .select("id, email, is_admin, is_approved, role, created_at")
     .single();
 
   if (error) {

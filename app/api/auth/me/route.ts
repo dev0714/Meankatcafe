@@ -15,6 +15,7 @@ export async function GET() {
       email: session.email,
       isAdmin: session.isAdmin,
       isApproved: session.isApproved,
+      role: session.role ?? "admin",
     },
   });
 }
