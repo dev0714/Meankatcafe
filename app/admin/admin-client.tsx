@@ -612,7 +612,7 @@ export default function AdminClient() {
 
   const NAV: { id: AdminTab; label: string; icon: string }[] = [
     { id: "cats", label: "Cats", icon: "🐾" },
-    { id: "menu-images", label: "Café & Menu Photos", icon: "📸" },
+    { id: "menu-images", label: "Hero & Menu Photos", icon: "📸" },
     { id: "events", label: "Events", icon: "🎉" },
     { id: "bookings", label: "Bookings", icon: "📅" },
     { id: "volunteers", label: "Volunteers", icon: "🙌" },
@@ -941,29 +941,29 @@ export default function AdminClient() {
           <>
             <div style={{ marginBottom: 28 }}>
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Content</div>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Café &amp; Menu Photos</h1>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Hero &amp; Menu Photos</h1>
               <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>
-                The Café page shows two carousels side by side — café photos on the left, menu photos on the right. Upload to each below.
+                <strong>Home hero photos</strong> rotate in the carousel on the home page (add 2 or more for the arrows to appear). <strong>Menu photos</strong> show in the carousel on the Café page.
               </p>
             </div>
 
             {/* Café photos */}
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
               <div className="panel">
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>🏠 Upload Café Photo</div>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>🏠 Upload Home Hero Photo</div>
                 <form onSubmit={handleUploadCafeImage} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Image of the café</div>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Photo for the home page hero</div>
                     <input className="mk-input" type="file" accept="image/*" onChange={(e) => setCafeImageFile(e.target.files?.[0] ?? null)} required />
                   </label>
                   {cafeImageMsg && <div style={{ fontSize: 13, color: BRAND.textLight }}>{cafeImageMsg}</div>}
-                  <button className="mk-primary" type="submit" disabled={cafeImageSaving}>{cafeImageSaving ? "Uploading…" : "Upload café photo"}</button>
+                  <button className="mk-primary" type="submit" disabled={cafeImageSaving}>{cafeImageSaving ? "Uploading…" : "Upload hero photo"}</button>
                 </form>
               </div>
               <div className="panel">
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Café Photos ({cafeImages.length})</div>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Home Hero Photos ({cafeImages.length})</div>
                 {cafeImages.length === 0
-                  ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No café photos yet — the hero photo shows by default until you add some.</div>
+                  ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No hero photos yet — the default shows until you add some. Add 2 or more to make it a rotating carousel.</div>
                   : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
                       {cafeImages.map((img) => (
                         <div key={img.id} style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
