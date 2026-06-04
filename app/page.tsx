@@ -154,7 +154,7 @@ const HELP_DETAIL = [
   {
     icon: "🏡",
     script: "Find your",
-    title: "Forever Friend",
+    title: "Fur-ever Friend",
     body: "Every cat at MeanKat is looking for a safe, loving forever home. When you adopt, you're not just bringing home a companion — you're freeing up a foster space for the next rescue cat in need.",
     list: [
       "Meet the cats in person at the café",
