@@ -29,6 +29,8 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   bank_reference: "Your name + \"Donation\"",
   backabuddy_links: "",
   donate_wishlist: "",
+  adoption_poster_url: "",
+  adoption_poster_path: "",
 };
 
 export async function GET() {

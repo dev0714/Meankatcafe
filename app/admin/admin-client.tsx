@@ -59,6 +59,8 @@ const SETTINGS_DEFAULTS = {
   bank_reference: "Your name + \"Donation\"",
   backabuddy_links: "",
   donate_wishlist: "",
+  adoption_poster_url: "",
+  adoption_poster_path: "",
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
@@ -91,6 +93,7 @@ export default function AdminClient() {
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
+  const [posterUploading, setPosterUploading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
 
@@ -519,6 +522,24 @@ export default function AdminClient() {
     setAdminUsers((u) => u.map((x) => x.id === userId ? data.user : x));
     setEditingUserId(null);
     setUserMsg("User updated successfully.");
+  }
+
+  async function handleUploadAdoptionPoster(file: File) {
+    setPosterUploading(true); setSettingsMsg("");
+    const fd = new FormData();
+    fd.append("image", file);
+    const res = await fetch("/api/admin/adoption-poster", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setPosterUploading(false);
+    if (!res.ok) { setSettingsMsg(data.error ?? "Poster upload failed."); return; }
+    setSettings((s) => ({ ...s, adoption_poster_url: data.url }));
+    setSettingsMsg("Adoption poster updated.");
+  }
+
+  async function handleRemoveAdoptionPoster() {
+    if (!confirm("Remove the adoption poster?")) return;
+    const res = await fetch("/api/admin/adoption-poster", { method: "DELETE" });
+    if (res.ok) setSettings((s) => ({ ...s, adoption_poster_url: "" }));
   }
 
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
@@ -1238,6 +1259,29 @@ export default function AdminClient() {
                         <textarea className="mk-input" value={settings.donate_wishlist} onChange={(e) => setSettings((s) => ({ ...s, donate_wishlist: e.target.value }))} placeholder={"Cat food (wet & dry)\nClumping litter\nScratching posts"} style={{ minHeight: 90, resize: "vertical" }} />
                       </label>
                     </div>
+                  </div>
+
+                  {/* Adoption poster */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🏡 Adoption Poster</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown as a pop-up when visitors click “Start the Adoption Process” on the How to Help page.</p>
+                    {settings.adoption_poster_url ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <img src={settings.adoption_poster_url} alt="Adoption poster" style={{ width: "100%", maxHeight: 320, objectFit: "contain", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.cream }} />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <label className="mk-outline" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "10px" }}>
+                            {posterUploading ? "Uploading…" : "Replace"}
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdoptionPoster(f); e.target.value = ""; }} />
+                          </label>
+                          <button type="button" className="mk-danger" style={{ flex: 1 }} onClick={handleRemoveAdoptionPoster}>Remove</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "12px" }}>
+                        {posterUploading ? "Uploading…" : "Upload poster image"}
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadAdoptionPoster(f); e.target.value = ""; }} />
+                      </label>
+                    )}
                   </div>
 
                   {/* Hours */}
