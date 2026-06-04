@@ -29,6 +29,7 @@ type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
 type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings";
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
+type AdminBlock = { id: string; date: string; startTime: string; endTime: string; title: string; price?: string | null; notes?: string | null };
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
 type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; role: UserRole; created_at: string };
 type VolunteerApplication = { id: string; fullName: string; email: string; whatsappNumber?: string | null; suburb?: string | null; agreeTerms: boolean; answers: VolunteerAnswers; createdAt: string };
@@ -136,6 +137,12 @@ export default function AdminClient() {
   const [bookingMonth, setBookingMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
   const [selectedBookingDate, setSelectedBookingDate] = useState<string | null>(null);
   const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
+
+  const [blocks, setBlocks] = useState<AdminBlock[]>([]);
+  const [newBlock, setNewBlock] = useState({ date: "", startTime: "", endTime: "", title: "", price: "", notes: "" });
+  const [blockSaving, setBlockSaving] = useState(false);
+  const [blockMsg, setBlockMsg] = useState("");
+  const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
@@ -256,6 +263,10 @@ export default function AdminClient() {
     fetch("/api/admin/bookings")
       .then((r) => r.ok ? r.json() : [])
       .then((data: AdminBooking[]) => setBookings(data))
+      .catch(() => {});
+    fetch("/api/admin/booking-blocks")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminBlock[]) => setBlocks(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -585,6 +596,30 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/bookings/${b.id}`, { method: "DELETE" });
     if (res.ok) setBookings((bs) => bs.filter((x) => x.id !== b.id));
     setDeletingBookingId(null);
+  }
+
+  async function handleCreateBlock(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBlockSaving(true); setBlockMsg("");
+    const res = await fetch("/api/admin/booking-blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newBlock),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBlockSaving(false);
+    if (!res.ok) { setBlockMsg(data.error ?? "Could not save."); return; }
+    setBlocks((bs) => [...bs, data.block].sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime)));
+    setNewBlock({ date: "", startTime: "", endTime: "", title: "", price: "", notes: "" });
+    setBlockMsg("Time blocked out successfully.");
+  }
+
+  async function handleDeleteBlock(b: AdminBlock) {
+    if (!confirm(`Remove the block "${b.title}" on ${b.date}? This re-opens that time for public bookings.`)) return;
+    setDeletingBlockId(b.id);
+    const res = await fetch(`/api/admin/booking-blocks/${b.id}`, { method: "DELETE" });
+    if (res.ok) setBlocks((bs) => bs.filter((x) => x.id !== b.id));
+    setDeletingBlockId(null);
   }
 
   function handleStartEditUser(user: AdminUser) {
@@ -1234,6 +1269,71 @@ export default function AdminClient() {
                           </div>
                           <button className="mk-danger" onClick={() => handleDeleteBooking(b)} disabled={deletingBookingId === b.id} style={{ flexShrink: 0 }}>
                             {deletingBookingId === b.id ? "…" : "Cancel"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Block out time / private events */}
+              <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginTop: 28 }}>
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🚫 Block out time</div>
+                  <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 16 }}>Reserve a time range for a private event. It&apos;s removed from public booking availability.</p>
+                  <form onSubmit={handleCreateBlock} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Date</div>
+                      <input className="mk-input" type="date" value={newBlock.date} onChange={(e) => setNewBlock((v) => ({ ...v, date: e.target.value }))} required />
+                    </label>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <label style={{ flex: 1 }}>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>From</div>
+                        <input className="mk-input" type="time" value={newBlock.startTime} onChange={(e) => setNewBlock((v) => ({ ...v, startTime: e.target.value }))} required />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>To</div>
+                        <input className="mk-input" type="time" value={newBlock.endTime} onChange={(e) => setNewBlock((v) => ({ ...v, endTime: e.target.value }))} required />
+                      </label>
+                    </div>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Event title</div>
+                      <input className="mk-input" value={newBlock.title} onChange={(e) => setNewBlock((v) => ({ ...v, title: e.target.value }))} placeholder="Private party" required />
+                    </label>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Price / amount (optional)</div>
+                      <input className="mk-input" value={newBlock.price} onChange={(e) => setNewBlock((v) => ({ ...v, price: e.target.value }))} placeholder="R1500 / R150 pp" />
+                    </label>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Notes (optional)</div>
+                      <textarea className="mk-input" value={newBlock.notes} onChange={(e) => setNewBlock((v) => ({ ...v, notes: e.target.value }))} style={{ minHeight: 60, resize: "vertical" }} />
+                    </label>
+                    {blockMsg && (
+                      <div style={{ fontSize: 13, fontWeight: 700, color: blockMsg.includes("success") ? "#16a34a" : "#b42318", background: blockMsg.includes("success") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${blockMsg.includes("success") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px" }}>{blockMsg}</div>
+                    )}
+                    <button className="mk-primary" type="submit" disabled={blockSaving}>{blockSaving ? "Saving…" : "Block out this time"}</button>
+                  </form>
+                </div>
+
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Blocked Times ({blocks.length})</div>
+                  {blocks.length === 0 ? (
+                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>No blocked times yet.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {blocks.map((b) => (
+                        <div key={b.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 10, padding: "10px 12px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                          <div style={{ textAlign: "center", minWidth: 96, background: "#fff0ee", border: "2px solid #f4c2be", borderRadius: 8, padding: "6px 4px", flexShrink: 0 }}>
+                            <div style={{ fontWeight: 900, fontSize: 12, color: BRAND.text }}>{new Date(`${b.date}T00:00:00Z`).toLocaleDateString("en-ZA", { day: "numeric", month: "short", timeZone: "UTC" })}</div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: "#b42318" }}>{b.startTime}–{b.endTime}</div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{b.title}{b.price ? ` · ${b.price}` : ""}</div>
+                            {b.notes && <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>{b.notes}</div>}
+                          </div>
+                          <button className="mk-danger" onClick={() => handleDeleteBlock(b)} disabled={deletingBlockId === b.id} style={{ flexShrink: 0 }}>
+                            {deletingBlockId === b.id ? "…" : "Remove"}
                           </button>
                         </div>
                       ))}

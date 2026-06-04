@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-import { slotsForDate, todayInCafeTZ } from "@/lib/hours";
+import { slotsForDate, todayInCafeTZ, toMinutes } from "@/lib/hours";
 import { DEFAULT_BOOKINGS_PER_SLOT } from "@/lib/bookings";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,6 +61,17 @@ export async function POST(request: Request) {
     .eq("key", "bookings_per_slot")
     .maybeSingle();
   const limit = Math.max(1, Number(setting?.value) || DEFAULT_BOOKINGS_PER_SLOT);
+
+  // Reject slots that fall inside an admin block-out / private event.
+  const { data: blocks } = await supabase
+    .schema("meankatcafe")
+    .from("booking_blocks")
+    .select("start_time, end_time")
+    .eq("date", date);
+  const t = toMinutes(slot);
+  if ((blocks ?? []).some((b) => t >= toMinutes(b.start_time as string) && t < toMinutes(b.end_time as string))) {
+    return NextResponse.json({ error: "That time is reserved for a private event — please pick another slot." }, { status: 409 });
+  }
 
   // Capacity check (count confirmed bookings already in this slot).
   const { count } = await supabase

@@ -1268,17 +1268,17 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
                   ) : (
                     <div className="slot-grid">
                       {avail.slots.map((s) => {
-                        const full = s.remaining <= 0;
+                        const unavailable = s.blocked || s.remaining <= 0;
                         return (
                           <button
                             key={s.slot}
                             type="button"
-                            className={`slot-chip ${slot === s.slot ? "on" : ""} ${full ? "full" : ""}`}
-                            disabled={full}
+                            className={`slot-chip ${slot === s.slot ? "on" : ""} ${unavailable ? "full" : ""}`}
+                            disabled={unavailable}
                             onClick={() => setSlot(s.slot)}
                           >
                             <span className="slot-time">{formatSlot(s.slot)}</span>
-                            <span className="slot-left">{full ? "Full" : `${s.remaining} left`}</span>
+                            <span className="slot-left">{s.blocked ? "Reserved" : s.remaining <= 0 ? "Full" : `${s.remaining} left`}</span>
                           </button>
                         );
                       })}
