@@ -773,7 +773,6 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
     { id: "b1", url: "/menu1.jpg" },
     { id: "b2", url: "/menu2.jpg" },
   ]);
-  const [cafeImages, setCafeImages] = useState<MenuImage[]>([{ id: "hero", url: "/hero-cafe.png" }]);
   const [zoom, setZoom] = useState<string | null>(null);
 
   useEffect(() => {
@@ -789,13 +788,6 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         }
       })
       .catch(() => {});
-
-    fetch("/api/cafe-images")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: MenuImage[] | null) => {
-        if (data && data.length > 0) setCafeImages(data);
-      })
-      .catch(() => {});
   }, []);
 
   return (
@@ -804,15 +796,14 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
           <div className="page-script">Our</div>
-          <h1 className="page-title">Café &amp; Menu</h1>
-          <p className="page-sub">Take a peek inside MeanKat and browse the menu — coffee to milkshakes, croissants to cookies. Use the arrows to flip through, or tap any photo to see it bigger.</p>
+          <h1 className="page-title">Café Menu</h1>
+          <p className="page-sub">Coffee to milkshakes, croissants to cookies. Use the arrows to flip through, or tap any photo to see it bigger.</p>
         </div>
       </section>
 
       <section className="menu-photos-wrap">
         <div className="cafe-menu-inner">
-          <div className="cafe-menu-grid">
-            <PhotoCarousel images={cafeImages} label="Inside the café 🏠" emptyText="Café photos coming soon." onZoom={setZoom} />
+          <div className="menu-carousel-single">
             <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={setZoom} />
           </div>
 
