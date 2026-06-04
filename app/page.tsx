@@ -957,6 +957,24 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
   const hasGive = bankRows.length > 0 || backabuddy.length > 0 || wishlist.length > 0;
   const [poster, setPoster] = useState<string | null>(null);
 
+  const downloadPoster = async (url: string) => {
+    const ext = (url.split("?")[0].split(".").pop() || "jpg").slice(0, 4);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = `meankat-poster.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, "_blank", "noopener");
+    }
+  };
+
   const handleCta = (cta: string) => {
     // If a poster has been uploaded for this section, pop it up.
     const slot = slotForCta(cta);
@@ -1075,6 +1093,9 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
           <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setPoster(null)}>✕</button>
             <img src={poster} alt="More info" className="menu-modal-img" />
+            <div style={{ textAlign: "center", marginTop: 14 }}>
+              <button className="btn btn-purple" onClick={() => downloadPoster(poster)}>⬇ Download</button>
+            </div>
           </div>
         </div>
       )}
