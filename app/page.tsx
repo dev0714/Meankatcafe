@@ -700,12 +700,50 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
 // CAFE / MENU PAGE
 // ─────────────────────────────────────────────────────────────
 
+function PhotoCarousel({ images, label, emptyText, onZoom }: { images: MenuImage[]; label: string; emptyText: string; onZoom: (url: string) => void }) {
+  const [i, setI] = useState(0);
+  const count = images.length;
+  const idx = count ? ((i % count) + count) % count : 0;
+  const cur = images[idx];
+  const prev = () => setI((p) => p - 1);
+  const next = () => setI((p) => p + 1);
+
+  return (
+    <div className="carousel">
+      <div className="carousel-label">{label}</div>
+      {count === 0 ? (
+        <div className="carousel-stage carousel-empty">{emptyText}</div>
+      ) : (
+        <>
+          <div className="carousel-stage">
+            <img src={cur.url} alt={label} onClick={() => onZoom(cur.url)} />
+            {count > 1 && (
+              <>
+                <button className="carousel-arrow left" onClick={prev} aria-label="Previous">‹</button>
+                <button className="carousel-arrow right" onClick={next} aria-label="Next">›</button>
+              </>
+            )}
+          </div>
+          {count > 1 && (
+            <div className="carousel-dots">
+              {images.map((img, n) => (
+                <button key={img.id} className={`carousel-dot ${n === idx ? "on" : ""}`} onClick={() => setI(n)} aria-label={`Image ${n + 1}`} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function CafePage({ setPage }: { setPage: (p: Page) => void }) {
   const [menuImages, setMenuImages] = useState<MenuImage[]>([
     { id: "b1", url: "/menu1.jpg" },
     { id: "b2", url: "/menu2.jpg" },
   ]);
-  const [modalImage, setModalImage] = useState<MenuImage | null>(null);
+  const [cafeImages, setCafeImages] = useState<MenuImage[]>([{ id: "hero", url: "/hero-cafe.png" }]);
+  const [zoom, setZoom] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/menu-images")
@@ -720,6 +758,13 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         }
       })
       .catch(() => {});
+
+    fetch("/api/cafe-images")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: MenuImage[] | null) => {
+        if (data && data.length > 0) setCafeImages(data);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -728,27 +773,17 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
           <div className="page-script">Our</div>
-          <h1 className="page-title">Café Menu</h1>
-          <p className="page-sub">Coffee to milkshakes, croissants to cookies. The one part of MeanKat genuinely happy you&apos;re here. Tap any photo to see it bigger.</p>
+          <h1 className="page-title">Café &amp; Menu</h1>
+          <p className="page-sub">Take a peek inside MeanKat and browse the menu — coffee to milkshakes, croissants to cookies. Use the arrows to flip through, or tap any photo to see it bigger.</p>
         </div>
       </section>
 
       <section className="menu-photos-wrap">
-        <div className="menu-photos-inner">
-          {menuImages.length === 0 ? (
-            <div className="menu-empty">
-              <div style={{ fontSize: 64, marginBottom: 12 }}>📋</div>
-              <p>Menu photos are being updated — check back soon.</p>
-            </div>
-          ) : (
-            <div className="menu-photo-grid">
-              {menuImages.map((img) => (
-                <div className="menu-photo-card" key={img.id} onClick={() => setModalImage(img)}>
-                  <img src={img.url} alt="MeanKat menu" />
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="cafe-menu-inner">
+          <div className="cafe-menu-grid">
+            <PhotoCarousel images={cafeImages} label="Inside the café 🏠" emptyText="Café photos coming soon." onZoom={setZoom} />
+            <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={setZoom} />
+          </div>
 
           <div className="menu-fee-card">
             <div className="menu-fee-h">Don&apos;t forget the entrance fee 🐾</div>
@@ -757,11 +792,11 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </section>
 
-      {modalImage && (
-        <div className="modal-backdrop" onClick={() => setModalImage(null)}>
+      {zoom && (
+        <div className="modal-backdrop" onClick={() => setZoom(null)}>
           <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setModalImage(null)}>✕</button>
-            <img src={modalImage.url} alt="MeanKat menu" className="menu-modal-img" />
+            <button className="modal-close" onClick={() => setZoom(null)}>✕</button>
+            <img src={zoom} alt="MeanKat" className="menu-modal-img" />
           </div>
         </div>
       )}
