@@ -798,9 +798,9 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="page-header">
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
-          <div className="page-script">Our</div>
-          <h1 className="page-title">Café Menu</h1>
-          <p className="page-sub">Coffee to milkshakes, croissants to cookies. Use the arrows to flip through, or tap any photo to see it bigger.</p>
+          <div className="page-script">What&apos;s on</div>
+          <h1 className="page-title">Our Menu</h1>
+          <p className="page-sub">Come for the cats, stay for the sweet treats, tasty savoury bites, fun milkshakes, coffee, matcha, and more. Everything is halaal, sourced from amazing local suppliers wherever possible &amp; served with a side of cat cuddles.</p>
         </div>
       </section>
 
