@@ -981,7 +981,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="page-header-inner">
           <div className="page-script">Become part</div>
           <h1 className="page-title">Of Their Story</h1>
-          <p className="page-sub">Four ways to make a real difference for rescue cats — pick the one that fits, or do all four. We won&apos;t stop you.</p>
+          <p className="page-sub">Be part of our purr-pose. Adopt, donate, volunteer, or support our events — every contribution helps us rescue, care for, and rehome more cats in need.</p>
         </div>
       </section>
 
