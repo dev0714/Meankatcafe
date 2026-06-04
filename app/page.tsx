@@ -1439,7 +1439,17 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
               <div className="contact-info-icon">📍</div>
               <div>
                 <div className="contact-label">Location</div>
-                <div className="contact-value">87 Smiso Nkwanyana Road<br />Morningside, Durban<br />Kwa-Zulu Natal</div>
+                <div className="contact-value">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal"
+                    target="_blank"
+                    rel="noopener"
+                    className="map-link"
+                  >
+                    87 Smiso Nkwanyana Road<br />Morningside, Durban<br />Kwa-Zulu Natal
+                    <span className="map-link-tag">📍 Open in Google Maps</span>
+                  </a>
+                </div>
               </div>
             </div>
             <div className="contact-info-row">
