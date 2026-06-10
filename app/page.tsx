@@ -405,11 +405,17 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 function HomePage({ setPage }: { setPage: (p: Page) => void }) {
   const [heroImages, setHeroImages] = useState<MenuImage[]>([{ id: "hero", url: "/hero-cafe.png" }]);
   const [heroIdx, setHeroIdx] = useState(0);
+  const [catHero, setCatHero] = useState<MenuImage[]>([]);
+  const [guide, setGuide] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/cafe-images")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: MenuImage[] | null) => { if (d && d.length > 0) setHeroImages(d); })
+      .catch(() => {});
+    fetch("/api/cat-hero-images")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: MenuImage[] | null) => { if (d && d.length > 0) setCatHero(d); })
       .catch(() => {});
   }, []);
 
@@ -498,6 +504,8 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               <p className="pillar-body">{p.body}</p>
               {p.cta === "Directions" ? (
                 <a className="btn btn-outline-dark" href="https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal" target="_blank" rel="noopener">{p.cta}</a>
+              ) : p.cta === "Cat Hero Guide" ? (
+                <button className="btn btn-outline-dark" onClick={() => (catHero.length > 0 ? setGuide(0) : setPage("Cats"))}>{p.cta}</button>
               ) : (
                 <button className="btn btn-outline-dark" onClick={() => setPage(p.target)}>{p.cta}</button>
               )}
@@ -541,6 +549,30 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
           ))}
         </div>
       </section>
+
+      {guide !== null && catHero[guide] && (
+        <div className="modal-backdrop" onClick={() => setGuide(null)}>
+          <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setGuide(null)}>✕</button>
+            <div className="menu-modal-stage">
+              <img src={catHero[guide].url} alt="How to be a Cat Hero" className="menu-modal-img" />
+              {catHero.length > 1 && (
+                <>
+                  <button className="carousel-arrow left" onClick={() => setGuide((g) => g === null ? g : (g - 1 + catHero.length) % catHero.length)} aria-label="Previous">‹</button>
+                  <button className="carousel-arrow right" onClick={() => setGuide((g) => g === null ? g : (g + 1) % catHero.length)} aria-label="Next">›</button>
+                </>
+              )}
+            </div>
+            {catHero.length > 1 && (
+              <div className="carousel-dots" style={{ marginTop: 12 }}>
+                {catHero.map((im, n) => (
+                  <button key={im.id} className={`carousel-dot ${n === guide ? "on" : ""}`} onClick={() => setGuide(n)} aria-label={`Page ${n + 1}`} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer setPage={setPage} />
     </div>
