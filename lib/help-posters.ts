@@ -6,7 +6,7 @@ export type HelpPosterSlot = "adopt" | "volunteer" | "donate" | "events";
 
 export const HELP_POSTER_SLOTS: ReadonlyArray<{ slot: HelpPosterSlot; label: string; cta: string }> = [
   { slot: "adopt", label: "Adopt — Forever Friend", cta: "Start the Adoption Process" },
-  { slot: "volunteer", label: "Volunteer — Helping Paw", cta: "Apply to Volunteer" },
+  { slot: "volunteer", label: "Volunteer process (pop-up infographic)", cta: "Apply to Volunteer" },
   { slot: "donate", label: "Donate — More Cats", cta: "Donate Now" },
   { slot: "events", label: "Events — With Us", cta: "See Upcoming Events" },
 ];
