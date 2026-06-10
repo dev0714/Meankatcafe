@@ -1051,6 +1051,33 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </section>
 
+      <section className="give-section" id="ways-to-give">
+        <div className="give-inner">
+          <div className="give-head">
+            <div className="help-script-tag">Ways to</div>
+            <h2 className="help-h2">Give 💜</h2>
+            <p className="help-text">Pick how you&apos;d like to help — every contribution goes straight to the cats.</p>
+          </div>
+          <div className="perks-grid give-squares">
+            <button className="perk give-square" onClick={() => setGiveModal("bank")}>
+              <div className="perk-icon">🏦</div>
+              <div className="perk-title">Bank Transfer</div>
+              <div className="give-square-sub">{securePayUrl ? "Direct EFT or secure online pay" : "Direct EFT"}</div>
+            </button>
+            <button className="perk give-square" onClick={() => setGiveModal("items")}>
+              <div className="perk-icon">🎁</div>
+              <div className="perk-title">Items Wishlist</div>
+              <div className="give-square-sub">Things the cats need</div>
+            </button>
+            <button className="perk give-square" onClick={() => setGiveModal("backabuddy")}>
+              <div className="perk-icon">🐾</div>
+              <div className="perk-title">BackaBuddy</div>
+              <div className="give-square-sub">Back a campaign</div>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section className="help-page">
         <div className="help-inner">
           {HELP_DETAIL.map((h, i) => (
@@ -1080,33 +1107,6 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
               )}
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="give-section" id="ways-to-give">
-        <div className="give-inner">
-          <div className="give-head">
-            <div className="help-script-tag">Ways to</div>
-            <h2 className="help-h2">Give 💜</h2>
-            <p className="help-text">Pick how you&apos;d like to help — every contribution goes straight to the cats.</p>
-          </div>
-          <div className="perks-grid give-squares">
-            <button className="perk give-square" onClick={() => setGiveModal("bank")}>
-              <div className="perk-icon">🏦</div>
-              <div className="perk-title">Bank Transfer</div>
-              <div className="give-square-sub">{securePayUrl ? "Direct EFT or secure online pay" : "Direct EFT"}</div>
-            </button>
-            <button className="perk give-square" onClick={() => setGiveModal("items")}>
-              <div className="perk-icon">🎁</div>
-              <div className="perk-title">Items Wishlist</div>
-              <div className="give-square-sub">Things the cats need</div>
-            </button>
-            <button className="perk give-square" onClick={() => setGiveModal("backabuddy")}>
-              <div className="perk-icon">🐾</div>
-              <div className="perk-title">BackaBuddy</div>
-              <div className="give-square-sub">Back a campaign</div>
-            </button>
-          </div>
         </div>
       </section>
 
