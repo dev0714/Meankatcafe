@@ -238,6 +238,66 @@ Public: `GET /api/membership/plans`, `POST /api/membership/apply` (pending),
 `/api/admin/membership-plans` (+`/[id]`). `members` is a volunteer-permittable area
 (for door staff).
 
+## socialsync schema (Social Studio)
+
+The Social Studio feature lives in its **own dedicated schema `socialsync`** (separate from
+`meankatcafe`), in the same Supabase project. Create + expose it like the main schema:
+
+```sql
+create schema if not exists socialsync;
+grant usage on schema socialsync to anon, authenticated, service_role;
+grant all on all tables in schema socialsync to anon, authenticated, service_role;
+grant all on all sequences in schema socialsync to anon, authenticated, service_role;
+alter default privileges in schema socialsync grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema socialsync grant all on sequences to anon, authenticated, service_role;
+```
+
+RLS is **enabled with no policies** on all three tables — the app uses the service-role key
+(which bypasses RLS), so server access works while anon/public access is blocked. Server routes
+call `supabase.schema("socialsync")`. Add `socialsync` to the project's exposed schemas in
+Supabase Dashboard → API settings.
+
+```sql
+-- Connected social channels; access_token / refresh_token are AES-256-GCM encrypted (lib/social/crypto.ts)
+create table socialsync.social_accounts (
+  id uuid primary key default gen_random_uuid(),
+  platform text not null check (platform in ('instagram','facebook','tiktok','youtube','linkedin')),
+  display_name text,
+  external_id text,
+  access_token text, refresh_token text, token_expires_at timestamptz, scopes text,
+  connected_by uuid references meankatcafe.users(id),   -- cross-schema FK
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index social_accounts_platform_external_idx on socialsync.social_accounts (platform, external_id);
+
+-- Composed posts (description -> AI caption + media)
+create table socialsync.social_posts (
+  id uuid primary key default gen_random_uuid(),
+  prompt text not null, caption text, image_path text, video_path text,
+  status text not null default 'draft' check (status in ('draft','publishing','published','failed')),
+  created_by uuid references meankatcafe.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index social_posts_created_at_idx on socialsync.social_posts (created_at desc);
+
+-- Per-platform publish result for each post
+create table socialsync.social_post_targets (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references socialsync.social_posts(id) on delete cascade,
+  platform text not null check (platform in ('instagram','facebook','tiktok','youtube','linkedin')),
+  status text not null default 'pending' check (status in ('pending','published','failed','skipped')),
+  remote_id text, remote_url text, error text, posted_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index social_post_targets_post_idx on socialsync.social_post_targets (post_id);
+```
+
+Generated images are stored in the `cat-images` bucket under the `social/` prefix.
+Endpoints (admin area `social`): `POST /api/admin/social/generate` (caption + image + draft),
+`GET /api/admin/social/posts` (history), `PATCH|DELETE /api/admin/social/posts/[id]`.
+
 ## Storage
 
 - Bucket name: `cat-images`

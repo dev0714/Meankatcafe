@@ -27,7 +27,8 @@ type UserRole = "admin" | "volunteer";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "social";
+type SocialPost = { id: string; prompt: string; caption: string; status: string; createdAt: string; imageUrl: string | null };
 type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
@@ -113,6 +114,17 @@ export default function AdminClient() {
   const [deletingImageDbId, setDeletingImageDbId] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [cropSaving, setCropSaving] = useState(false);
+
+  // --- social studio ---
+  const [socialPrompt, setSocialPrompt] = useState("");
+  const [socialTone, setSocialTone] = useState("");
+  const [socialGenerating, setSocialGenerating] = useState(false);
+  const [socialMsg, setSocialMsg] = useState("");
+  const [socialDraft, setSocialDraft] = useState<SocialPost | null>(null);
+  const [socialCaptionEdit, setSocialCaptionEdit] = useState("");
+  const [socialSavingCaption, setSocialSavingCaption] = useState(false);
+  const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
+  const [socialDeletingId, setSocialDeletingId] = useState<string | null>(null);
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
@@ -223,7 +235,7 @@ export default function AdminClient() {
     if (!auth.user || auth.user.role !== "volunteer") return;
     const perms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
     const tabArea: Record<AdminTab, string | null> = {
-      cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members",
+      cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members", social: "social",
       "menu-images": null, settings: null, users: null,
     };
     const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
@@ -291,6 +303,80 @@ export default function AdminClient() {
       .then((data: AdminEvent[]) => setAdminEvents(data))
       .catch(() => {});
   }, [auth.user]);
+
+  const loadSocialPosts = () => {
+    fetch("/api/admin/social/posts")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: SocialPost[]) => setSocialPosts(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (!auth.user) return;
+    loadSocialPosts();
+  }, [auth.user]);
+
+  async function handleSocialGenerate(event: FormEvent) {
+    event.preventDefault();
+    if (!socialPrompt.trim()) return;
+    setSocialGenerating(true);
+    setSocialMsg("");
+    setSocialDraft(null);
+    try {
+      const res = await fetch("/api/admin/social/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: socialPrompt, tone: socialTone || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSocialMsg(data?.error || "Generation failed.");
+      } else {
+        setSocialDraft(data.post);
+        setSocialCaptionEdit(data.post.caption || "");
+        setSocialMsg("✅ Draft generated and saved.");
+        loadSocialPosts();
+      }
+    } catch {
+      setSocialMsg("Network error — please try again.");
+    } finally {
+      setSocialGenerating(false);
+    }
+  }
+
+  async function handleSocialSaveCaption() {
+    if (!socialDraft) return;
+    setSocialSavingCaption(true);
+    try {
+      const res = await fetch(`/api/admin/social/posts/${socialDraft.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption: socialCaptionEdit }),
+      });
+      if (res.ok) {
+        setSocialMsg("✅ Caption saved.");
+        loadSocialPosts();
+      } else {
+        const data = await res.json().catch(() => null);
+        setSocialMsg(data?.error || "Could not save caption.");
+      }
+    } finally {
+      setSocialSavingCaption(false);
+    }
+  }
+
+  async function handleSocialDelete(id: string) {
+    setSocialDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/social/posts/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        if (socialDraft?.id === id) setSocialDraft(null);
+        loadSocialPosts();
+      }
+    } finally {
+      setSocialDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     if (!auth.user) return;
@@ -858,6 +944,7 @@ export default function AdminClient() {
     { id: "events", label: "Events", icon: "🎉", area: "events" },
     { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
     { id: "members", label: "Members", icon: "🎟️", area: "members" },
+    { id: "social", label: "Social Studio", icon: "📣", area: "social" },
     { id: "volunteers", label: "Volunteers", icon: "🙌", area: "volunteers" },
     { id: "settings", label: "Site Settings", icon: "⚙️", area: null },
     { id: "users", label: "Users", icon: "👤", area: null },
@@ -1764,6 +1851,84 @@ export default function AdminClient() {
         )}
 
         {/* ── Settings Tab ── */}
+        {activeTab === "social" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Social</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Social Studio</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Describe a post in plain language — Claude writes the caption and an image is generated for you. Review, edit, and save it as a draft. (Publishing to Instagram, Facebook, TikTok, LinkedIn and YouTube is coming in a later phase once each platform connection is set up.)</p>
+            </div>
+
+            <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+              {/* Compose */}
+              <div>
+                <div className="panel" style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>✍️ Describe your post</div>
+                  <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>What is this post about? e.g. &quot;A playful tabby named Mochi just arrived and is looking for a foster home.&quot;</p>
+                  <form onSubmit={handleSocialGenerate}>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Description</div>
+                      <textarea className="mk-input" rows={5} value={socialPrompt} onChange={(e) => setSocialPrompt(e.target.value)} placeholder="Describe the post you want to create…" style={{ resize: "vertical" }} />
+                    </label>
+                    <label style={{ display: "block", marginTop: 14 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Tone (optional)</div>
+                      <input className="mk-input" value={socialTone} onChange={(e) => setSocialTone(e.target.value)} placeholder="e.g. warm and playful, urgent, heartfelt" />
+                    </label>
+                    <button type="submit" className="mk-btn" disabled={socialGenerating || !socialPrompt.trim()} style={{ marginTop: 18, background: BRAND.purple, color: "white", border: "none", padding: "11px 20px", borderRadius: 10, fontWeight: 800, cursor: socialGenerating ? "default" : "pointer", opacity: socialGenerating || !socialPrompt.trim() ? 0.6 : 1 }}>
+                      {socialGenerating ? "Generating…" : "✨ Generate post"}
+                    </button>
+                    {socialMsg && <div style={{ marginTop: 14, fontSize: 13, color: socialMsg.startsWith("✅") ? "#2e7d32" : "#c62828" }}>{socialMsg}</div>}
+                  </form>
+                </div>
+              </div>
+
+              {/* Preview / edit */}
+              <div>
+                <div className="panel" style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>👀 Preview</div>
+                  {!socialDraft && <p style={{ fontSize: 13, color: BRAND.textLight }}>Your generated post will appear here.</p>}
+                  {socialDraft && (
+                    <div>
+                      {socialDraft.imageUrl && (
+                        <img src={socialDraft.imageUrl} alt="Generated post" style={{ width: "100%", borderRadius: 12, marginBottom: 14, border: `1px solid ${BRAND.purpleLight}` }} />
+                      )}
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Caption</div>
+                        <textarea className="mk-input" rows={7} value={socialCaptionEdit} onChange={(e) => setSocialCaptionEdit(e.target.value)} style={{ resize: "vertical" }} />
+                      </label>
+                      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+                        <button type="button" onClick={handleSocialSaveCaption} disabled={socialSavingCaption} style={{ background: BRAND.purple, color: "white", border: "none", padding: "9px 16px", borderRadius: 9, fontWeight: 800, cursor: "pointer", opacity: socialSavingCaption ? 0.6 : 1 }}>{socialSavingCaption ? "Saving…" : "Save caption"}</button>
+                        {socialDraft.imageUrl && (
+                          <a href={socialDraft.imageUrl} download target="_blank" rel="noreferrer" style={{ background: BRAND.cream, color: BRAND.text, border: `1px solid ${BRAND.purpleLight}`, padding: "9px 16px", borderRadius: 9, fontWeight: 800, textDecoration: "none" }}>Download image</a>
+                        )}
+                        <button type="button" onClick={() => { navigator.clipboard?.writeText(socialCaptionEdit); setSocialMsg("✅ Caption copied."); }} style={{ background: BRAND.cream, color: BRAND.text, border: `1px solid ${BRAND.purpleLight}`, padding: "9px 16px", borderRadius: 9, fontWeight: 800, cursor: "pointer" }}>Copy caption</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* History */}
+            <div className="panel" style={{ marginTop: 4 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 14, color: BRAND.text }}>🗂️ Recent drafts</div>
+              {socialPosts.length === 0 && <p style={{ fontSize: 13, color: BRAND.textLight }}>No posts yet.</p>}
+              <div style={{ display: "grid", gap: 14 }}>
+                {socialPosts.map((post) => (
+                  <div key={post.id} style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: 12, borderRadius: 12, border: `1px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                    {post.imageUrl && <img src={post.imageUrl} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 9, flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: BRAND.textLight, marginBottom: 4 }}>{post.status} · {new Date(post.createdAt).toLocaleString()}</div>
+                      <div style={{ fontSize: 13, color: BRAND.text, whiteSpace: "pre-wrap", maxHeight: 80, overflow: "hidden" }}>{post.caption}</div>
+                    </div>
+                    <button type="button" onClick={() => handleSocialDelete(post.id)} disabled={socialDeletingId === post.id} style={{ background: "transparent", color: "#c62828", border: "none", cursor: "pointer", fontWeight: 800, flexShrink: 0 }}>{socialDeletingId === post.id ? "…" : "Delete"}</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         {activeTab === "settings" && (
           <>
             <div style={{ marginBottom: 28 }}>

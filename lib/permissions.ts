@@ -3,7 +3,7 @@ import type { SessionData } from "./session";
 import { getSupabaseAdminClient } from "./supabase";
 
 // Admin areas a volunteer can be granted access to.
-export const VOLUNTEER_AREAS = ["cats", "events", "bookings", "volunteers", "members"] as const;
+export const VOLUNTEER_AREAS = ["cats", "events", "bookings", "volunteers", "members", "social"] as const;
 export type VolunteerArea = (typeof VOLUNTEER_AREAS)[number];
 
 export const VOLUNTEER_AREA_LABELS: Record<VolunteerArea, string> = {
@@ -12,6 +12,7 @@ export const VOLUNTEER_AREA_LABELS: Record<VolunteerArea, string> = {
   bookings: "Bookings",
   volunteers: "Volunteer applications",
   members: "Members (door check)",
+  social: "Social Studio",
 };
 
 export const DEFAULT_VOLUNTEER_PERMISSIONS = "cats,events,bookings,volunteers";
