@@ -227,23 +227,25 @@ export default function MeanKatCafe() {
   const [page, setPage] = useState<Page>("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [catFilter, setCatFilter] = useState<CatFilter>("All");
+  const [helpTarget, setHelpTarget] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [page]);
 
   const goToAdoptable = () => { setCatFilter("adoptable"); setPage("Cats"); };
+  const goToHelp = (section: string) => { setHelpTarget(section); setPage("How to Help"); };
 
   return (
     <div className="mk-site">
       <Nav page={page} setPage={setPage} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <Announcement />
-      {page === "Home" && <HomePage setPage={setPage} />}
+      {page === "Home" && <HomePage setPage={setPage} goToHelp={goToHelp} />}
       {page === "About" && <AboutPage setPage={setPage} />}
       {page === "Cats" && <CatsPage setPage={setPage} initialFilter={catFilter} />}
       {page === "Cafe" && <CafePage setPage={setPage} />}
       {page === "Events" && <EventsPage setPage={setPage} />}
-      {page === "How to Help" && <HowToHelpPage setPage={setPage} goToAdoptable={goToAdoptable} />}
+      {page === "How to Help" && <HowToHelpPage setPage={setPage} goToAdoptable={goToAdoptable} scrollTarget={helpTarget} clearScrollTarget={() => setHelpTarget(null)} />}
       {page === "Volunteer" && <VolunteerPage setPage={setPage} />}
       {page === "Book" && <BookPage setPage={setPage} />}
       {page === "Membership" && <MembershipPage setPage={setPage} />}
@@ -407,7 +409,7 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 // HOME PAGE
 // ─────────────────────────────────────────────────────────────
 
-function HomePage({ setPage }: { setPage: (p: Page) => void }) {
+function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp: (section: string) => void }) {
   const [heroImages, setHeroImages] = useState<MenuImage[]>([{ id: "hero", url: "/hero-cafe.png" }]);
   const [heroIdx, setHeroIdx] = useState(0);
   const [catHero, setCatHero] = useState<MenuImage[]>([]);
@@ -549,7 +551,7 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               <div className="help-card-icon">{h.icon}</div>
               <div className="help-card-title">{h.title}</div>
               <p className="help-card-body">{h.body}</p>
-              <button className="btn btn-outline" onClick={() => setPage(h.title === "Events" ? "Events" : "How to Help")}>{h.cta}</button>
+              <button className="btn btn-outline" onClick={() => goToHelp(h.title.toLowerCase())}>{h.cta}</button>
             </div>
           ))}
         </div>
@@ -987,7 +989,7 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
 // HOW TO HELP PAGE
 // ─────────────────────────────────────────────────────────────
 
-function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void; goToAdoptable: () => void }) {
+function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget }: { setPage: (p: Page) => void; goToAdoptable: () => void; scrollTarget?: string | null; clearScrollTarget?: () => void }) {
   const [give, setGive] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -996,6 +998,16 @@ function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void;
       .then((d: Record<string, string> | null) => { if (d) setGive(d); })
       .catch(() => {});
   }, []);
+
+  // Arrived here from a home shortcut → scroll straight to that section.
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const t = setTimeout(() => {
+      document.getElementById(`help-${scrollTarget}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      clearScrollTarget?.();
+    }, 120);
+    return () => clearTimeout(t);
+  }, [scrollTarget, clearScrollTarget]);
 
   const bankRows: Array<[string, string]> = [
     ["Account name", give.bank_account_name],
@@ -1107,7 +1119,7 @@ function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void;
       <section className="help-page">
         <div className="help-inner">
           {HELP_DETAIL.map((h, i) => (
-            <div className={`help-block ${i % 2 === 1 ? "flip" : ""}`} key={h.title}>
+            <div className={`help-block ${i % 2 === 1 ? "flip" : ""}`} key={h.title} id={`help-${slotForCta(h.cta) ?? i}`} style={{ scrollMarginTop: 90 }}>
               {i % 2 === 0 ? (
                 <>
                   {helpVisual(h)}
