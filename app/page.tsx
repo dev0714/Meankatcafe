@@ -868,6 +868,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
           <div className="menu-fee-card">
             <div className="menu-fee-h">Don&apos;t forget the entrance fee 🐾</div>
             <div className="menu-fee-p">R50 per person · R40 students (weekdays, card req.) · R40 pensioners · Free for children under 1 year</div>
+            <button className="btn btn-light" style={{ marginTop: 18 }} onClick={() => setPage("Book")}>Book Now</button>
           </div>
         </div>
       </section>
