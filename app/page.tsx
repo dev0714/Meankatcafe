@@ -1227,20 +1227,6 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
 
       <section className="member-section">
         <div className="member-inner">
-          {/* Plans */}
-          {plans.length > 0 && (
-            <div className="member-plans">
-              {plans.map((p) => (
-                <div className="member-plan" key={p.id}>
-                  <div className="member-plan-name">{p.name}</div>
-                  <div className="member-plan-price">{p.price}</div>
-                  {p.description && <p className="member-plan-desc">{p.description}</p>}
-                  <button className="btn btn-purple" onClick={() => { setForm((f) => ({ ...f, planId: p.id })); document.getElementById("member-apply")?.scrollIntoView({ behavior: "smooth" }); }}>Choose {p.name}</button>
-                </div>
-              ))}
-            </div>
-          )}
-
           <div className="member-grid">
             {/* Apply */}
             <div className="book-card" id="member-apply">
