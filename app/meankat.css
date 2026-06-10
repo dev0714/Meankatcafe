@@ -443,6 +443,19 @@
   .give-list li { position: relative; padding-left: 26px; color: var(--ink); font-weight: 600; font-size: 14.5px; line-height: 1.5; }
   .give-list li::before { content: "🐾"; position: absolute; left: 0; top: 0; font-size: 13px; }
 
+  /* ====== FOSTER NETWORK ====== */
+  .foster { position: relative; overflow: hidden; background: linear-gradient(180deg, var(--lilac-pale) 0%, var(--lilac) 100%); padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 56px); }
+  .foster-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+  .foster-head { text-align: center; margin-bottom: 22px; }
+  .foster-head .about-script { color: var(--purple-deep); font-size: clamp(40px, 6vw, 64px); transform: rotate(-3deg); }
+  .foster-title { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-deep); font-size: clamp(30px, 5vw, 52px); letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+  .foster-intro { text-align: center; color: var(--ink); font-size: clamp(15px, 1.7vw, 17px); line-height: 1.8; max-width: 720px; margin: 0 auto 40px; font-weight: 500; }
+  .foster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: clamp(18px, 2.5vw, 28px); }
+  .foster-card { background: var(--white); border-radius: 22px; padding: clamp(24px, 3vw, 32px); text-align: center; box-shadow: 0 10px 30px rgba(58,48,96,0.14); border: 2px solid var(--lilac-pale); }
+  .foster-card-icon { font-size: 38px; margin-bottom: 12px; line-height: 1; }
+  .foster-card-name { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-dark); font-size: clamp(17px, 2vw, 21px); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; line-height: 1.2; }
+  .foster-card-body { color: var(--ink-soft); font-size: 14.5px; line-height: 1.7; }
+
   /* ====== MEMBERSHIP ====== */
   .member-section { background: var(--cream); padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px); }
   .member-inner { max-width: 1040px; margin: 0 auto; }

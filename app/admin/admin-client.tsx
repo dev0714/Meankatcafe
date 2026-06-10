@@ -66,6 +66,8 @@ const SETTINGS_DEFAULTS = {
   donate_wishlist: "",
   secure_pay_url: "",
   volunteer_permissions: "cats,events,bookings,volunteers",
+  foster_intro: "We wouldn't have a single cat without our incredible foster network. They pull cats from unsafe situations, nurse them back to health, and pour love into them until they're ready for their forever homes. They are the heart of everything we do at MeanKat.",
+  foster_list: "Suzanne Kunz — PMB Kitten Fostering & Rescue | The incredible rescue work that inspired MeanKat Café. We work closely with Suzanne on urgent rehoming cases.",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",
@@ -1860,6 +1862,22 @@ export default function AdminClient() {
                       <label>
                         <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Wishlist — items we need, one per line</div>
                         <textarea className="mk-input" value={settings.donate_wishlist} onChange={(e) => setSettings((s) => ({ ...s, donate_wishlist: e.target.value }))} placeholder={"Cat food (wet & dry)\nClumping litter\nScratching posts"} style={{ minHeight: 90, resize: "vertical" }} />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Foster network */}
+                  <div className="panel" style={{ marginBottom: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🫶 Foster Network</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Featured on the About page after “Perks of the MeanKat life”.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Intro paragraph</div>
+                        <textarea className="mk-input" value={settings.foster_intro} onChange={(e) => setSettings((s) => ({ ...s, foster_intro: e.target.value }))} style={{ minHeight: 90, resize: "vertical" }} />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Fosters — one per line, “Name | what they do”</div>
+                        <textarea className="mk-input" value={settings.foster_list} onChange={(e) => setSettings((s) => ({ ...s, foster_list: e.target.value }))} placeholder={"Suzanne Kunz — PMB Kitten Fostering & Rescue | The rescue work that inspired MeanKat."} style={{ minHeight: 110, resize: "vertical" }} />
                       </label>
                     </div>
                   </div>
