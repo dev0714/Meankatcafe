@@ -439,8 +439,11 @@
   .give-list li::before { content: "🐾"; position: absolute; left: 0; top: 0; font-size: 13px; }
 
   /* ====== MEMBERSHIP ====== */
-  .member-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 36px; }
-  .member-plan { background: var(--white); border-radius: 22px; padding: clamp(22px, 3vw, 30px); text-align: center; box-shadow: 0 8px 26px rgba(135,76,158,0.12); border: 2px solid var(--lilac-pale); }
+  .member-section { background: var(--cream); padding: clamp(40px, 6vw, 80px) clamp(20px, 5vw, 56px); }
+  .member-inner { max-width: 1040px; margin: 0 auto; }
+  .member-plans { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-bottom: 36px; }
+  .member-plan { flex: 0 1 300px; background: var(--white); border-radius: 22px; padding: clamp(22px, 3vw, 30px); text-align: center; box-shadow: 0 8px 26px rgba(135,76,158,0.12); border: 2px solid var(--lilac-pale); display: flex; flex-direction: column; }
+  .member-plan .btn { margin-top: auto; }
   .member-plan-name { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-dark); font-size: clamp(20px, 2.4vw, 26px); text-transform: uppercase; letter-spacing: 0.5px; }
   .member-plan-price { font-weight: 900; font-size: 20px; color: var(--purple-deep); margin: 8px 0 12px; }
   .member-plan-desc { color: var(--ink-soft); font-size: 14px; line-height: 1.6; margin-bottom: 18px; }
