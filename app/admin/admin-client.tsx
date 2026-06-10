@@ -170,6 +170,12 @@ export default function AdminClient() {
   const [cafeImageMsg, setCafeImageMsg] = useState("");
   const [deletingCafeImageId, setDeletingCafeImageId] = useState<string | null>(null);
 
+  const [catHeroImages, setCatHeroImages] = useState<MenuImage[]>([]);
+  const [catHeroFile, setCatHeroFile] = useState<File | null>(null);
+  const [catHeroSaving, setCatHeroSaving] = useState(false);
+  const [catHeroMsg, setCatHeroMsg] = useState("");
+  const [deletingCatHeroId, setDeletingCatHeroId] = useState<string | null>(null);
+
   // ── init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -235,6 +241,10 @@ export default function AdminClient() {
     fetch("/api/cafe-images")
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setCafeImages(imgs))
+      .catch(() => {});
+    fetch("/api/cat-hero-images")
+      .then((r) => r.ok ? r.json() : [])
+      .then((imgs: MenuImage[]) => setCatHeroImages(imgs))
       .catch(() => {});
   }, [auth.user]);
 
@@ -483,6 +493,29 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/cafe-images/${img.id}`, { method: "DELETE" });
     if (res.ok) setCafeImages((imgs) => imgs.filter((i) => i.id !== img.id));
     setDeletingCafeImageId(null);
+  }
+
+  async function handleUploadCatHero(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!catHeroFile) { setCatHeroMsg("Pick an image first."); return; }
+    setCatHeroSaving(true); setCatHeroMsg("");
+    const fd = new FormData();
+    fd.append("image", catHeroFile);
+    const res = await fetch("/api/admin/cat-hero-images", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setCatHeroSaving(false);
+    if (!res.ok) { setCatHeroMsg(data.error ?? "Upload failed."); return; }
+    setCatHeroImages((imgs) => [...imgs, data.image]);
+    setCatHeroFile(null);
+    setCatHeroMsg("Image uploaded.");
+  }
+
+  async function handleDeleteCatHero(img: MenuImage) {
+    if (!confirm("Delete this Cat Hero Guide image?")) return;
+    setDeletingCatHeroId(img.id);
+    const res = await fetch(`/api/admin/cat-hero-images/${img.id}`, { method: "DELETE" });
+    if (res.ok) setCatHeroImages((imgs) => imgs.filter((i) => i.id !== img.id));
+    setDeletingCatHeroId(null);
   }
 
   async function handleDeleteMenuImage(img: MenuImage) {
@@ -1137,6 +1170,40 @@ export default function AdminClient() {
                           <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
                             <button className="mk-danger" onClick={() => handleDeleteCafeImage(img)} disabled={deletingCafeImageId === img.id}>
                               {deletingCafeImageId === img.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Cat Hero Guide */}
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>🦸 Upload Cat Hero Guide</div>
+                <form onSubmit={handleUploadCatHero} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Infographic image (add each page)</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setCatHeroFile(e.target.files?.[0] ?? null)} required />
+                  </label>
+                  {catHeroMsg && <div style={{ fontSize: 13, color: BRAND.textLight }}>{catHeroMsg}</div>}
+                  <button className="mk-primary" type="submit" disabled={catHeroSaving}>{catHeroSaving ? "Uploading…" : "Upload guide image"}</button>
+                </form>
+              </div>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>Cat Hero Guide ({catHeroImages.length})</div>
+                <p style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 14 }}>Shown as a pop-up when visitors click “Cat Hero Guide” on the home page. Upload each page; visitors flip through with arrows.</p>
+                {catHeroImages.length === 0
+                  ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No guide images yet — the button links to the Cats page until you add some.</div>
+                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
+                      {catHeroImages.map((img) => (
+                        <div key={img.id} style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                          <img src={img.url} alt="Cat Hero Guide" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                          <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
+                            <button className="mk-danger" onClick={() => handleDeleteCatHero(img)} disabled={deletingCatHeroId === img.id}>
+                              {deletingCatHeroId === img.id ? "Deleting…" : "Delete"}
                             </button>
                           </div>
                         </div>
