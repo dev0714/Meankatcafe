@@ -1023,6 +1023,8 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
     }
   };
 
+  const volunteerPoster = (give[posterUrlKey("volunteer")] ?? "").trim();
+
   const handleCta = (cta: string) => {
     // Donate always scrolls to the three "Ways to Give" squares.
     if (cta === "Donate Now") {
@@ -1090,7 +1092,14 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
+                    {h.cta === "Apply to Volunteer" ? (
+                      <div className="help-cta-row">
+                        <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
+                        {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
+                      </div>
+                    ) : (
+                      <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
+                    )}
                   </div>
                 </>
               ) : (
@@ -1100,7 +1109,14 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                     <h2 className="help-h2">{h.title}</h2>
                     <p className="help-text">{h.body}</p>
                     <ul className="help-list">{h.list.map((li) => <li key={li}>{li}</li>)}</ul>
-                    <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
+                    {h.cta === "Apply to Volunteer" ? (
+                      <div className="help-cta-row">
+                        <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
+                        {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
+                      </div>
+                    ) : (
+                      <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
+                    )}
                   </div>
                   <div className="help-icon-big">{h.icon}</div>
                 </>
