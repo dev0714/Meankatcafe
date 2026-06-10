@@ -27,7 +27,9 @@ type UserRole = "admin" | "volunteer";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members";
+type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
+type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
 type AdminBlock = { id: string; date: string; startTime: string; endTime: string; title: string; price?: string | null; notes?: string | null };
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
@@ -144,6 +146,16 @@ export default function AdminClient() {
   const [blockMsg, setBlockMsg] = useState("");
   const [deletingBlockId, setDeletingBlockId] = useState<string | null>(null);
 
+  const [members, setMembers] = useState<AdminMember[]>([]);
+  const [memberPlans, setMemberPlans] = useState<AdminPlan[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [newMember, setNewMember] = useState({ name: "", email: "", phone: "", planId: "" });
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [memberMsg, setMemberMsg] = useState("");
+  const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [newPlan, setNewPlan] = useState({ name: "", price: "", periodMonths: "1", description: "" });
+  const [planSaving, setPlanSaving] = useState(false);
+
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
   const [menuImageFile, setMenuImageFile] = useState<File | null>(null);
@@ -189,7 +201,7 @@ export default function AdminClient() {
     if (!auth.user || auth.user.role !== "volunteer") return;
     const perms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
     const tabArea: Record<AdminTab, string | null> = {
-      cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers",
+      cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members",
       "menu-images": null, settings: null, users: null,
     };
     const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
@@ -267,6 +279,18 @@ export default function AdminClient() {
     fetch("/api/admin/booking-blocks")
       .then((r) => r.ok ? r.json() : [])
       .then((data: AdminBlock[]) => setBlocks(data))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/admin/members")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminMember[]) => setMembers(data))
+      .catch(() => {});
+    fetch("/api/admin/membership-plans")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: AdminPlan[]) => setMemberPlans(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -503,6 +527,7 @@ export default function AdminClient() {
     { key: "cats", label: "Cats" },
     { key: "events", label: "Events" },
     { key: "bookings", label: "Bookings" },
+    { key: "members", label: "Members (door check)" },
     { key: "volunteers", label: "Volunteer applications" },
   ];
 
@@ -622,6 +647,61 @@ export default function AdminClient() {
     setDeletingBlockId(null);
   }
 
+  async function handleCreateMember(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMemberSaving(true); setMemberMsg("");
+    const res = await fetch("/api/admin/members", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newMember),
+    });
+    const data = await res.json().catch(() => ({}));
+    setMemberSaving(false);
+    if (!res.ok) { setMemberMsg(data.error ?? "Could not add member."); return; }
+    setMembers((m) => [data.member, ...m]);
+    setNewMember({ name: "", email: "", phone: "", planId: "" });
+    setMemberMsg("Member added.");
+  }
+
+  async function handleMemberAction(m: AdminMember, action: "activate" | "renew" | "cancel" | "pending") {
+    setBusyMemberId(m.id);
+    const body = action === "cancel" ? { status: "cancelled" } : action === "pending" ? { status: "pending" } : { action };
+    const res = await fetch(`/api/admin/members/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setMembers((ms) => ms.map((x) => x.id === m.id ? data.member : x));
+    else setMemberMsg(data.error ?? "Update failed.");
+    setBusyMemberId(null);
+  }
+
+  async function handleDeleteMember(m: AdminMember) {
+    if (!confirm(`Delete ${m.name}'s membership? This cannot be undone.`)) return;
+    setBusyMemberId(m.id);
+    const res = await fetch(`/api/admin/members/${m.id}`, { method: "DELETE" });
+    if (res.ok) setMembers((ms) => ms.filter((x) => x.id !== m.id));
+    setBusyMemberId(null);
+  }
+
+  async function handleCreatePlan(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPlanSaving(true); setMemberMsg("");
+    const res = await fetch("/api/admin/membership-plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newPlan) });
+    const data = await res.json().catch(() => ({}));
+    setPlanSaving(false);
+    if (!res.ok) { setMemberMsg(data.error ?? "Could not add plan."); return; }
+    setMemberPlans((p) => [...p, data.plan]);
+    setNewPlan({ name: "", price: "", periodMonths: "1", description: "" });
+  }
+
+  async function handleTogglePlan(p: AdminPlan) {
+    const res = await fetch(`/api/admin/membership-plans/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !p.active }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setMemberPlans((ps) => ps.map((x) => x.id === p.id ? data.plan : x));
+  }
+
+  async function handleDeletePlan(p: AdminPlan) {
+    if (!confirm(`Delete the "${p.name}" plan?`)) return;
+    const res = await fetch(`/api/admin/membership-plans/${p.id}`, { method: "DELETE" });
+    if (res.ok) setMemberPlans((ps) => ps.filter((x) => x.id !== p.id));
+  }
+
   function handleStartEditUser(user: AdminUser) {
     setEditingUserId(user.id);
     setEditUserForm({ email: user.email, password: "" });
@@ -696,6 +776,7 @@ export default function AdminClient() {
     { id: "menu-images", label: "Hero & Menu Photos", icon: "📸", area: null },
     { id: "events", label: "Events", icon: "🎉", area: "events" },
     { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
+    { id: "members", label: "Members", icon: "🎟️", area: "members" },
     { id: "volunteers", label: "Volunteers", icon: "🙌", area: "volunteers" },
     { id: "settings", label: "Site Settings", icon: "⚙️", area: null },
     { id: "users", label: "Users", icon: "👤", area: null },
@@ -1337,6 +1418,130 @@ export default function AdminClient() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ── Members Tab ── */}
+        {activeTab === "members" && (() => {
+          const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date());
+          const q = memberSearch.trim().toLowerCase();
+          const filtered = members.filter((m) => !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.memberCode.toLowerCase().includes(q) || (m.phone ?? "").toLowerCase().includes(q));
+          const isActive = (m: AdminMember) => m.status === "active" && !!m.validUntil && m.validUntil >= today;
+          const activeCount = members.filter(isActive).length;
+          const fmt = (d?: string | null) => d ? new Date(`${d}T00:00:00Z`).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "";
+          return (
+            <>
+              <div style={{ marginBottom: 22 }}>
+                <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Memberships</div>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Members</h1>
+                <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>{activeCount} active · {members.length} total. Search a name, email, phone or member code to verify at the door.</p>
+              </div>
+
+              <div className="panel" style={{ marginBottom: 20 }}>
+                <input className="mk-input" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="🔎 Door check — search name, email, phone or code…" style={{ fontSize: 16 }} />
+                {q && (
+                  <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {filtered.length === 0 ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No match.</div> : filtered.slice(0, 6).map((m) => {
+                      const act = isActive(m);
+                      return (
+                        <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 12, border: `2px solid ${act ? "#16a34a" : "#e5b3b0"}`, background: act ? "#f0fdf4" : "#fff7f6" }}>
+                          <div>
+                            <div style={{ fontWeight: 900, fontSize: 16, color: BRAND.text }}>{m.name} <span style={{ fontFamily: "monospace", fontSize: 13, color: BRAND.purple }}>{m.memberCode}</span></div>
+                            <div style={{ fontSize: 12, color: BRAND.textLight }}>{m.planName ?? "—"}{m.validUntil ? ` · until ${fmt(m.validUntil)}` : ""}</div>
+                          </div>
+                          <span style={{ fontWeight: 900, fontSize: 14, padding: "6px 14px", borderRadius: 999, background: act ? "#16a34a" : "#b42318", color: "white" }}>{act ? "ACTIVE" : (m.status === "pending" ? "PENDING" : "NOT ACTIVE")}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {memberMsg && (
+                <div style={{ fontSize: 13, fontWeight: 700, color: memberMsg.includes("added") ? "#16a34a" : "#b42318", background: memberMsg.includes("added") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${memberMsg.includes("added") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>{memberMsg}</div>
+              )}
+
+              <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div className="panel">
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16, color: BRAND.text }}>Add Member</div>
+                    <form onSubmit={handleCreateMember} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <input className="mk-input" value={newMember.name} onChange={(e) => setNewMember((v) => ({ ...v, name: e.target.value }))} placeholder="Full name" required />
+                      <input className="mk-input" type="email" value={newMember.email} onChange={(e) => setNewMember((v) => ({ ...v, email: e.target.value }))} placeholder="Email" required />
+                      <input className="mk-input" value={newMember.phone} onChange={(e) => setNewMember((v) => ({ ...v, phone: e.target.value }))} placeholder="Phone (optional)" />
+                      <select className="mk-input" value={newMember.planId} onChange={(e) => setNewMember((v) => ({ ...v, planId: e.target.value }))}>
+                        <option value="">No plan</option>
+                        {memberPlans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price}</option>)}
+                      </select>
+                      <button className="mk-primary" type="submit" disabled={memberSaving}>{memberSaving ? "Adding…" : "Add member"}</button>
+                    </form>
+                  </div>
+
+                  <div className="panel">
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🎟️ Membership Plans</div>
+                    <p style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 14 }}>Shown on the public Membership page.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                      {memberPlans.map((p) => (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 8 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text }}>{p.name} · {p.price}</div>
+                            <div style={{ fontSize: 11, color: BRAND.textLight }}>{p.periodMonths} month{p.periodMonths > 1 ? "s" : ""}{p.active ? "" : " · hidden"}</div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                            <button className="mk-outline" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => handleTogglePlan(p)}>{p.active ? "Hide" : "Show"}</button>
+                            <button className="mk-danger" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => handleDeletePlan(p)}>✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <form onSubmit={handleCreatePlan} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <input className="mk-input" value={newPlan.name} onChange={(e) => setNewPlan((v) => ({ ...v, name: e.target.value }))} placeholder="Plan name (e.g. Student)" required />
+                      <input className="mk-input" value={newPlan.price} onChange={(e) => setNewPlan((v) => ({ ...v, price: e.target.value }))} placeholder="Price (e.g. R200 / month)" required />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input className="mk-input" type="number" min={1} value={newPlan.periodMonths} onChange={(e) => setNewPlan((v) => ({ ...v, periodMonths: e.target.value }))} placeholder="Months" style={{ width: 90 }} />
+                        <input className="mk-input" value={newPlan.description} onChange={(e) => setNewPlan((v) => ({ ...v, description: e.target.value }))} placeholder="Short description" />
+                      </div>
+                      <button className="mk-primary" type="submit" disabled={planSaving}>{planSaving ? "Adding…" : "Add plan"}</button>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Members ({filtered.length})</div>
+                  {filtered.length === 0 ? (
+                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>No members yet.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {filtered.map((m) => {
+                        const act = isActive(m);
+                        const expired = m.status === "active" && !!m.validUntil && m.validUntil < today;
+                        return (
+                          <div key={m.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, padding: "12px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{m.name} <span style={{ fontFamily: "monospace", fontSize: 12, color: BRAND.purple }}>{m.memberCode}</span></div>
+                                <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{m.email}{m.phone ? ` · ${m.phone}` : ""}</div>
+                                <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>{m.planName ?? "No plan"}{m.validUntil ? ` · valid until ${fmt(m.validUntil)}` : ""}</div>
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 999, background: act ? "rgba(22,163,74,0.12)" : expired ? "rgba(180,35,24,0.1)" : m.status === "pending" ? "rgba(243,218,91,0.4)" : "rgba(0,0,0,0.06)", color: act ? "#16a34a" : expired ? "#b42318" : m.status === "pending" ? "#8a6d00" : BRAND.textLight }}>
+                                {act ? "Active" : expired ? "Expired" : m.status === "pending" ? "Pending" : "Cancelled"}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                              {act
+                                ? <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "renew")} disabled={busyMemberId === m.id}>Renew +period</button>
+                                : <button className="mk-primary" style={{ width: "auto", padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "activate")} disabled={busyMemberId === m.id}>Mark paid / Activate</button>}
+                              {m.status !== "cancelled" && <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "cancel")} disabled={busyMemberId === m.id}>Cancel</button>}
+                              <button className="mk-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleDeleteMember(m)} disabled={busyMemberId === m.id}>Delete</button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

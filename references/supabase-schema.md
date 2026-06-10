@@ -205,6 +205,39 @@ Endpoints: `GET /api/bookings/availability?date=` (per-slot remaining + today's 
 `POST /api/bookings` (create, capacity-checked), `GET /api/admin/bookings` (calendar list),
 `DELETE /api/admin/bookings/[id]` (cancel/free the slot). New setting key: `bookings_per_slot`.
 
+### membership_plans & members
+
+Monthly membership (e.g. "Student — R200/month, free entry"). Members are tracked
+manually: admin marks paid which sets `valid_until = today + plan.period_months`.
+A member is "active at the door" when `status = 'active'` and `valid_until >= today`.
+Each member has a unique `member_code` (e.g. `MK-7F3KQ`) shown as their digital card.
+
+```sql
+create table meankatcafe.membership_plans (
+  id uuid primary key default gen_random_uuid(),
+  name text not null, price text not null,
+  period_months integer not null default 1,
+  description text, active boolean not null default true,
+  display_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+create table meankatcafe.members (
+  id uuid primary key default gen_random_uuid(),
+  name text not null, email text not null, phone text,
+  plan_id uuid references meankatcafe.membership_plans(id) on delete set null,
+  plan_name text, price text,
+  status text not null default 'pending' check (status in ('pending','active','cancelled')),
+  valid_until date, member_code text not null unique, notes text,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+```
+
+Public: `GET /api/membership/plans`, `POST /api/membership/apply` (pending),
+`GET /api/membership/status?email=` (digital card). Admin (area `members`):
+`/api/admin/members` (+`/[id]` PATCH actions activate/renew, DELETE) and
+`/api/admin/membership-plans` (+`/[id]`). `members` is a volunteer-permittable area
+(for door staff).
+
 ## Storage
 
 - Bucket name: `cat-images`

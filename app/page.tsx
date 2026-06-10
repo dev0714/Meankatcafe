@@ -5,6 +5,7 @@ import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ } from "@/lib/hours";
 import { slotForCta, posterUrlKey } from "@/lib/help-posters";
+import { isMemberActive, type MembershipPlan } from "@/lib/membership";
 import type { DayAvailability } from "@/lib/bookings";
 import {
   VOLUNTEER_SECTIONS,
@@ -30,7 +31,7 @@ type SiteEvent = {
   imageUrl?: string | null;
 };
 
-type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer" | "Book";
+type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer" | "Book" | "Membership";
 
 const NAV_LINKS: Page[] = [
   "Home",
@@ -39,6 +40,7 @@ const NAV_LINKS: Page[] = [
   "Cafe",
   "Events",
   "Book",
+  "Membership",
   "How to Help",
   "Contact",
 ];
@@ -239,6 +241,7 @@ export default function MeanKatCafe() {
       {page === "How to Help" && <HowToHelpPage setPage={setPage} />}
       {page === "Volunteer" && <VolunteerPage setPage={setPage} />}
       {page === "Book" && <BookPage setPage={setPage} />}
+      {page === "Membership" && <MembershipPage setPage={setPage} />}
       {page === "Contact" && <ContactPage setPage={setPage} />}
     </div>
   );
@@ -1133,6 +1136,176 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
           </div>
         </div>
       )}
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MEMBERSHIP PAGE
+// ─────────────────────────────────────────────────────────────
+
+type MemberStatusResult = {
+  found: boolean;
+  name?: string;
+  planName?: string | null;
+  status?: "pending" | "active" | "cancelled";
+  validUntil?: string | null;
+  memberCode?: string;
+};
+
+function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", planId: "" });
+  const [sending, setSending] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [error, setError] = useState("");
+
+  const [checkEmail, setCheckEmail] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<MemberStatusResult | null>(null);
+
+  useEffect(() => {
+    fetch("/api/membership/plans")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: MembershipPlan[]) => {
+        setPlans(data);
+        if (data.length > 0) setForm((f) => ({ ...f, planId: data[0].id }));
+      })
+      .catch(() => {});
+  }, []);
+
+  const apply = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+    try {
+      const res = await fetch("/api/membership/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Something went wrong. Please try again.");
+      setApplied(true);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const check = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setChecking(true);
+    setResult(null);
+    try {
+      const res = await fetch(`/api/membership/status?email=${encodeURIComponent(checkEmail)}`);
+      const data = await res.json().catch(() => ({ found: false }));
+      setResult(data);
+    } catch {
+      setResult({ found: false });
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const active = result?.found ? isMemberActive({ status: result.status ?? "pending", validUntil: result.validUntil ?? null }, todayInCafeTZ()) : false;
+
+  return (
+    <div data-screen-label="Membership">
+      <section className="page-header">
+        <div className="paws-layer paws-white" />
+        <div className="page-header-inner">
+          <div className="page-script">Become a</div>
+          <h1 className="page-title">Member</h1>
+          <p className="page-sub">Visit as often as you like. Pay monthly, get free café entry all month — and help give rescue cats a second chance every time you pop in.</p>
+        </div>
+      </section>
+
+      <section className="give-section">
+        <div className="book-inner">
+          {/* Plans */}
+          {plans.length > 0 && (
+            <div className="member-plans">
+              {plans.map((p) => (
+                <div className="member-plan" key={p.id}>
+                  <div className="member-plan-name">{p.name}</div>
+                  <div className="member-plan-price">{p.price}</div>
+                  {p.description && <p className="member-plan-desc">{p.description}</p>}
+                  <button className="btn btn-purple" onClick={() => { setForm((f) => ({ ...f, planId: p.id })); document.getElementById("member-apply")?.scrollIntoView({ behavior: "smooth" }); }}>Choose {p.name}</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="member-grid">
+            {/* Apply */}
+            <div className="book-card" id="member-apply">
+              <div className="contact-h">Apply for membership</div>
+              {applied ? (
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ fontSize: 48, marginBottom: 10 }}>🎉</div>
+                  <p style={{ color: "var(--ink-soft)", lineHeight: 1.7 }}>Thanks! Your application is in. We&apos;ll confirm your membership once your first payment is received, and email you your member code.</p>
+                  <button className="btn btn-outline-dark" style={{ marginTop: 16 }} onClick={() => setApplied(false)}>Apply again</button>
+                </div>
+              ) : (
+                <form onSubmit={apply}>
+                  {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
+                  <label className="field-label" htmlFor="m-name">Full name</label>
+                  <input id="m-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
+                  <label className="field-label" htmlFor="m-email">Email</label>
+                  <input id="m-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
+                  <label className="field-label" htmlFor="m-phone">Phone / WhatsApp</label>
+                  <input id="m-phone" className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+27 ..." />
+                  {plans.length > 0 && (
+                    <>
+                      <label className="field-label" htmlFor="m-plan">Plan</label>
+                      <select id="m-plan" className="input-field" value={form.planId} onChange={(e) => setForm({ ...form, planId: e.target.value })}>
+                        {plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price}</option>)}
+                      </select>
+                    </>
+                  )}
+                  <button type="submit" className="btn btn-purple" disabled={sending} style={{ marginTop: 6, width: "100%" }}>{sending ? "Sending…" : "Apply Now"}</button>
+                  <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 12 }}>We&apos;ll be in touch with payment details. Membership activates once your payment is received.</p>
+                </form>
+              )}
+            </div>
+
+            {/* Check status / digital card */}
+            <div className="book-card">
+              <div className="contact-h">My membership card</div>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14, marginBottom: 14 }}>Already a member? Enter your email to see your status and code — show this at the door.</p>
+              <form onSubmit={check} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                <input className="input-field" style={{ marginBottom: 0 }} type="email" required value={checkEmail} onChange={(e) => setCheckEmail(e.target.value)} placeholder="you@example.com" />
+                <button type="submit" className="btn btn-purple" disabled={checking}>{checking ? "…" : "Check"}</button>
+              </form>
+              {result && (
+                result.found ? (
+                  <div className={`member-card ${active ? "active" : "inactive"}`}>
+                    <div className="member-card-top">
+                      <span className="member-card-brand">MeanKat Member</span>
+                      <span className={`member-card-status ${active ? "on" : ""}`}>{active ? "ACTIVE" : (result.status === "pending" ? "PENDING" : "INACTIVE")}</span>
+                    </div>
+                    <div className="member-card-name">{result.name}</div>
+                    {result.planName && <div className="member-card-plan">{result.planName}</div>}
+                    <div className="member-card-code">{result.memberCode}</div>
+                    <div className="member-card-valid">
+                      {active && result.validUntil
+                        ? `Valid until ${new Date(`${result.validUntil}T00:00:00Z`).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}`
+                        : result.status === "pending" ? "Awaiting payment confirmation" : "Membership not active — please renew"}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>No membership found for that email. <button className="link-btn" onClick={() => document.getElementById("member-apply")?.scrollIntoView({ behavior: "smooth" })}>Apply here</button>.</p>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer setPage={setPage} />
     </div>
