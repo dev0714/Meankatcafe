@@ -591,6 +591,25 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
 // ─────────────────────────────────────────────────────────────
 
 function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [foster, setFoster] = useState<{ intro: string; list: { name: string; body: string }[] }>({ intro: "", list: [] });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => {
+        if (!d) return;
+        const list = (d.foster_list ?? "")
+          .split("\n").map((l) => l.trim()).filter(Boolean)
+          .map((line) => {
+            const [name, body] = line.split("|").map((s) => s.trim());
+            return { name: name || "", body: body || "" };
+          })
+          .filter((f) => f.name);
+        setFoster({ intro: (d.foster_intro ?? "").trim(), list });
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div data-screen-label="About">
       <section className="about-hero">
@@ -648,6 +667,30 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
           </div>
         </div>
       </section>
+
+      {(foster.intro || foster.list.length > 0) && (
+        <section className="foster">
+          <div className="paws-layer paws-purple" />
+          <div className="foster-inner">
+            <div className="foster-head">
+              <div className="about-script" style={{ display: "inline-block" }}>With thanks to our</div>
+              <h2 className="foster-title">Foster Network 🐾</h2>
+            </div>
+            {foster.intro && <p className="foster-intro">{foster.intro}</p>}
+            {foster.list.length > 0 && (
+              <div className="foster-grid">
+                {foster.list.map((f) => (
+                  <div className="foster-card" key={f.name}>
+                    <div className="foster-card-icon">🫶</div>
+                    <div className="foster-card-name">{f.name}</div>
+                    {f.body && <p className="foster-card-body">{f.body}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <Footer setPage={setPage} />
     </div>

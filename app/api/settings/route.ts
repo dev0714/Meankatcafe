@@ -31,6 +31,8 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   donate_wishlist: "",
   secure_pay_url: "",
   volunteer_permissions: "cats,events,bookings,volunteers",
+  foster_intro: "We wouldn't have a single cat without our incredible foster network. They pull cats from unsafe situations, nurse them back to health, and pour love into them until they're ready for their forever homes. They are the heart of everything we do at MeanKat.",
+  foster_list: "Suzanne Kunz — PMB Kitten Fostering & Rescue | The incredible rescue work that inspired MeanKat Café. We work closely with Suzanne on urgent rehoming cases.",
   adopt_poster_url: "",
   adopt_poster_path: "",
   volunteer_poster_url: "",
