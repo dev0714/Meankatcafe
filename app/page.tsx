@@ -743,7 +743,7 @@ function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
 // CAFE / MENU PAGE
 // ─────────────────────────────────────────────────────────────
 
-function PhotoCarousel({ images, label, emptyText, onZoom }: { images: MenuImage[]; label: string; emptyText: string; onZoom: (url: string) => void }) {
+function PhotoCarousel({ images, label, emptyText, onZoom }: { images: MenuImage[]; label: string; emptyText: string; onZoom: (images: MenuImage[], index: number) => void }) {
   const [i, setI] = useState(0);
   const count = images.length;
   const idx = count ? ((i % count) + count) % count : 0;
@@ -759,7 +759,7 @@ function PhotoCarousel({ images, label, emptyText, onZoom }: { images: MenuImage
       ) : (
         <>
           <div className="carousel-stage">
-            <img src={cur.url} alt={label} onClick={() => onZoom(cur.url)} />
+            <img src={cur.url} alt={label} onClick={() => onZoom(images, idx)} />
             {count > 1 && (
               <>
                 <button className="carousel-arrow left" onClick={prev} aria-label="Previous">‹</button>
@@ -785,7 +785,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
     { id: "b1", url: "/menu1.jpg" },
     { id: "b2", url: "/menu2.jpg" },
   ]);
-  const [zoom, setZoom] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<{ images: MenuImage[]; index: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/menu-images")
@@ -816,7 +816,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="menu-photos-wrap">
         <div className="cafe-menu-inner">
           <div className="menu-carousel-single">
-            <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={setZoom} />
+            <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
           </div>
 
           <div className="menu-fee-card">
@@ -830,7 +830,15 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="modal-backdrop" onClick={() => setZoom(null)}>
           <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setZoom(null)}>✕</button>
-            <img src={zoom} alt="MeanKat" className="menu-modal-img" />
+            <div className="menu-modal-stage">
+              <img src={zoom.images[zoom.index].url} alt="MeanKat menu" className="menu-modal-img" />
+              {zoom.images.length > 1 && (
+                <>
+                  <button className="carousel-arrow left" onClick={() => setZoom((z) => z && { ...z, index: (z.index - 1 + z.images.length) % z.images.length })} aria-label="Previous">‹</button>
+                  <button className="carousel-arrow right" onClick={() => setZoom((z) => z && { ...z, index: (z.index + 1) % z.images.length })} aria-label="Next">›</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
