@@ -39,6 +39,14 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   donate_poster_path: "",
   events_poster_url: "",
   events_poster_path: "",
+  adopt_image_url: "",
+  adopt_image_path: "",
+  volunteer_image_url: "",
+  volunteer_image_path: "",
+  donate_image_url: "",
+  donate_image_path: "",
+  events_image_url: "",
+  events_image_path: "",
 };
 
 export async function GET() {
