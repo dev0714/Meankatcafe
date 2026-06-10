@@ -28,7 +28,16 @@ type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: bo
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
 type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "social";
-type SocialPost = { id: string; prompt: string; caption: string; status: string; createdAt: string; imageUrl: string | null };
+type SocialTarget = { platform: string; status: string; remoteUrl: string | null; error: string | null };
+type SocialPost = { id: string; prompt: string; caption: string; status: string; createdAt: string; imageUrl: string | null; targets?: SocialTarget[] };
+type SocialAccount = { id: string; platform: string; displayName: string | null; externalId: string | null; tokenExpiresAt: string | null; createdAt: string };
+const SOCIAL_PROVIDERS: { id: string; label: string; icon: string }[] = [
+  { id: "meta", label: "Instagram + Facebook", icon: "📘" },
+  { id: "linkedin", label: "LinkedIn", icon: "💼" },
+  { id: "tiktok", label: "TikTok", icon: "🎵" },
+  { id: "google", label: "YouTube", icon: "▶️" },
+];
+const SOCIAL_PLATFORM_ICONS: Record<string, string> = { instagram: "📸", facebook: "📘", linkedin: "💼", tiktok: "🎵", youtube: "▶️" };
 type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
@@ -125,6 +134,10 @@ export default function AdminClient() {
   const [socialSavingCaption, setSocialSavingCaption] = useState(false);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [socialDeletingId, setSocialDeletingId] = useState<string | null>(null);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
+  const [socialSelectedAccountIds, setSocialSelectedAccountIds] = useState<string[]>([]);
+  const [socialPublishing, setSocialPublishing] = useState(false);
+  const [socialBanner, setSocialBanner] = useState("");
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
@@ -311,10 +324,74 @@ export default function AdminClient() {
       .catch(() => {});
   };
 
+  const loadSocialAccounts = () => {
+    fetch("/api/admin/social/accounts")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: SocialAccount[]) => setSocialAccounts(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (!auth.user) return;
     loadSocialPosts();
+    loadSocialAccounts();
   }, [auth.user]);
+
+  // Surface the result of an OAuth connect round-trip (?connected / ?social_error).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("connected");
+    const err = params.get("social_error");
+    if (connected || err) {
+      setActiveTab("social");
+      setSocialBanner(connected ? `✅ Connected ${connected}.` : `⚠️ Connection issue: ${err}`);
+      loadSocialAccounts();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  function toggleSocialAccount(id: string) {
+    setSocialSelectedAccountIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  }
+
+  async function handleSocialDisconnect(id: string) {
+    const res = await fetch(`/api/admin/social/accounts/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setSocialSelectedAccountIds((cur) => cur.filter((x) => x !== id));
+      loadSocialAccounts();
+    }
+  }
+
+  async function handleSocialPublish() {
+    if (!socialDraft || socialSelectedAccountIds.length === 0) return;
+    setSocialPublishing(true);
+    setSocialMsg("");
+    try {
+      const res = await fetch(`/api/admin/social/posts/${socialDraft.id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountIds: socialSelectedAccountIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSocialMsg(data?.error || "Publish failed.");
+      } else {
+        const ok = (data.targets || []).filter((t: SocialTarget) => t.status === "published").length;
+        const failed = (data.targets || []).filter((t: SocialTarget) => t.status === "failed");
+        setSocialMsg(
+          failed.length
+            ? `Published to ${ok}. Failed: ${failed.map((t: SocialTarget) => `${t.platform} (${t.error})`).join("; ")}`
+            : `✅ Published to ${ok} channel${ok === 1 ? "" : "s"}.`,
+        );
+        loadSocialPosts();
+      }
+    } catch {
+      setSocialMsg("Network error — please try again.");
+    } finally {
+      setSocialPublishing(false);
+    }
+  }
 
   async function handleSocialGenerate(event: FormEvent) {
     event.preventDefault();
@@ -1856,7 +1933,40 @@ export default function AdminClient() {
             <div style={{ marginBottom: 28 }}>
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Social</div>
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Social Studio</h1>
-              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Describe a post in plain language — Claude writes the caption and an image is generated for you. Review, edit, and save it as a draft. (Publishing to Instagram, Facebook, TikTok, LinkedIn and YouTube is coming in a later phase once each platform connection is set up.)</p>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Describe a post in plain language — Claude writes the caption and an image is generated for you. Review, edit, choose your channels, and publish to Instagram, Facebook, LinkedIn, TikTok and YouTube.</p>
+            </div>
+
+            {socialBanner && (
+              <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 10, fontSize: 14, fontWeight: 700, background: socialBanner.startsWith("✅") ? "#e8f5e9" : "#fff3e0", color: socialBanner.startsWith("✅") ? "#2e7d32" : "#e65100" }}>{socialBanner}</div>
+            )}
+
+            {/* Connections */}
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🔗 Connections</div>
+              <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 16 }}>Connect each platform once. Tokens are stored encrypted and used only to publish.</p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+                {SOCIAL_PROVIDERS.map((p) => (
+                  <a key={p.id} href={`/api/admin/social/connect/${p.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.cream, color: BRAND.text, border: `1px solid ${BRAND.purpleLight}`, padding: "9px 14px", borderRadius: 9, fontWeight: 800, textDecoration: "none", fontSize: 13 }}>
+                    <span>{p.icon}</span> Connect {p.label}
+                  </a>
+                ))}
+              </div>
+              {socialAccounts.length === 0 ? (
+                <p style={{ fontSize: 13, color: BRAND.textLight }}>No channels connected yet.</p>
+              ) : (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {socialAccounts.map((a) => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 9, border: `1px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                      <span style={{ fontSize: 18 }}>{SOCIAL_PLATFORM_ICONS[a.platform] || "📣"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text, textTransform: "capitalize" }}>{a.platform}</div>
+                        <div style={{ fontSize: 12, color: BRAND.textLight }}>{a.displayName || a.externalId}</div>
+                      </div>
+                      <button type="button" onClick={() => handleSocialDisconnect(a.id)} style={{ background: "transparent", color: "#c62828", border: "none", cursor: "pointer", fontWeight: 800, fontSize: 12 }}>Disconnect</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
@@ -1903,6 +2013,29 @@ export default function AdminClient() {
                         )}
                         <button type="button" onClick={() => { navigator.clipboard?.writeText(socialCaptionEdit); setSocialMsg("✅ Caption copied."); }} style={{ background: BRAND.cream, color: BRAND.text, border: `1px solid ${BRAND.purpleLight}`, padding: "9px 16px", borderRadius: 9, fontWeight: 800, cursor: "pointer" }}>Copy caption</button>
                       </div>
+
+                      {/* Publish */}
+                      <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${BRAND.purpleLight}` }}>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>Publish to</div>
+                        {socialAccounts.length === 0 ? (
+                          <p style={{ fontSize: 13, color: BRAND.textLight }}>Connect a channel above to publish.</p>
+                        ) : (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                            {socialAccounts.map((a) => {
+                              const checked = socialSelectedAccountIds.includes(a.id);
+                              return (
+                                <button key={a.id} type="button" onClick={() => toggleSocialAccount(a.id)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, cursor: "pointer", border: `1.5px solid ${checked ? BRAND.purple : BRAND.purpleLight}`, background: checked ? BRAND.purple : "white", color: checked ? "white" : BRAND.text }}>
+                                  <span>{SOCIAL_PLATFORM_ICONS[a.platform] || "📣"}</span>
+                                  {a.displayName || a.platform}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <button type="button" onClick={handleSocialPublish} disabled={socialPublishing || socialSelectedAccountIds.length === 0} style={{ background: BRAND.yellow, color: BRAND.text, border: "none", padding: "11px 20px", borderRadius: 10, fontWeight: 900, cursor: "pointer", opacity: socialPublishing || socialSelectedAccountIds.length === 0 ? 0.55 : 1 }}>
+                          {socialPublishing ? "Publishing…" : `🚀 Publish to ${socialSelectedAccountIds.length || "…"} channel${socialSelectedAccountIds.length === 1 ? "" : "s"}`}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1920,6 +2053,17 @@ export default function AdminClient() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: BRAND.textLight, marginBottom: 4 }}>{post.status} · {new Date(post.createdAt).toLocaleString()}</div>
                       <div style={{ fontSize: 13, color: BRAND.text, whiteSpace: "pre-wrap", maxHeight: 80, overflow: "hidden" }}>{post.caption}</div>
+                      {post.targets && post.targets.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                          {post.targets.map((t, i) => (
+                            t.remoteUrl ? (
+                              <a key={i} href={t.remoteUrl} target="_blank" rel="noreferrer" title={t.error || ""} style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6, textDecoration: "none", background: "#e8f5e9", color: "#2e7d32" }}>{SOCIAL_PLATFORM_ICONS[t.platform] || ""} {t.platform} ↗</a>
+                            ) : (
+                              <span key={i} title={t.error || ""} style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6, background: t.status === "published" ? "#e8f5e9" : "#ffebee", color: t.status === "published" ? "#2e7d32" : "#c62828" }}>{SOCIAL_PLATFORM_ICONS[t.platform] || ""} {t.platform}: {t.status}</span>
+                            )
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button type="button" onClick={() => handleSocialDelete(post.id)} disabled={socialDeletingId === post.id} style={{ background: "transparent", color: "#c62828", border: "none", cursor: "pointer", fontWeight: 800, flexShrink: 0 }}>{socialDeletingId === post.id ? "…" : "Delete"}</button>
                   </div>

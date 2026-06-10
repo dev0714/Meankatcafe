@@ -21,7 +21,28 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const posts = (data ?? []).map((post) => ({
+  const posts = data ?? [];
+
+  // Attach per-platform publish results.
+  const ids = posts.map((p) => p.id);
+  const targetsByPost: Record<string, Array<{ platform: string; status: string; remoteUrl: string | null; error: string | null }>> = {};
+  if (ids.length > 0) {
+    const { data: targets } = await supabase
+      .schema("socialsync")
+      .from("social_post_targets")
+      .select("post_id, platform, status, remote_url, error")
+      .in("post_id", ids);
+    for (const t of targets ?? []) {
+      (targetsByPost[t.post_id] ||= []).push({
+        platform: t.platform,
+        status: t.status,
+        remoteUrl: t.remote_url,
+        error: t.error,
+      });
+    }
+  }
+
+  const result = posts.map((post) => ({
     id: post.id,
     prompt: post.prompt,
     caption: post.caption,
@@ -30,7 +51,8 @@ export async function GET() {
     imageUrl: post.image_path
       ? supabase.storage.from(bucket).getPublicUrl(post.image_path).data.publicUrl
       : null,
+    targets: targetsByPost[post.id] ?? [],
   }));
 
-  return NextResponse.json(posts);
+  return NextResponse.json(result);
 }
