@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ } from "@/lib/hours";
-import { slotForCta, posterUrlKey } from "@/lib/help-posters";
+import { slotForCta, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { isMemberActive, type MembershipPlan } from "@/lib/membership";
 import type { DayAvailability } from "@/lib/bookings";
 import {
@@ -1041,6 +1041,14 @@ function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void;
   const volunteerPoster = (give[posterUrlKey("volunteer")] ?? "").trim();
   const adoptPoster = (give[posterUrlKey("adopt")] ?? "").trim();
 
+  const helpVisual = (h: (typeof HELP_DETAIL)[number]) => {
+    const slot = slotForCta(h.cta);
+    const img = slot ? (give[imageUrlKey(slot)] ?? "").trim() : "";
+    return img
+      ? <div className="help-icon-big help-img-frame"><img src={img} alt={h.title} /></div>
+      : <div className="help-icon-big">{h.icon}</div>;
+  };
+
   const handleCta = (cta: string) => {
     // Donate always scrolls to the three "Ways to Give" squares.
     if (cta === "Donate Now") {
@@ -1102,7 +1110,7 @@ function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void;
             <div className={`help-block ${i % 2 === 1 ? "flip" : ""}`} key={h.title}>
               {i % 2 === 0 ? (
                 <>
-                  <div className="help-icon-big">{h.icon}</div>
+                  {helpVisual(h)}
                   <div>
                     <div className="help-script-tag">{h.script}</div>
                     <h2 className="help-h2">{h.title}</h2>
@@ -1144,7 +1152,7 @@ function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void;
                       <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
                     )}
                   </div>
-                  <div className="help-icon-big">{h.icon}</div>
+                  {helpVisual(h)}
                 </>
               )}
             </div>

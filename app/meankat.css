@@ -415,6 +415,8 @@
   }
 
   .help-cta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .help-img-frame { display: flex; align-items: center; justify-content: center; }
+  .help-img-frame img { width: 100%; max-width: 340px; border-radius: 24px; box-shadow: 0 12px 32px rgba(135,76,158,0.20); display: block; }
 
   /* ====== WAYS TO GIVE ====== */
   .give-section { background: var(--lilac-pale); padding: clamp(48px, 6vw, 80px) clamp(20px, 5vw, 56px); }

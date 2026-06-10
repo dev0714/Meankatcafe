@@ -16,6 +16,10 @@ export const HELP_POSTER_SLOT_VALUES: HelpPosterSlot[] = HELP_POSTER_SLOTS.map((
 export const posterUrlKey = (slot: string) => `${slot}_poster_url`;
 export const posterPathKey = (slot: string) => `${slot}_poster_path`;
 
+// The big block image (replaces the emoji icon next to each help block).
+export const imageUrlKey = (slot: string) => `${slot}_image_url`;
+export const imagePathKey = (slot: string) => `${slot}_image_path`;
+
 export function slotForCta(cta: string): HelpPosterSlot | null {
   return HELP_POSTER_SLOTS.find((s) => s.cta === cta)?.slot ?? null;
 }
