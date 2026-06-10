@@ -824,6 +824,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
     { id: "b1", url: "/menu1.jpg" },
     { id: "b2", url: "/menu2.jpg" },
   ]);
+  const [ruleImages, setRuleImages] = useState<MenuImage[]>([]);
   const [zoom, setZoom] = useState<{ images: MenuImage[]; index: number } | null>(null);
 
   useEffect(() => {
@@ -838,6 +839,11 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
           setMenuImages(data);
         }
       })
+      .catch(() => {});
+
+    fetch("/api/cafe-rules-images")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: MenuImage[] | null) => { if (data && data.length > 0) setRuleImages(data); })
       .catch(() => {});
   }, []);
 
@@ -854,8 +860,9 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
 
       <section className="menu-photos-wrap">
         <div className="cafe-menu-inner">
-          <div className="menu-carousel-single">
+          <div className="cafe-menu-grid">
             <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
+            <PhotoCarousel images={ruleImages} label="Café rules 🐾" emptyText="Café rules coming soon — check back shortly." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
           </div>
 
           <div className="menu-fee-card">

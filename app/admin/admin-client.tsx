@@ -176,6 +176,12 @@ export default function AdminClient() {
   const [catHeroMsg, setCatHeroMsg] = useState("");
   const [deletingCatHeroId, setDeletingCatHeroId] = useState<string | null>(null);
 
+  const [ruleImages, setRuleImages] = useState<MenuImage[]>([]);
+  const [ruleFile, setRuleFile] = useState<File | null>(null);
+  const [ruleSaving, setRuleSaving] = useState(false);
+  const [ruleMsg, setRuleMsg] = useState("");
+  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
+
   // ── init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -245,6 +251,10 @@ export default function AdminClient() {
     fetch("/api/cat-hero-images")
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setCatHeroImages(imgs))
+      .catch(() => {});
+    fetch("/api/cafe-rules-images")
+      .then((r) => r.ok ? r.json() : [])
+      .then((imgs: MenuImage[]) => setRuleImages(imgs))
       .catch(() => {});
   }, [auth.user]);
 
@@ -516,6 +526,29 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/cat-hero-images/${img.id}`, { method: "DELETE" });
     if (res.ok) setCatHeroImages((imgs) => imgs.filter((i) => i.id !== img.id));
     setDeletingCatHeroId(null);
+  }
+
+  async function handleUploadRule(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!ruleFile) { setRuleMsg("Pick an image first."); return; }
+    setRuleSaving(true); setRuleMsg("");
+    const fd = new FormData();
+    fd.append("image", ruleFile);
+    const res = await fetch("/api/admin/cafe-rules-images", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setRuleSaving(false);
+    if (!res.ok) { setRuleMsg(data.error ?? "Upload failed."); return; }
+    setRuleImages((imgs) => [...imgs, data.image]);
+    setRuleFile(null);
+    setRuleMsg("Image uploaded.");
+  }
+
+  async function handleDeleteRule(img: MenuImage) {
+    if (!confirm("Delete this café rules image?")) return;
+    setDeletingRuleId(img.id);
+    const res = await fetch(`/api/admin/cafe-rules-images/${img.id}`, { method: "DELETE" });
+    if (res.ok) setRuleImages((imgs) => imgs.filter((i) => i.id !== img.id));
+    setDeletingRuleId(null);
   }
 
   async function handleDeleteMenuImage(img: MenuImage) {
@@ -1204,6 +1237,40 @@ export default function AdminClient() {
                           <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
                             <button className="mk-danger" onClick={() => handleDeleteCatHero(img)} disabled={deletingCatHeroId === img.id}>
                               {deletingCatHeroId === img.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Café rules */}
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>🐾 Upload Café Rules</div>
+                <form onSubmit={handleUploadRule} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Café / cat rules image</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setRuleFile(e.target.files?.[0] ?? null)} required />
+                  </label>
+                  {ruleMsg && <div style={{ fontSize: 13, color: BRAND.textLight }}>{ruleMsg}</div>}
+                  <button className="mk-primary" type="submit" disabled={ruleSaving}>{ruleSaving ? "Uploading…" : "Upload café rules"}</button>
+                </form>
+              </div>
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>Café Rules ({ruleImages.length})</div>
+                <p style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 14 }}>Shown in the right-hand carousel on the Café page, next to the menu.</p>
+                {ruleImages.length === 0
+                  ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No café rules images yet — the carousel shows “coming soon” until you add some.</div>
+                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
+                      {ruleImages.map((img) => (
+                        <div key={img.id} style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                          <img src={img.url} alt="Café rules" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                          <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
+                            <button className="mk-danger" onClick={() => handleDeleteRule(img)} disabled={deletingRuleId === img.id}>
+                              {deletingRuleId === img.id ? "Deleting…" : "Delete"}
                             </button>
                           </div>
                         </div>
