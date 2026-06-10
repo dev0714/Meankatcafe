@@ -217,6 +217,8 @@ const CAT_FILTERS = [
   { value: "tlc" as const, label: "Extra TLC Cats" },
 ];
 
+type CatFilter = "All" | "resident" | "adoptable" | "dual" | "tlc";
+
 // ─────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -224,10 +226,13 @@ const CAT_FILTERS = [
 export default function MeanKatCafe() {
   const [page, setPage] = useState<Page>("Home");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [catFilter, setCatFilter] = useState<CatFilter>("All");
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [page]);
+
+  const goToAdoptable = () => { setCatFilter("adoptable"); setPage("Cats"); };
 
   return (
     <div className="mk-site">
@@ -235,10 +240,10 @@ export default function MeanKatCafe() {
       <Announcement />
       {page === "Home" && <HomePage setPage={setPage} />}
       {page === "About" && <AboutPage setPage={setPage} />}
-      {page === "Cats" && <CatsPage setPage={setPage} />}
+      {page === "Cats" && <CatsPage setPage={setPage} initialFilter={catFilter} />}
       {page === "Cafe" && <CafePage setPage={setPage} />}
       {page === "Events" && <EventsPage setPage={setPage} />}
-      {page === "How to Help" && <HowToHelpPage setPage={setPage} />}
+      {page === "How to Help" && <HowToHelpPage setPage={setPage} goToAdoptable={goToAdoptable} />}
       {page === "Volunteer" && <VolunteerPage setPage={setPage} />}
       {page === "Book" && <BookPage setPage={setPage} />}
       {page === "Membership" && <MembershipPage setPage={setPage} />}
@@ -651,12 +656,14 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
 // CATS PAGE
 // ─────────────────────────────────────────────────────────────
 
-function CatsPage({ setPage }: { setPage: (p: Page) => void }) {
-  const [filter, setFilter] = useState<"All" | "resident" | "adoptable" | "dual" | "tlc">("All");
+function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => void; initialFilter?: CatFilter }) {
+  const [filter, setFilter] = useState<CatFilter>(initialFilter);
   const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
   const [modalView, setModalView] = useState<"after" | "before">("after");
   const [modalIndex, setModalIndex] = useState(0);
+
+  useEffect(() => { setFilter(initialFilter); }, [initialFilter]);
 
   useEffect(() => {
     fetch("/api/cats")
@@ -972,7 +979,7 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
 // HOW TO HELP PAGE
 // ─────────────────────────────────────────────────────────────
 
-function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
+function HowToHelpPage({ setPage, goToAdoptable }: { setPage: (p: Page) => void; goToAdoptable: () => void }) {
   const [give, setGive] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -1024,6 +1031,7 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
   };
 
   const volunteerPoster = (give[posterUrlKey("volunteer")] ?? "").trim();
+  const adoptPoster = (give[posterUrlKey("adopt")] ?? "").trim();
 
   const handleCta = (cta: string) => {
     // Donate always scrolls to the three "Ways to Give" squares.
@@ -1097,6 +1105,11 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                         <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
                         {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
                       </div>
+                    ) : h.cta === "Start the Adoption Process" ? (
+                      <div className="help-cta-row">
+                        <button className="btn btn-purple" onClick={goToAdoptable}>Adopt a Cat</button>
+                        {adoptPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(adoptPoster)}>Adoption Process</button>}
+                      </div>
                     ) : (
                       <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
                     )}
@@ -1113,6 +1126,11 @@ function HowToHelpPage({ setPage }: { setPage: (p: Page) => void }) {
                       <div className="help-cta-row">
                         <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
                         {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
+                      </div>
+                    ) : h.cta === "Start the Adoption Process" ? (
+                      <div className="help-cta-row">
+                        <button className="btn btn-purple" onClick={goToAdoptable}>Adopt a Cat</button>
+                        {adoptPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(adoptPoster)}>Adoption Process</button>}
                       </div>
                     ) : (
                       <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
