@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import { emojify } from "@/lib/emojify";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ } from "@/lib/hours";
 import { slotForCta, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
@@ -772,7 +773,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
                     <div className="cat-name">{cat.name}</div>
                     {cat.breed && <div className="cat-breed">{cat.breed}</div>}
                     {cat.mood && <div className="cat-mood">Currently: {cat.mood}</div>}
-                    <p className="cat-desc">{cat.description.slice(0, 140)}{cat.description.length > 140 ? "…" : ""}</p>
+                    <p className="cat-desc">{emojify(cat.description).slice(0, 140)}{emojify(cat.description).length > 140 ? "…" : ""}</p>
                   </div>
                 </div>
               ))}
@@ -803,7 +804,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
             <div className="cat-name" style={{ fontSize: 40, marginTop: 10 }}>{modalCat.name}</div>
             {modalCat.breed && <div className="cat-breed">{modalCat.breed}</div>}
             {modalCat.mood && <div className="cat-mood" style={{ marginTop: 10 }}>Currently: {modalCat.mood}</div>}
-            <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18 }}>{modalCat.description}</p>
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18 }}>{emojify(modalCat.description)}</p>
 
             {activeImages.length > 1 && (
               <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
