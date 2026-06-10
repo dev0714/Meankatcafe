@@ -496,7 +496,11 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               <div className="pillar-icon">{p.icon}</div>
               <div className="pillar-title">{p.title}</div>
               <p className="pillar-body">{p.body}</p>
-              <button className="btn btn-outline-dark" onClick={() => setPage(p.target)}>{p.cta}</button>
+              {p.cta === "Directions" ? (
+                <a className="btn btn-outline-dark" href="https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal" target="_blank" rel="noopener">{p.cta}</a>
+              ) : (
+                <button className="btn btn-outline-dark" onClick={() => setPage(p.target)}>{p.cta}</button>
+              )}
             </div>
           ))}
         </div>
