@@ -1225,8 +1225,8 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </section>
 
-      <section className="give-section">
-        <div className="book-inner">
+      <section className="member-section">
+        <div className="member-inner">
           {/* Plans */}
           {plans.length > 0 && (
             <div className="member-plans">
