@@ -276,6 +276,7 @@
   .menu-fee-p { font-size: 14px; opacity: 0.95; line-height: 1.7; }
   .menu-modal { padding: 16px; max-width: 900px; }
   .menu-modal-img { width: 100%; height: auto; max-height: 80vh; object-fit: contain; border-radius: 12px; display: block; }
+  .menu-modal-stage { position: relative; }
 
   /* ====== EVENTS PAGE ====== */
   .events-section { background: linear-gradient(180deg, var(--cream) 0%, #faf3d4 100%); padding: clamp(48px, 6vw, 80px) clamp(20px, 5vw, 56px); }
