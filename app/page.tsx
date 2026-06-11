@@ -37,12 +37,12 @@ type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Con
 const NAV_LINKS: Page[] = [
   "Home",
   "About",
+  "How to Help",
   "Cats",
   "Cafe",
   "Events",
   "Book",
   "Membership",
-  "How to Help",
   "Contact",
 ];
 
