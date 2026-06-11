@@ -6,6 +6,7 @@ import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, DEFAULT_IMAGE_TRANSFORM, isUploaded
 import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
+import { compressImage } from "@/lib/compress-image";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -368,7 +369,7 @@ export default function AdminClient() {
     fd.append("name", upload.name);
     fd.append("description", upload.description);
     fd.append("category", upload.category);
-    fd.append("image", selectedImage);
+    fd.append("image", await compressImage(selectedImage));
     const res = await fetch("/api/admin/cats", { method: "POST", body: fd });
     const text = await res.text();
     let data: { error?: string; cat?: CatCard } = {};
@@ -406,7 +407,7 @@ export default function AdminClient() {
   async function handleUploadCatImage(cat: CatCard, file: File, type: "after" | "before") {
     setUploadingImageForId(`${cat.id}-${type}`);
     const fd = new FormData();
-    fd.append("image", file);
+    fd.append("image", await compressImage(file));
     fd.append("type", type);
     const res = await fetch(`/api/admin/cats/${cat.id}/images`, { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
@@ -486,7 +487,7 @@ export default function AdminClient() {
     if (!menuImageFile) { setMenuImageMsg("Pick an image first."); return; }
     setMenuImageSaving(true); setMenuImageMsg("");
     const fd = new FormData();
-    fd.append("image", menuImageFile);
+    fd.append("image", await compressImage(menuImageFile));
     const res = await fetch("/api/admin/menu-images", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setMenuImageSaving(false);
@@ -501,7 +502,7 @@ export default function AdminClient() {
     if (!cafeImageFile) { setCafeImageMsg("Pick an image first."); return; }
     setCafeImageSaving(true); setCafeImageMsg("");
     const fd = new FormData();
-    fd.append("image", cafeImageFile);
+    fd.append("image", await compressImage(cafeImageFile));
     const res = await fetch("/api/admin/cafe-images", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setCafeImageSaving(false);
@@ -524,7 +525,7 @@ export default function AdminClient() {
     if (!catHeroFile) { setCatHeroMsg("Pick an image first."); return; }
     setCatHeroSaving(true); setCatHeroMsg("");
     const fd = new FormData();
-    fd.append("image", catHeroFile);
+    fd.append("image", await compressImage(catHeroFile));
     const res = await fetch("/api/admin/cat-hero-images", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setCatHeroSaving(false);
@@ -547,7 +548,7 @@ export default function AdminClient() {
     if (!ruleFile) { setRuleMsg("Pick an image first."); return; }
     setRuleSaving(true); setRuleMsg("");
     const fd = new FormData();
-    fd.append("image", ruleFile);
+    fd.append("image", await compressImage(ruleFile));
     const res = await fetch("/api/admin/cafe-rules-images", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setRuleSaving(false);
@@ -663,7 +664,7 @@ export default function AdminClient() {
     fd.append("description", newEvent.description);
     fd.append("date", newEvent.date);
     if (newEvent.time) fd.append("time", newEvent.time);
-    if (newEventImage) fd.append("image", newEventImage);
+    if (newEventImage) fd.append("image", await compressImage(newEventImage));
     const res = await fetch("/api/admin/events", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setEventSaving(false);
@@ -699,7 +700,7 @@ export default function AdminClient() {
     fd.append("description", editEvent.description);
     fd.append("date", editEvent.date);
     fd.append("time", editEvent.time);
-    if (editEventImage) fd.append("image", editEventImage);
+    if (editEventImage) fd.append("image", await compressImage(editEventImage));
     const res = await fetch(`/api/admin/events/${eventId}`, { method: "PATCH", body: fd });
     const data = await res.json().catch(() => ({}));
     setEditEventSaving(false);
@@ -839,7 +840,7 @@ export default function AdminClient() {
     const fd = new FormData();
     fd.append("slot", slot);
     fd.append("kind", kind);
-    fd.append("image", file);
+    fd.append("image", await compressImage(file));
     const res = await fetch("/api/admin/help-poster", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
     setPosterUploadingSlot(null);
