@@ -406,6 +406,32 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
   );
 }
 
+// Framed (white-bordered) auto-rotating image carousel, used for the home
+// "second chances" image and the About founder image.
+function FramedCarousel({ images, className, alt }: { images: MenuImage[]; className: string; alt: string }) {
+  const [i, setI] = useState(0);
+  const count = images.length;
+  const pos = count ? ((i % count) + count) % count : 0;
+  useEffect(() => {
+    if (count <= 1) return;
+    const t = setInterval(() => setI((p) => p + 1), 5000);
+    return () => clearInterval(t);
+  }, [count]);
+  return (
+    <div className={className}>
+      <div className="frame-track" style={{ transform: `translateX(-${pos * 100}%)` }}>
+        {images.map((im) => <img key={im.id} className="frame-slide" src={im.url} alt={alt} />)}
+      </div>
+      {count > 1 && (
+        <>
+          <button className="carousel-arrow left" onClick={() => setI((p) => p - 1)} aria-label="Previous">‹</button>
+          <button className="carousel-arrow right" onClick={() => setI((p) => p + 1)} aria-label="Next">›</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // HOME PAGE
 // ─────────────────────────────────────────────────────────────
@@ -415,6 +441,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
   const [heroIdx, setHeroIdx] = useState(0);
   const [catHero, setCatHero] = useState<MenuImage[]>([]);
   const [guide, setGuide] = useState<number | null>(null);
+  const [secondImages, setSecondImages] = useState<MenuImage[]>([{ id: "janice", url: "/janice-1.jpg" }]);
 
   useEffect(() => {
     fetch("/api/cafe-images")
@@ -424,6 +451,10 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
     fetch("/api/cat-hero-images")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: MenuImage[] | null) => { if (d && d.length > 0) setCatHero(d); })
+      .catch(() => {});
+    fetch("/api/gallery?section=home2")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: MenuImage[] | null) => { if (d && d.length > 0) setSecondImages(d); })
       .catch(() => {});
   }, []);
 
@@ -525,9 +556,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
       <section className="second-chances">
         <div className="paws-layer paws-purple" />
         <div className="second-inner">
-          <div className="second-img">
-            <img src="/janice-1.jpg" alt="Cat resting at MeanKat" />
-          </div>
+          <FramedCarousel images={secondImages} className="second-img" alt="Cat resting at MeanKat" />
           <div>
             <h2 className="sc-title">Coffee, Cats<br />&amp; Second Chances.</h2>
             <div className="sc-sub">How your visit helps 💜</div>
@@ -597,8 +626,13 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
 
 function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
   const [foster, setFoster] = useState<{ intro: string; list: { name: string; body: string }[] }>({ intro: "", list: [] });
+  const [aboutImages, setAboutImages] = useState<MenuImage[]>([{ id: "maahira", url: "/founder-maahira.jpg" }]);
 
   useEffect(() => {
+    fetch("/api/gallery?section=about")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: MenuImage[] | null) => { if (d && d.length > 0) setAboutImages(d); })
+      .catch(() => {});
     fetch("/api/settings")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: Record<string, string> | null) => {
@@ -620,9 +654,7 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="about-hero">
         <div className="paws-layer paws-white" />
         <div className="about-hero-inner">
-          <div className="about-img">
-            <img src="/founder-maahira.jpg" alt="Maahira, founder of MeanKat Café" />
-          </div>
+          <FramedCarousel images={aboutImages} className="about-img" alt="Maahira, founder of MeanKat Café" />
           <div>
             <div className="about-script">How it all</div>
             <h1 className="about-title">Started...</h1>
