@@ -197,6 +197,12 @@ export default function AdminClient() {
   const [ruleMsg, setRuleMsg] = useState("");
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
 
+  const [galleries, setGalleries] = useState<Record<string, MenuImage[]>>({ about: [], home2: [] });
+  const [galleryFile, setGalleryFile] = useState<Record<string, File | null>>({ about: null, home2: null });
+  const [gallerySaving, setGallerySaving] = useState<string | null>(null);
+  const [galleryMsg, setGalleryMsg] = useState("");
+  const [deletingGalleryId, setDeletingGalleryId] = useState<string | null>(null);
+
   // ── init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -271,6 +277,12 @@ export default function AdminClient() {
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setRuleImages(imgs))
       .catch(() => {});
+    (["about", "home2"] as const).forEach((sec) => {
+      fetch(`/api/gallery?section=${sec}`)
+        .then((r) => r.ok ? r.json() : [])
+        .then((imgs: MenuImage[]) => setGalleries((g) => ({ ...g, [sec]: imgs })))
+        .catch(() => {});
+    });
   }, [auth.user]);
 
   useEffect(() => {
@@ -564,6 +576,31 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/cafe-rules-images/${img.id}`, { method: "DELETE" });
     if (res.ok) setRuleImages((imgs) => imgs.filter((i) => i.id !== img.id));
     setDeletingRuleId(null);
+  }
+
+  async function handleUploadGallery(e: FormEvent<HTMLFormElement>, section: string) {
+    e.preventDefault();
+    const file = galleryFile[section];
+    if (!file) { setGalleryMsg("Pick an image first."); return; }
+    setGallerySaving(section); setGalleryMsg("");
+    const fd = new FormData();
+    fd.append("section", section);
+    fd.append("image", await compressImage(file));
+    const res = await fetch("/api/admin/gallery", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setGallerySaving(null);
+    if (!res.ok) { setGalleryMsg(data.error ?? "Upload failed."); return; }
+    setGalleries((g) => ({ ...g, [section]: [...(g[section] ?? []), data.image] }));
+    setGalleryFile((f) => ({ ...f, [section]: null }));
+    setGalleryMsg("Image uploaded.");
+  }
+
+  async function handleDeleteGallery(section: string, img: MenuImage) {
+    if (!confirm("Delete this image?")) return;
+    setDeletingGalleryId(img.id);
+    const res = await fetch(`/api/admin/gallery/${img.id}`, { method: "DELETE" });
+    if (res.ok) setGalleries((g) => ({ ...g, [section]: (g[section] ?? []).filter((i) => i.id !== img.id) }));
+    setDeletingGalleryId(null);
   }
 
   async function handleDeleteMenuImage(img: MenuImage) {
@@ -1324,6 +1361,45 @@ export default function AdminClient() {
                 }
               </div>
             </div>
+
+            {/* About + Homepage gallery carousels */}
+            {([
+              { sec: "about", title: "👩 About — Founder Photos", sub: "Carousel next to ‘How it all started’ on the About page." },
+              { sec: "home2", title: "🐱 Homepage — ‘Second Chances’ Photos", sub: "Carousel in the ‘Coffee, Cats & Second Chances’ section on the home page." },
+            ] as const).map(({ sec, title, sub }) => (
+              <div key={sec} className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>{title}</div>
+                  <form onSubmit={(e) => handleUploadGallery(e, sec)} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <label>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Add a photo</div>
+                      <input className="mk-input" type="file" accept="image/*" onChange={(e) => setGalleryFile((f) => ({ ...f, [sec]: e.target.files?.[0] ?? null }))} required />
+                    </label>
+                    {galleryMsg && gallerySaving === null && <div style={{ fontSize: 13, color: BRAND.textLight }}>{galleryMsg}</div>}
+                    <button className="mk-primary" type="submit" disabled={gallerySaving === sec}>{gallerySaving === sec ? "Uploading…" : "Upload photo"}</button>
+                  </form>
+                </div>
+                <div className="panel">
+                  <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>Photos ({galleries[sec]?.length ?? 0})</div>
+                  <p style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 14 }}>{sub} Add 2+ to make it rotate.</p>
+                  {(galleries[sec]?.length ?? 0) === 0
+                    ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No photos yet — the default image shows until you add some.</div>
+                    : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 14 }}>
+                        {(galleries[sec] ?? []).map((img) => (
+                          <div key={img.id} style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white }}>
+                            <img src={img.url} alt="" style={{ width: "100%", height: 150, objectFit: "cover", display: "block" }} />
+                            <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
+                              <button className="mk-danger" onClick={() => handleDeleteGallery(sec, img)} disabled={deletingGalleryId === img.id}>
+                                {deletingGalleryId === img.id ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                  }
+                </div>
+              </div>
+            ))}
 
             {/* Menu photos */}
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
