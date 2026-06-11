@@ -552,7 +552,11 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
               <div className="help-card-icon">{h.icon}</div>
               <div className="help-card-title">{h.title}</div>
               <p className="help-card-body">{h.body}</p>
-              <button className="btn btn-outline" onClick={() => goToHelp(h.title.toLowerCase())}>{h.cta}</button>
+              <button className="btn btn-outline" onClick={() => {
+                if (h.title === "Events") { setPage("Events"); return; }
+                const target = h.title === "Donate" ? "ways-to-give" : `help-${h.title.toLowerCase()}`;
+                goToHelp(target);
+              }}>{h.cta}</button>
             </div>
           ))}
         </div>
@@ -1047,7 +1051,7 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
   useEffect(() => {
     if (!scrollTarget) return;
     const t = setTimeout(() => {
-      document.getElementById(`help-${scrollTarget}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(scrollTarget)?.scrollIntoView({ behavior: "smooth", block: "start" });
       clearScrollTarget?.();
     }, 120);
     return () => clearTimeout(t);
