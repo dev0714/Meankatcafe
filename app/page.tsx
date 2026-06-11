@@ -511,7 +511,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
               <div className="pillar-title">{p.title}</div>
               <p className="pillar-body">{p.body}</p>
               {p.cta === "Directions" ? (
-                <a className="btn btn-outline-dark" href="https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal" target="_blank" rel="noopener">{p.cta}</a>
+                <button className="btn btn-outline-dark" onClick={() => window.open("https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal", "_blank", "noopener")}>{p.cta}</button>
               ) : p.cta === "Cat Hero Guide" ? (
                 <button className="btn btn-outline-dark" onClick={() => (catHero.length > 0 ? setGuide(0) : setPage("Cats"))}>{p.cta}</button>
               ) : (
