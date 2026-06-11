@@ -1611,7 +1611,7 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
                 {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
                 <form onSubmit={submit}>
                   <label className="field-label" htmlFor="bk-name">Full name</label>
-                  <input id="bk-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
+                  <input id="bk-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name and surname" />
 
                   <label className="field-label" htmlFor="bk-email">Email</label>
                   <input id="bk-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
