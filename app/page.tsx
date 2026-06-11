@@ -908,7 +908,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="cafe-menu-inner">
           <div className="cafe-menu-grid">
             <PhotoCarousel images={menuImages} label="The menu ☕" emptyText="Menu photos are being updated — check back soon." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
-            <PhotoCarousel images={ruleImages} label="Café rules 🐾" emptyText="Café rules coming soon — check back shortly." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
+            <PhotoCarousel images={ruleImages} label="Cafe rules 🐾" emptyText="Cafe rules coming soon — check back shortly." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
           </div>
 
           <div className="menu-fee-card">
