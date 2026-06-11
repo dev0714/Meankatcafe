@@ -139,6 +139,10 @@ export default function AdminClient() {
   const [eventMsg, setEventMsg] = useState("");
   const [eventSaving, setEventSaving] = useState(false);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editEvent, setEditEvent] = useState({ title: "", description: "", date: "", time: "" });
+  const [editEventImage, setEditEventImage] = useState<File | null>(null);
+  const [editEventSaving, setEditEventSaving] = useState(false);
 
   const [volunteers, setVolunteers] = useState<VolunteerApplication[]>([]);
   const [expandedVolunteerId, setExpandedVolunteerId] = useState<string | null>(null);
@@ -678,6 +682,31 @@ export default function AdminClient() {
     if (!res.ok) { setEventMsg(data.error ?? "Delete failed."); setDeletingEventId(null); return; }
     setAdminEvents((evs) => evs.filter((x) => x.id !== ev.id));
     setDeletingEventId(null);
+  }
+
+  function handleStartEditEvent(ev: AdminEvent) {
+    setEditingEventId(ev.id);
+    setEditEvent({ title: ev.title, description: ev.description, date: ev.date, time: ev.time ?? "" });
+    setEditEventImage(null);
+    setEventMsg("");
+  }
+
+  async function handleSaveEditEvent(e: FormEvent<HTMLFormElement>, eventId: string) {
+    e.preventDefault();
+    setEditEventSaving(true); setEventMsg("");
+    const fd = new FormData();
+    fd.append("title", editEvent.title);
+    fd.append("description", editEvent.description);
+    fd.append("date", editEvent.date);
+    fd.append("time", editEvent.time);
+    if (editEventImage) fd.append("image", editEventImage);
+    const res = await fetch(`/api/admin/events/${eventId}`, { method: "PATCH", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setEditEventSaving(false);
+    if (!res.ok) { setEventMsg(data.error ?? "Update failed."); return; }
+    setAdminEvents((evs) => evs.map((x) => x.id === eventId ? data.event : x).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    setEditingEventId(null);
+    setEventMsg("Event updated successfully.");
   }
 
   async function handleDeleteVolunteer(v: VolunteerApplication) {
@@ -1390,6 +1419,25 @@ export default function AdminClient() {
                     {adminEvents.map((ev) => {
                       const d = new Date(ev.date);
                       const isPast = d < new Date(new Date().toDateString());
+                      if (editingEventId === ev.id) {
+                        return (
+                          <form key={ev.id} onSubmit={(e) => handleSaveEditEvent(e, ev.id)} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purple}`, background: BRAND.white, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text }}>Edit event</div>
+                            <input className="mk-input" value={editEvent.title} onChange={(e) => setEditEvent((v) => ({ ...v, title: e.target.value }))} placeholder="Event title" required />
+                            <input className="mk-input" type="date" value={editEvent.date} onChange={(e) => setEditEvent((v) => ({ ...v, date: e.target.value }))} required />
+                            <input className="mk-input" value={editEvent.time} onChange={(e) => setEditEvent((v) => ({ ...v, time: e.target.value }))} placeholder="Time (optional)" />
+                            <textarea className="mk-input" value={editEvent.description} onChange={(e) => setEditEvent((v) => ({ ...v, description: e.target.value }))} placeholder="Description" required />
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Replace banner (optional)</div>
+                              <input className="mk-input" type="file" accept="image/*" onChange={(e) => setEditEventImage(e.target.files?.[0] ?? null)} />
+                            </label>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button className="mk-primary" type="submit" disabled={editEventSaving} style={{ flex: 1 }}>{editEventSaving ? "Saving…" : "Save changes"}</button>
+                              <button className="mk-outline" type="button" onClick={() => setEditingEventId(null)} style={{ flex: 1 }}>Cancel</button>
+                            </div>
+                          </form>
+                        );
+                      }
                       return (
                         <div key={ev.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, overflow: "hidden", opacity: isPast ? 0.75 : 1 }}>
                           {ev.imageUrl && (
@@ -1408,9 +1456,12 @@ export default function AdminClient() {
                               {ev.time && <div style={{ fontSize: 12, color: BRAND.purple, fontWeight: 700, marginTop: 2 }}>🕐 {ev.time}</div>}
                               <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 4, lineHeight: 1.6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{ev.description}</div>
                             </div>
-                            <button className="mk-danger" onClick={() => handleDeleteEvent(ev)} disabled={deletingEventId === ev.id} style={{ flexShrink: 0 }}>
-                              {deletingEventId === ev.id ? "Deleting…" : "Delete"}
-                            </button>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                              <button className="mk-outline" onClick={() => handleStartEditEvent(ev)} style={{ padding: "6px 12px", fontSize: 12 }}>Edit</button>
+                              <button className="mk-danger" onClick={() => handleDeleteEvent(ev)} disabled={deletingEventId === ev.id}>
+                                {deletingEventId === ev.id ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
