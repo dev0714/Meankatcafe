@@ -1531,6 +1531,15 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
 
       <section className="book-section">
         <div className="book-inner">
+          <div className="pricing-card" style={{ gridColumn: "1 / -1", marginBottom: 4 }}>
+            <div className="pricing-title">Visit the Cats 🐱</div>
+            {ENTRANCE_FEES.map(([price, label]) => (
+              <div className="pricing-row" key={label}>
+                <span className="pricing-price">{price}</span>
+                <span className="pricing-label">{label}</span>
+              </div>
+            ))}
+          </div>
           {confirmed ? (
             <div className="vol-success" style={{ gridColumn: "1 / -1" }}>
               <div style={{ fontSize: 54, marginBottom: 12 }}>🎉</div>
