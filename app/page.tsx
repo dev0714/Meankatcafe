@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DEFAULT_CATS, mergeCatsByName, type CatCard } from "@/lib/cats";
+import { type CatCard } from "@/lib/cats";
 import { emojify } from "@/lib/emojify";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ } from "@/lib/hours";
@@ -748,7 +748,8 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
 
 function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => void; initialFilter?: CatFilter }) {
   const [filter, setFilter] = useState<CatFilter>(initialFilter);
-  const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
+  const [cats, setCats] = useState<CatCard[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [modalCat, setModalCat] = useState<CatCard | null>(null);
   const [modalView, setModalView] = useState<"after" | "before">("after");
   const [modalIndex, setModalIndex] = useState(0);
@@ -758,11 +759,9 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
   useEffect(() => {
     fetch("/api/cats")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: CatCard[] | null) => {
-        if (!data || data.length === 0) return;
-        setCats((prev) => mergeCatsByName(prev, data));
-      })
-      .catch(() => {});
+      .then((data: CatCard[] | null) => { setCats(Array.isArray(data) ? data : []); })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
   const openCat = (cat: CatCard) => {
@@ -803,7 +802,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
           {visible.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--ink-soft)" }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🐾</div>
-              <p>No cats in this category right now — check back soon.</p>
+              <p>{loaded ? "No cats in this category right now — check back soon." : "Loading the residents…"}</p>
             </div>
           ) : (
             <div className="cat-grid">
@@ -815,8 +814,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
                   <div className="cat-body">
                     <div className={`cat-tag tag-${cat.category}`}>{labelFor(cat)}</div>
                     <div className="cat-name">{cat.name}</div>
-                    {cat.breed && <div className="cat-breed">{cat.breed}</div>}
-                    {cat.mood && <div className="cat-mood">Currently: {cat.mood}</div>}
+                    {cat.tagline && <div className="cat-mood">{cat.tagline}</div>}
                     <p className="cat-desc">{emojify(cat.description).slice(0, 140)}{emojify(cat.description).length > 140 ? "…" : ""}</p>
                   </div>
                 </div>
@@ -846,9 +844,21 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
 
             <div className={`cat-tag tag-${modalCat.category}`}>{labelFor(modalCat)}</div>
             <div className="cat-name" style={{ fontSize: 40, marginTop: 10 }}>{modalCat.name}</div>
-            {modalCat.breed && <div className="cat-breed">{modalCat.breed}</div>}
-            {modalCat.mood && <div className="cat-mood" style={{ marginTop: 10 }}>Currently: {modalCat.mood}</div>}
-            <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18 }}>{emojify(modalCat.description)}</p>
+            {modalCat.tagline && <div className="cat-mood" style={{ marginTop: 10 }}>{modalCat.tagline}</div>}
+            <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18, whiteSpace: "pre-wrap" }}>{emojify(modalCat.description)}</p>
+
+            {modalCat.whereToFind && (
+              <div className="cat-info-box">
+                <div className="cat-info-h">📍 Where to find me</div>
+                <p>{emojify(modalCat.whereToFind)}</p>
+              </div>
+            )}
+            {modalCat.howToMakeHappy && (
+              <div className="cat-info-box">
+                <div className="cat-info-h">💜 How to make me happy</div>
+                <p>{emojify(modalCat.howToMakeHappy)}</p>
+              </div>
+            )}
 
             {activeImages.length > 1 && (
               <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
-import { CAT_CATEGORY_OPTIONS, DEFAULT_CATS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, mergeCatsByName, type CatCard, type CatCategory, type ImageTransform, categoryLabel } from "@/lib/cats";
+import { CAT_CATEGORY_OPTIONS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, type CatCard, type CatCategory, type ImageTransform, categoryLabel } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
@@ -88,13 +88,15 @@ const SETTINGS_DEFAULTS = {
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
-const emptyUpload: { name: string; description: string; category: CatCategory } = {
+type CatFields = { name: string; description: string; category: CatCategory; tagline: string; whereToFind: string; howToMakeHappy: string };
+const emptyUpload: CatFields = {
   name: "",
   description: "",
   category: "resident",
+  tagline: "",
+  whereToFind: "",
+  howToMakeHappy: "",
 };
-
-const HIDDEN_CAT_IDS_KEY = "meankat_hidden_cat_ids";
 
 export default function AdminClient() {
   const [auth, setAuth] = useState<AuthState>({ loading: true, user: null, error: "" });
@@ -103,13 +105,15 @@ export default function AdminClient() {
   const [activeTab, setActiveTab] = useState<AdminTab>("cats");
 
   // --- cats ---
-  const [upload, setUpload] = useState(emptyUpload);
+  const [upload, setUpload] = useState<CatFields>(emptyUpload);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [cats, setCats] = useState<CatCard[]>(DEFAULT_CATS);
+  const [cats, setCats] = useState<CatCard[]>([]);
   const [saving, setSaving] = useState(false);
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [catMsg, setCatMsg] = useState("");
-  const [hiddenCatIds, setHiddenCatIds] = useState<string[]>([]);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catEditForm, setCatEditForm] = useState<CatFields>(emptyUpload);
+  const [catEditSaving, setCatEditSaving] = useState(false);
   const [uploadingImageForId, setUploadingImageForId] = useState<string | null>(null);
   const [deletingImageDbId, setDeletingImageDbId] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
@@ -208,13 +212,6 @@ export default function AdminClient() {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(HIDDEN_CAT_IDS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as string[];
-        if (Array.isArray(parsed)) setHiddenCatIds(parsed.filter((v) => typeof v === "string"));
-      }
-    } catch { setHiddenCatIds([]); }
-    try {
       const stored = window.localStorage.getItem("meankat_hidden_menu_images");
       if (stored) {
         const parsed = JSON.parse(stored) as string[];
@@ -249,12 +246,9 @@ export default function AdminClient() {
     if (!auth.user) return;
     fetch("/api/cats")
       .then((r) => r.ok ? r.json() : [])
-      .then((data: CatCard[]) => {
-        const merged = mergeCatsByName(DEFAULT_CATS, data);
-        setCats(merged.filter((c) => !hiddenCatIds.includes(c.id)));
-      })
+      .then((data: CatCard[]) => setCats(Array.isArray(data) ? data : []))
       .catch(() => {});
-  }, [auth.user, hiddenCatIds]);
+  }, [auth.user]);
 
   useEffect(() => {
     if (!auth.user) return;
@@ -344,10 +338,6 @@ export default function AdminClient() {
 
   // ── helpers ───────────────────────────────────────────────────────────────
 
-  function persistHiddenCatIds(next: string[]) {
-    setHiddenCatIds(next);
-    try { window.localStorage.setItem(HIDDEN_CAT_IDS_KEY, JSON.stringify(next)); } catch { }
-  }
 
   // ── auth ──────────────────────────────────────────────────────────────────
 
@@ -382,6 +372,9 @@ export default function AdminClient() {
     fd.append("name", upload.name);
     fd.append("description", upload.description);
     fd.append("category", upload.category);
+    fd.append("tagline", upload.tagline);
+    fd.append("whereToFind", upload.whereToFind);
+    fd.append("howToMakeHappy", upload.howToMakeHappy);
     fd.append("image", await compressImage(selectedImage));
     const res = await fetch("/api/admin/cats", { method: "POST", body: fd });
     const text = await res.text();
@@ -395,26 +388,43 @@ export default function AdminClient() {
   }
 
   async function handleDeleteCat(cat: CatCard) {
-    if (!confirm(`Remove ${cat.name}?`)) return;
+    if (!confirm(`Remove ${cat.name}? This permanently deletes the cat.`)) return;
     setDeletingCatId(cat.id); setCatMsg("");
-    if (!isUploadedCat(cat)) {
-      persistHiddenCatIds([...new Set([...hiddenCatIds, cat.id])]);
-      setCats((c) => c.filter((x) => x.id !== cat.id));
-      setCatMsg(`${cat.name} hidden from admin preview.`);
-      setDeletingCatId(null); return;
-    }
     const res = await fetch(`/api/admin/cats/${cat.id}`, { method: "DELETE" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { setCatMsg(data.error ?? "Delete failed."); setDeletingCatId(null); return; }
-    const refresh = await fetch("/api/cats");
-    if (refresh.ok) {
-      const refreshed = await refresh.json() as CatCard[];
-      setCats(mergeCatsByName(DEFAULT_CATS, refreshed).filter((c) => !hiddenCatIds.includes(c.id)));
-    } else {
-      setCats((c) => c.filter((x) => x.id !== cat.id));
-    }
+    setCats((c) => c.filter((x) => x.id !== cat.id));
     setCatMsg(data.warning ?? "Cat removed.");
     setDeletingCatId(null);
+  }
+
+  function handleStartEditCat(cat: CatCard) {
+    setEditingCatId(cat.id);
+    setCatEditForm({
+      name: cat.name,
+      description: cat.description,
+      category: cat.category,
+      tagline: cat.tagline ?? "",
+      whereToFind: cat.whereToFind ?? "",
+      howToMakeHappy: cat.howToMakeHappy ?? "",
+    });
+    setCatMsg("");
+  }
+
+  async function handleSaveCatFields(e: FormEvent<HTMLFormElement>, catId: string) {
+    e.preventDefault();
+    setCatEditSaving(true); setCatMsg("");
+    const res = await fetch(`/api/admin/cats/${catId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: catEditForm }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setCatEditSaving(false);
+    if (!res.ok) { setCatMsg(data.error ?? "Update failed."); return; }
+    setCats((c) => c.map((x) => x.id === catId ? { ...x, ...catEditForm } : x));
+    setEditingCatId(null);
+    setCatMsg("Cat updated.");
   }
 
   async function handleUploadCatImage(cat: CatCard, file: File, type: "after" | "before") {
@@ -1141,8 +1151,20 @@ export default function AdminClient() {
                     </select>
                   </label>
                   <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Tagline (optional)</div>
+                    <input className="mk-input" value={upload.tagline} onChange={(e) => setUpload((c) => ({ ...c, tagline: e.target.value }))} placeholder="The Gentle Giant" />
+                  </label>
+                  <label>
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Description</div>
                     <textarea className="mk-input" value={upload.description} onChange={(e) => setUpload((c) => ({ ...c, description: e.target.value }))} placeholder="A few lines about the cat's personality..." required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Where to find me (optional)</div>
+                    <textarea className="mk-input" value={upload.whereToFind} onChange={(e) => setUpload((c) => ({ ...c, whereToFind: e.target.value }))} placeholder="Downstairs near reception…" style={{ minHeight: 60 }} />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>How to make me happy (optional)</div>
+                    <textarea className="mk-input" value={upload.howToMakeHappy} onChange={(e) => setUpload((c) => ({ ...c, howToMakeHappy: e.target.value }))} placeholder="Gently pet my head and stay calm…" style={{ minHeight: 60 }} />
                   </label>
                   <label>
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Image</div>
@@ -1169,8 +1191,28 @@ export default function AdminClient() {
                                 </div>
                               )}
                               <div style={{ padding: 12 }}>
-                                <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{cat.name}</div>
-                                <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 40, overflow: "hidden" }}>{cat.description}</div>
+                                {editingCatId === cat.id ? (
+                                  <form onSubmit={(e) => handleSaveCatFields(e, cat.id)} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                                    <input className="mk-input" value={catEditForm.name} onChange={(e) => setCatEditForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name" required />
+                                    <select className="mk-input" value={catEditForm.category} onChange={(e) => setCatEditForm((f) => ({ ...f, category: e.target.value as CatCategory }))}>
+                                      {CAT_CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                    <input className="mk-input" value={catEditForm.tagline} onChange={(e) => setCatEditForm((f) => ({ ...f, tagline: e.target.value }))} placeholder="Tagline (e.g. The Gentle Giant)" />
+                                    <textarea className="mk-input" value={catEditForm.description} onChange={(e) => setCatEditForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description" required style={{ minHeight: 70 }} />
+                                    <textarea className="mk-input" value={catEditForm.whereToFind} onChange={(e) => setCatEditForm((f) => ({ ...f, whereToFind: e.target.value }))} placeholder="Where to find me" style={{ minHeight: 50 }} />
+                                    <textarea className="mk-input" value={catEditForm.howToMakeHappy} onChange={(e) => setCatEditForm((f) => ({ ...f, howToMakeHappy: e.target.value }))} placeholder="How to make me happy" style={{ minHeight: 50 }} />
+                                    <div style={{ display: "flex", gap: 6 }}>
+                                      <button className="mk-primary" type="submit" disabled={catEditSaving} style={{ flex: 1 }}>{catEditSaving ? "Saving…" : "Save"}</button>
+                                      <button className="mk-outline" type="button" onClick={() => setEditingCatId(null)} style={{ flex: 1 }}>Cancel</button>
+                                    </div>
+                                  </form>
+                                ) : (
+                                  <>
+                                    <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{cat.name}</div>
+                                    {cat.tagline && <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.purple, marginBottom: 4 }}>{cat.tagline}</div>}
+                                    <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10, maxHeight: 40, overflow: "hidden" }}>{cat.description}</div>
+                                  </>
+                                )}
 
                                 {isUploadedCat(cat) ? (
                                   <>
@@ -1238,9 +1280,12 @@ export default function AdminClient() {
                                   </div>
                                 )}
 
-                                <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id}>
-                                  {deletingCatId === cat.id ? "Removing…" : "Remove"}
-                                </button>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleStartEditCat(cat)}>Edit details</button>
+                                  <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id}>
+                                    {deletingCatId === cat.id ? "Removing…" : "Remove"}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
