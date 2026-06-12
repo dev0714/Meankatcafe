@@ -243,6 +243,7 @@
   .cat-name { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-dark); font-size: 28px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
   .cat-breed { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
   .cat-mood { background: var(--yellow-soft); color: var(--purple-dark); padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; display: inline-block; margin-bottom: 14px; }
+  .cat-nick { background: var(--lilac-pale); color: var(--purple-dark); border: 1.5px solid var(--purple); padding: 5px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.2px; display: inline-block; margin-bottom: 14px; }
   .cat-info-box { background: var(--lilac-pale); border-radius: 16px; padding: 16px 18px; margin-top: 16px; }
   .cat-info-h { font-weight: 900; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--purple-dark); margin-bottom: 6px; }
   .cat-info-box p { color: var(--ink); font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
