@@ -8,9 +8,9 @@ export type TimeRange = { start: string; end: string }; // "HH:MM" 24h
 
 // Mirrors the hours shown on the site:
 //   Mon CLOSED · Tue–Thu 09:00–17:00 · Fri 09:00–12:00 / 13:30–22:00 ·
-//   Sat 09:00–22:00 · Sun 09:00–12:00
+//   Sat 09:00–22:00 · Sun 09:00–17:00
 export const OPENING_HOURS: Record<number, TimeRange[]> = {
-  0: [{ start: "09:00", end: "12:00" }], // Sunday
+  0: [{ start: "09:00", end: "17:00" }], // Sunday
   1: [], // Monday — closed
   2: [{ start: "09:00", end: "17:00" }], // Tuesday
   3: [{ start: "09:00", end: "17:00" }], // Wednesday
