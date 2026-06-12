@@ -729,6 +729,14 @@ function AboutPage({ setPage }: { setPage: (p: Page) => void }) {
         </section>
       )}
 
+      <section className="about-cta-wrap">
+        <div className="about-cta">
+          <button className="btn btn-purple" onClick={() => setPage("Cats")}>Meet The Cats</button>
+          <button className="btn btn-outline-dark" onClick={() => setPage("How to Help")}>How to Help</button>
+          <button className="btn btn-outline-dark" onClick={() => setPage("Contact")}>Get in Touch</button>
+        </div>
+      </section>
+
       <Footer setPage={setPage} />
     </div>
   );

@@ -445,6 +445,9 @@
   .give-list li { position: relative; padding-left: 26px; color: var(--ink); font-weight: 600; font-size: 14.5px; line-height: 1.5; }
   .give-list li::before { content: "🐾"; position: absolute; left: 0; top: 0; font-size: 13px; }
 
+  .about-cta-wrap { background: var(--cream); padding: clamp(36px, 5vw, 56px) clamp(20px, 5vw, 56px); }
+  .about-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
   /* ====== FOSTER NETWORK ====== */
   .foster { position: relative; overflow: hidden; background: linear-gradient(180deg, var(--lilac-pale) 0%, var(--lilac) 100%); padding: clamp(48px, 7vw, 88px) clamp(20px, 5vw, 56px); }
   .foster-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
