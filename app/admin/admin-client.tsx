@@ -29,7 +29,7 @@ type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: bo
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
 type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members";
-type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
+type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; paidDate?: string | null; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
 type AdminBlock = { id: string; date: string; startTime: string; endTime: string; title: string; price?: string | null; notes?: string | null };
@@ -168,6 +168,7 @@ export default function AdminClient() {
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberMsg, setMemberMsg] = useState("");
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [payDates, setPayDates] = useState<Record<string, string>>({});
   const [newPlan, setNewPlan] = useState({ name: "", price: "", periodMonths: "1", description: "" });
   const [planSaving, setPlanSaving] = useState(false);
 
@@ -804,12 +805,14 @@ export default function AdminClient() {
     setMemberMsg("Member added.");
   }
 
-  async function handleMemberAction(m: AdminMember, action: "activate" | "renew" | "cancel" | "pending") {
+  async function handleMemberAction(m: AdminMember, action: "activate" | "renew" | "cancel" | "pending", paidDate?: string) {
     setBusyMemberId(m.id);
-    const body = action === "cancel" ? { status: "cancelled" } : action === "pending" ? { status: "pending" } : { action };
+    const body = action === "cancel" ? { status: "cancelled" }
+      : action === "pending" ? { status: "pending" }
+      : { action, paidDate };
     const res = await fetch(`/api/admin/members/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) setMembers((ms) => ms.map((x) => x.id === m.id ? data.member : x));
+    if (res.ok) { setMembers((ms) => ms.map((x) => x.id === m.id ? data.member : x)); setPayDates((p) => { const n = { ...p }; delete n[m.id]; return n; }); }
     else setMemberMsg(data.error ?? "Update failed.");
     setBusyMemberId(null);
   }
@@ -1803,16 +1806,27 @@ export default function AdminClient() {
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{m.name} <span style={{ fontFamily: "monospace", fontSize: 12, color: BRAND.purple }}>{m.memberCode}</span></div>
                                 <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{m.email}{m.phone ? ` · ${m.phone}` : ""}</div>
-                                <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>{m.planName ?? "No plan"}{m.validUntil ? ` · valid until ${fmt(m.validUntil)}` : ""}</div>
+                                <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>{m.planName ?? "No plan"}</div>
+                                {(m.paidDate || m.validUntil) && (
+                                  <div style={{ fontSize: 12, marginTop: 2, color: BRAND.text }}>
+                                    {m.paidDate && <span>Paid <strong>{fmt(m.paidDate)}</strong></span>}
+                                    {m.paidDate && m.validUntil && " · "}
+                                    {m.validUntil && <span style={{ color: act ? "#16a34a" : "#b42318" }}>Expires <strong>{fmt(m.validUntil)}</strong></span>}
+                                  </div>
+                                )}
                               </div>
                               <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 999, background: act ? "rgba(22,163,74,0.12)" : expired ? "rgba(180,35,24,0.1)" : m.status === "pending" ? "rgba(243,218,91,0.4)" : "rgba(0,0,0,0.06)", color: act ? "#16a34a" : expired ? "#b42318" : m.status === "pending" ? "#8a6d00" : BRAND.textLight }}>
                                 {act ? "Active" : expired ? "Expired" : m.status === "pending" ? "Pending" : "Cancelled"}
                               </span>
                             </div>
-                            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                              <label style={{ fontSize: 11, color: BRAND.textLight, display: "flex", alignItems: "center", gap: 5 }}>
+                                Paid on
+                                <input type="date" value={payDates[m.id] ?? today} onChange={(e) => setPayDates((p) => ({ ...p, [m.id]: e.target.value }))} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 8, padding: "4px 6px", fontSize: 12, fontFamily: "inherit" }} />
+                              </label>
                               {act
-                                ? <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "renew")} disabled={busyMemberId === m.id}>Renew +period</button>
-                                : <button className="mk-primary" style={{ width: "auto", padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "activate")} disabled={busyMemberId === m.id}>Mark paid / Activate</button>}
+                                ? <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "renew", payDates[m.id] ?? today)} disabled={busyMemberId === m.id}>Renew +period</button>
+                                : <button className="mk-primary" style={{ width: "auto", padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "activate", payDates[m.id] ?? today)} disabled={busyMemberId === m.id}>Mark paid / Activate</button>}
                               {m.status !== "cancelled" && <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "cancel")} disabled={busyMemberId === m.id}>Cancel</button>}
                               <button className="mk-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleDeleteMember(m)} disabled={busyMemberId === m.id}>Delete</button>
                             </div>
