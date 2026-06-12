@@ -814,7 +814,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
                   <div className="cat-body">
                     <div className={`cat-tag tag-${cat.category}`}>{labelFor(cat)}</div>
                     <div className="cat-name">{cat.name}</div>
-                    {cat.tagline && <div className="cat-mood">{cat.tagline}</div>}
+                    {cat.tagline && <div className="cat-nick">{cat.tagline}</div>}
                     <p className="cat-desc">{emojify(cat.description).slice(0, 140)}{emojify(cat.description).length > 140 ? "…" : ""}</p>
                   </div>
                 </div>
@@ -844,7 +844,7 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
 
             <div className={`cat-tag tag-${modalCat.category}`}>{labelFor(modalCat)}</div>
             <div className="cat-name" style={{ fontSize: 40, marginTop: 10 }}>{modalCat.name}</div>
-            {modalCat.tagline && <div className="cat-mood" style={{ marginTop: 10 }}>{modalCat.tagline}</div>}
+            {modalCat.tagline && <div className="cat-nick" style={{ marginTop: 12 }}>{modalCat.tagline}</div>}
             <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.8, marginTop: 18, whiteSpace: "pre-wrap" }}>{emojify(modalCat.description)}</p>
 
             {modalCat.whereToFind && (

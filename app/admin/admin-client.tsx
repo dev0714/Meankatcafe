@@ -1151,7 +1151,7 @@ export default function AdminClient() {
                     </select>
                   </label>
                   <label>
-                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Tagline (optional)</div>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Nickname (optional)</div>
                     <input className="mk-input" value={upload.tagline} onChange={(e) => setUpload((c) => ({ ...c, tagline: e.target.value }))} placeholder="The Gentle Giant" />
                   </label>
                   <label>
@@ -1197,7 +1197,7 @@ export default function AdminClient() {
                                     <select className="mk-input" value={catEditForm.category} onChange={(e) => setCatEditForm((f) => ({ ...f, category: e.target.value as CatCategory }))}>
                                       {CAT_CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                     </select>
-                                    <input className="mk-input" value={catEditForm.tagline} onChange={(e) => setCatEditForm((f) => ({ ...f, tagline: e.target.value }))} placeholder="Tagline (e.g. The Gentle Giant)" />
+                                    <input className="mk-input" value={catEditForm.tagline} onChange={(e) => setCatEditForm((f) => ({ ...f, tagline: e.target.value }))} placeholder="Nickname (e.g. The Gentle Giant)" />
                                     <textarea className="mk-input" value={catEditForm.description} onChange={(e) => setCatEditForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description" required style={{ minHeight: 70 }} />
                                     <textarea className="mk-input" value={catEditForm.whereToFind} onChange={(e) => setCatEditForm((f) => ({ ...f, whereToFind: e.target.value }))} placeholder="Where to find me" style={{ minHeight: 50 }} />
                                     <textarea className="mk-input" value={catEditForm.howToMakeHappy} onChange={(e) => setCatEditForm((f) => ({ ...f, howToMakeHappy: e.target.value }))} placeholder="How to make me happy" style={{ minHeight: 50 }} />
