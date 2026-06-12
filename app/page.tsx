@@ -948,6 +948,8 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </section>
 
+      <HoursBar />
+
       <section className="menu-photos-wrap">
         <div className="cafe-menu-inner">
           <div className="cafe-menu-grid">
@@ -1572,6 +1574,8 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
           <p className="page-sub">Reserve your spot with the cats. Pick a day and an available time below — slots are limited, so the cats don&apos;t get overwhelmed.</p>
         </div>
       </section>
+
+      <HoursBar />
 
       <section className="book-section">
         <div className="book-inner">
