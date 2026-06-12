@@ -9,9 +9,11 @@ type RouteContext = { params: Promise<{ id: string }> };
 function mapMember(r: Record<string, unknown>) {
   return {
     id: r.id, name: r.name, email: r.email, phone: r.phone, planId: r.plan_id, planName: r.plan_name,
-    price: r.price, status: r.status, validUntil: r.valid_until, memberCode: r.member_code, notes: r.notes, createdAt: r.created_at,
+    price: r.price, status: r.status, paidDate: r.paid_date, validUntil: r.valid_until, memberCode: r.member_code, notes: r.notes, createdAt: r.created_at,
   };
 }
+
+const isDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const session = await getSessionForArea("members");
@@ -36,14 +38,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       const { data: plan } = await supabase.schema("meankatcafe").from("membership_plans").select("period_months").eq("id", member.plan_id).maybeSingle();
       if (plan?.period_months) period = Number(plan.period_months) || 1;
     }
-    const today = todayInCafeTZ();
-    const base = action === "renew" && member?.valid_until && (member.valid_until as string) > today
+    // The paid date is the exact date proof of payment was received (defaults to today).
+    const paidDate = isDate(body.paidDate) ? body.paidDate : todayInCafeTZ();
+    // Renewals extend from the later of the current expiry or the paid date, so no time is lost.
+    const base = action === "renew" && member?.valid_until && (member.valid_until as string) > paidDate
       ? (member.valid_until as string)
-      : today;
+      : paidDate;
     updates.status = "active";
+    updates.paid_date = paidDate;
     updates.valid_until = addMonths(base, period);
   } else {
     if (typeof body.status === "string" && ["pending", "active", "cancelled"].includes(body.status)) updates.status = body.status;
+    if (isDate(body.paidDate) || body.paidDate === "") updates.paid_date = body.paidDate || null;
     if (typeof body.validUntil === "string") updates.valid_until = body.validUntil || null;
     if (typeof body.notes === "string") updates.notes = body.notes;
   }
@@ -53,7 +59,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("members")
     .update(updates)
     .eq("id", id)
-    .select("id, name, email, phone, plan_id, plan_name, price, status, valid_until, member_code, notes, created_at")
+    .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, created_at")
     .single();
 
   if (error || !data) return NextResponse.json({ error: error?.message ?? "Update failed." }, { status: 500 });
