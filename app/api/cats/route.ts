@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("cats")
-    .select("id, name, description, category, image_path, before_image_path, image_transform, before_image_transform, created_at")
+    .select("id, name, description, category, tagline, where_to_find, how_to_make_happy, image_path, before_image_path, image_transform, before_image_transform, created_at")
     .order("created_at", { ascending: false });
 
   if (error || !data) {
@@ -54,6 +54,9 @@ export async function GET() {
       name: row.name,
       description: row.description,
       category: row.category,
+      tagline: row.tagline,
+      whereToFind: row.where_to_find,
+      howToMakeHappy: row.how_to_make_happy,
       images: images.map((i) => i.url),
       afterImageDbIds: images.map((i) => i.dbId),
       imageTransforms: images.map((i) => i.transform),

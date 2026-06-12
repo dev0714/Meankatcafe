@@ -8,6 +8,9 @@ const uploadSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().min(1).max(2000),
   category: z.enum(["resident", "adoptable", "dual", "tlc", "other"]),
+  tagline: z.string().max(120).optional(),
+  whereToFind: z.string().max(600).optional(),
+  howToMakeHappy: z.string().max(600).optional(),
 });
 
 function sanitizeFileName(name: string) {
@@ -31,6 +34,9 @@ export async function POST(request: Request) {
       name: formData.get("name"),
       description: formData.get("description"),
       category: formData.get("category"),
+      tagline: (formData.get("tagline") as string) || undefined,
+      whereToFind: (formData.get("whereToFind") as string) || undefined,
+      howToMakeHappy: (formData.get("howToMakeHappy") as string) || undefined,
     });
     const image = formData.get("image");
 
@@ -62,10 +68,13 @@ export async function POST(request: Request) {
         name: parsed.data.name,
         description: parsed.data.description,
         category: parsed.data.category,
+        tagline: parsed.data.tagline ?? null,
+        where_to_find: parsed.data.whereToFind ?? null,
+        how_to_make_happy: parsed.data.howToMakeHappy ?? null,
         image_path: filePath,
         created_by: session.userId,
       })
-      .select("id, name, description, category, image_path, created_at")
+      .select("id, name, description, category, tagline, where_to_find, how_to_make_happy, image_path, created_at")
       .single();
 
     if (insertError || !created) {
@@ -81,6 +90,9 @@ export async function POST(request: Request) {
         name: created.name,
         description: created.description,
         category: created.category,
+        tagline: created.tagline,
+        whereToFind: created.where_to_find,
+        howToMakeHappy: created.how_to_make_happy,
         images: [publicUrl],
         createdAt: created.created_at,
       },
