@@ -30,6 +30,14 @@ type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: bo
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
 type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members";
+type SettingsSubTab = "general" | "banner" | "donate" | "help" | "access";
+const SETTINGS_SUBTABS: { key: SettingsSubTab; label: string }[] = [
+  { key: "general", label: "General" },
+  { key: "banner", label: "Announcement" },
+  { key: "donate", label: "Donations" },
+  { key: "help", label: "Foster & Help" },
+  { key: "access", label: "Permissions" },
+];
 type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; paidDate?: string | null; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
@@ -118,6 +126,7 @@ export default function AdminClient() {
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
+  const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("general");
   const [hoursWeek, setHoursWeek] = useState<WeekHours>(DEFAULT_WEEK);
   const [posterUploadingSlot, setPosterUploadingSlot] = useState<string | null>(null);
   const [settingsMsg, setSettingsMsg] = useState("");
@@ -1987,10 +1996,15 @@ export default function AdminClient() {
             </div>
 
             <form onSubmit={handleSaveSettings}>
-              <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+              <div className="sub-tabs" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+                {SETTINGS_SUBTABS.map((t) => (
+                  <button key={t.key} type="button" onClick={() => setSettingsSubTab(t.key)} className={settingsSubTab === t.key ? "mk-primary" : "mk-outline"} style={{ fontSize: 12.5, padding: "8px 16px" }}>{t.label}</button>
+                ))}
+              </div>
 
-                {/* Left column */}
-                <div>
+              <div style={{ maxWidth: 680 }}>
+
+                {settingsSubTab === "general" && (<>
                   {/* Bookings */}
                   <div className="panel" style={{ marginBottom: 20 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📅 Bookings</div>
@@ -2001,26 +2015,76 @@ export default function AdminClient() {
                     </label>
                   </div>
 
-                  {/* Volunteer permissions */}
+                  {/* Entrance Fees */}
                   <div className="panel" style={{ marginBottom: 20 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🙌 Volunteer Permissions</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Choose which admin areas users with the <strong>Volunteer</strong> role can access. (Site Settings, Users and Photos stay admin-only.)</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {VOLUNTEER_AREA_OPTIONS.map((opt) => {
-                        const on = settings.volunteer_permissions.split(",").map((x) => x.trim()).includes(opt.key);
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🎟️ Entrance Fees</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown on the home page fee card and the Menu page notice.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      {[
+                        ["entrance_fee_1_price", "entrance_fee_1_label", "Adult"],
+                        ["entrance_fee_2_price", "entrance_fee_2_label", "Student"],
+                        ["entrance_fee_3_price", "entrance_fee_3_label", "Pensioner"],
+                        ["entrance_fee_4_price", "entrance_fee_4_label", "Child"],
+                      ].map(([priceKey, labelKey, row]) => (
+                        <div key={row} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "14px 16px" }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text, marginBottom: 10 }}>{row}</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10 }}>
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Price</div>
+                              <input className="mk-input" value={settings[priceKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [priceKey]: e.target.value }))} placeholder="R50" />
+                            </label>
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Description</div>
+                              <input className="mk-input" value={settings[labelKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [labelKey]: e.target.value }))} placeholder="Per person" />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div className="panel">
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🕐 Opening Hours</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Drives the hours banner, the Contact page, and which booking times the public can choose. Set a day to closed, or add one or more time blocks (e.g. a split day for prayer).</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {DISPLAY_ORDER.map((idx) => {
+                        const day = hoursWeek[idx];
                         return (
-                          <label key={opt.key} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                            <input type="checkbox" checked={on} onChange={() => toggleVolPerm(opt.key)} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
-                            <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>{opt.label}</div>
-                          </label>
+                          <div key={idx} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "12px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: day.closed ? 0 : 10 }}>
+                              <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{WEEKDAY_FULL[idx]}</div>
+                              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: BRAND.textLight, cursor: "pointer" }}>
+                                <input type="checkbox" checked={day.closed} onChange={(e) => toggleDayClosed(idx, e.target.checked)} style={{ width: 15, height: 15, accentColor: BRAND.purple }} />
+                                Closed
+                              </label>
+                            </div>
+                            {!day.closed && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {day.ranges.map((r, ri) => (
+                                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <input className="mk-input" type="time" value={r.start} onChange={(e) => setRange(idx, ri, { start: e.target.value })} style={{ flex: 1 }} />
+                                    <span style={{ color: BRAND.textLight }}>–</span>
+                                    <input className="mk-input" type="time" value={r.end} onChange={(e) => setRange(idx, ri, { end: e.target.value })} style={{ flex: 1 }} />
+                                    <button type="button" onClick={() => removeRange(idx, ri)} title="Remove this block" style={{ border: "none", background: "transparent", color: BRAND.textLight, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 4px" }}>✕</button>
+                                  </div>
+                                ))}
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button type="button" className="mk-outline" onClick={() => addRange(idx)} style={{ fontSize: 12, padding: "6px 12px" }}>+ Add time block</button>
+                                </div>
+                                <input className="mk-input" value={day.note ?? ""} onChange={(e) => setDayNote(idx, e.target.value)} placeholder="Note (optional) — e.g. Closed 12:00 – 13:30 for prayer" style={{ fontSize: 12.5 }} />
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
-                    <p style={{ fontSize: 11, color: BRAND.textLight, marginTop: 12 }}>Remember to click “Save settings” below.</p>
                   </div>
+                </>)}
 
+                {settingsSubTab === "banner" && (<>
                   {/* Announcement banner */}
-                  <div className="panel" style={{ marginBottom: 20 }}>
+                  <div className="panel">
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📣 Announcement Banner</div>
                     <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The scrolling banner under the nav.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2045,9 +2109,11 @@ export default function AdminClient() {
                       </label>
                     </div>
                   </div>
+                </>)}
 
+                {settingsSubTab === "donate" && (<>
                   {/* Donate / Ways to Give */}
-                  <div className="panel" style={{ marginBottom: 20 }}>
+                  <div className="panel">
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>💜 Donate / Ways to Give</div>
                     <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown in the “Ways to Give” section on the How to Help page. Leave a field blank to hide it.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2079,7 +2145,9 @@ export default function AdminClient() {
                       </label>
                     </div>
                   </div>
+                </>)}
 
+                {settingsSubTab === "help" && (<>
                   {/* Foster network */}
                   <div className="panel" style={{ marginBottom: 20 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🫶 Foster Network</div>
@@ -2131,7 +2199,7 @@ export default function AdminClient() {
                   </div>
 
                   {/* How-to-Help block images (replace the emoji icons) */}
-                  <div className="panel" style={{ marginBottom: 20 }}>
+                  <div className="panel">
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🖼️ How to Help Block Images</div>
                     <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The big image shown next to each section on the How to Help page. Leave empty to keep the emoji.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -2163,76 +2231,27 @@ export default function AdminClient() {
                       })}
                     </div>
                   </div>
+                </>)}
 
-                  {/* Hours */}
+                {settingsSubTab === "access" && (<>
+                  {/* Volunteer permissions */}
                   <div className="panel">
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🕐 Opening Hours</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Drives the hours banner, the Contact page, and which booking times the public can choose. Set a day to closed, or add one or more time blocks (e.g. a split day for prayer).</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {DISPLAY_ORDER.map((idx) => {
-                        const day = hoursWeek[idx];
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🙌 Volunteer Permissions</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Choose which admin areas users with the <strong>Volunteer</strong> role can access. (Site Settings, Users and Photos stay admin-only.)</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {VOLUNTEER_AREA_OPTIONS.map((opt) => {
+                        const on = settings.volunteer_permissions.split(",").map((x) => x.trim()).includes(opt.key);
                         return (
-                          <div key={idx} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "12px 14px" }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: day.closed ? 0 : 10 }}>
-                              <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{WEEKDAY_FULL[idx]}</div>
-                              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: BRAND.textLight, cursor: "pointer" }}>
-                                <input type="checkbox" checked={day.closed} onChange={(e) => toggleDayClosed(idx, e.target.checked)} style={{ width: 15, height: 15, accentColor: BRAND.purple }} />
-                                Closed
-                              </label>
-                            </div>
-                            {!day.closed && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {day.ranges.map((r, ri) => (
-                                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <input className="mk-input" type="time" value={r.start} onChange={(e) => setRange(idx, ri, { start: e.target.value })} style={{ flex: 1 }} />
-                                    <span style={{ color: BRAND.textLight }}>–</span>
-                                    <input className="mk-input" type="time" value={r.end} onChange={(e) => setRange(idx, ri, { end: e.target.value })} style={{ flex: 1 }} />
-                                    <button type="button" onClick={() => removeRange(idx, ri)} title="Remove this block" style={{ border: "none", background: "transparent", color: BRAND.textLight, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 4px" }}>✕</button>
-                                  </div>
-                                ))}
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  <button type="button" className="mk-outline" onClick={() => addRange(idx)} style={{ fontSize: 12, padding: "6px 12px" }}>+ Add time block</button>
-                                </div>
-                                <input className="mk-input" value={day.note ?? ""} onChange={(e) => setDayNote(idx, e.target.value)} placeholder="Note (optional) — e.g. Closed 12:00 – 13:30 for prayer" style={{ fontSize: 12.5 }} />
-                              </div>
-                            )}
-                          </div>
+                          <label key={opt.key} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                            <input type="checkbox" checked={on} onChange={() => toggleVolPerm(opt.key)} style={{ width: 16, height: 16, accentColor: BRAND.purple }} />
+                            <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text }}>{opt.label}</div>
+                          </label>
                         );
                       })}
                     </div>
+                    <p style={{ fontSize: 11, color: BRAND.textLight, marginTop: 12 }}>Remember to click “Save settings” below.</p>
                   </div>
-                </div>
-
-                {/* Right column */}
-                <div>
-                  {/* Entrance Fees */}
-                  <div className="panel">
-                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🎟️ Entrance Fees</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown on the home page fee card and the Menu page notice.</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      {[
-                        ["entrance_fee_1_price", "entrance_fee_1_label", "Adult"],
-                        ["entrance_fee_2_price", "entrance_fee_2_label", "Student"],
-                        ["entrance_fee_3_price", "entrance_fee_3_label", "Pensioner"],
-                        ["entrance_fee_4_price", "entrance_fee_4_label", "Child"],
-                      ].map(([priceKey, labelKey, row]) => (
-                        <div key={row} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "14px 16px" }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: BRAND.text, marginBottom: 10 }}>{row}</div>
-                          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10 }}>
-                            <label>
-                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Price</div>
-                              <input className="mk-input" value={settings[priceKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [priceKey]: e.target.value }))} placeholder="R50" />
-                            </label>
-                            <label>
-                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Description</div>
-                              <input className="mk-input" value={settings[labelKey as keyof SiteSettings]} onChange={(e) => setSettings((s) => ({ ...s, [labelKey]: e.target.value }))} placeholder="Per person" />
-                            </label>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                </>)}
 
               </div>
 
