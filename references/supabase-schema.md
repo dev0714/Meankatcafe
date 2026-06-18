@@ -121,7 +121,7 @@ create table meankatcafe.site_settings (
 );
 ```
 
-Keys: `entrance_fee_1_price`, `entrance_fee_1_label`, `entrance_fee_2_price`, `entrance_fee_2_label`, `entrance_fee_3_price`, `entrance_fee_3_label`, `entrance_fee_4_price`, `entrance_fee_4_label`, `stat_drinks`, `stat_desserts`, `hours_weekday`, `hours_saturday`, `hours_sunday`, `hours_contact_weekday`, `hours_contact_weekend`.
+Keys: `entrance_fee_1_price`, `entrance_fee_1_label`, `entrance_fee_2_price`, `entrance_fee_2_label`, `entrance_fee_3_price`, `entrance_fee_3_label`, `entrance_fee_4_price`, `entrance_fee_4_label`, `stat_drinks`, `stat_desserts`, `opening_hours` (JSON `WeekHours`; see `lib/hours.ts` — drives the hours banner, Contact page, and booking slots).
 
 ### contact_messages
 

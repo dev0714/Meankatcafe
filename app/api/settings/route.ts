@@ -12,11 +12,7 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   entrance_fee_4_label: "Children under 1 year",
   stat_drinks: "30+",
   stat_desserts: "8+",
-  hours_weekday: "Mon – Fri: 8am–6pm",
-  hours_saturday: "Sat: 9am–6pm",
-  hours_sunday: "Sun: 9am–5pm",
-  hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
-  hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
+  opening_hours: "", // JSON: WeekHours (see lib/hours.ts). Empty = DEFAULT_WEEK.
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",

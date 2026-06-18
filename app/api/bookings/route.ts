@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import { slotsForDate, todayInCafeTZ, toMinutes } from "@/lib/hours";
+import { getOpeningWeek } from "@/lib/hours-server";
 import { DEFAULT_BOOKINGS_PER_SLOT } from "@/lib/bookings";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
   if (date < todayInCafeTZ()) {
     return NextResponse.json({ error: "That date has already passed." }, { status: 400 });
   }
-  if (!slotsForDate(date).includes(slot)) {
+  const week = await getOpeningWeek();
+  if (!slotsForDate(week, date).includes(slot)) {
     return NextResponse.json({ error: "We're not open at that time — please pick another slot." }, { status: 400 });
   }
 

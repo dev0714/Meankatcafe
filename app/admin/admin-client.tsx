@@ -7,6 +7,7 @@ import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { compressImage } from "@/lib/compress-image";
+import { DEFAULT_WEEK, parseWeek, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -48,11 +49,7 @@ const SETTINGS_DEFAULTS = {
   entrance_fee_4_label: "Children under 1 year",
   stat_drinks: "30+",
   stat_desserts: "8+",
-  hours_weekday: "Mon – Fri: 8am–6pm",
-  hours_saturday: "Sat: 9am–6pm",
-  hours_sunday: "Sun: 9am–5pm",
-  hours_contact_weekday: "Mon – Fri: 08:00 – 17:00",
-  hours_contact_weekend: "Sat – Sun: 09:00 – 16:00",
+  opening_hours: "", // JSON: WeekHours (see lib/hours.ts). Empty = DEFAULT_WEEK.
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
@@ -121,6 +118,7 @@ export default function AdminClient() {
 
   // --- settings ---
   const [settings, setSettings] = useState<SiteSettings>(SETTINGS_DEFAULTS);
+  const [hoursWeek, setHoursWeek] = useState<WeekHours>(DEFAULT_WEEK);
   const [posterUploadingSlot, setPosterUploadingSlot] = useState<string | null>(null);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -284,7 +282,12 @@ export default function AdminClient() {
     if (!auth.user) return;
     fetch("/api/settings")
       .then((r) => r.ok ? r.json() : null)
-      .then((data: SiteSettings | null) => { if (data) setSettings({ ...SETTINGS_DEFAULTS, ...data }); })
+      .then((data: SiteSettings | null) => {
+        if (data) {
+          setSettings({ ...SETTINGS_DEFAULTS, ...data });
+          setHoursWeek(parseWeek((data as Record<string, string>).opening_hours));
+        }
+      })
       .catch(() => {});
   }, [auth.user]);
 
@@ -915,12 +918,36 @@ export default function AdminClient() {
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
+      body: JSON.stringify({ ...settings, opening_hours: JSON.stringify(hoursWeek) }),
     });
     const data = await res.json().catch(() => ({}));
     setSettingsSaving(false);
     if (!res.ok) { setSettingsMsg(data.error ?? "Save failed."); return; }
     setSettingsMsg("Settings saved successfully.");
+  }
+
+  // --- opening hours editor helpers ---
+  function patchDay(idx: number, fn: (d: DayHours) => DayHours) {
+    setHoursWeek((w) => w.map((d, i) => (i === idx ? fn(d) : d)));
+  }
+  function toggleDayClosed(idx: number, closed: boolean) {
+    patchDay(idx, (d) => ({
+      ...d,
+      closed,
+      ranges: closed ? [] : d.ranges.length ? d.ranges : [{ start: "09:00", end: "17:00" }],
+    }));
+  }
+  function addRange(idx: number) {
+    patchDay(idx, (d) => ({ ...d, ranges: [...d.ranges, { start: "09:00", end: "17:00" }] }));
+  }
+  function removeRange(idx: number, ri: number) {
+    patchDay(idx, (d) => ({ ...d, ranges: d.ranges.filter((_, j) => j !== ri) }));
+  }
+  function setRange(idx: number, ri: number, patch: Partial<TimeRange>) {
+    patchDay(idx, (d) => ({ ...d, ranges: d.ranges.map((r, j) => (j === ri ? { ...r, ...patch } : r)) }));
+  }
+  function setDayNote(idx: number, note: string) {
+    patchDay(idx, (d) => ({ ...d, note: note.trim() ? note : undefined }));
   }
 
   const groupedCats = {
@@ -2140,28 +2167,38 @@ export default function AdminClient() {
                   {/* Hours */}
                   <div className="panel">
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🕐 Opening Hours</div>
-                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown in the footer and on the Contact page.</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday (footer)</div>
-                        <input className="mk-input" value={settings.hours_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_weekday: e.target.value }))} placeholder="Mon – Fri: 8am–6pm" />
-                      </label>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Saturday (footer)</div>
-                        <input className="mk-input" value={settings.hours_saturday} onChange={(e) => setSettings((s) => ({ ...s, hours_saturday: e.target.value }))} placeholder="Sat: 9am–6pm" />
-                      </label>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Sunday (footer)</div>
-                        <input className="mk-input" value={settings.hours_sunday} onChange={(e) => setSettings((s) => ({ ...s, hours_sunday: e.target.value }))} placeholder="Sun: 9am–5pm" />
-                      </label>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekday line (contact page)</div>
-                        <input className="mk-input" value={settings.hours_contact_weekday} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekday: e.target.value }))} placeholder="Mon – Fri: 08:00 – 17:00" />
-                      </label>
-                      <label>
-                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Weekend line (contact page)</div>
-                        <input className="mk-input" value={settings.hours_contact_weekend} onChange={(e) => setSettings((s) => ({ ...s, hours_contact_weekend: e.target.value }))} placeholder="Sat – Sun: 09:00 – 16:00" />
-                      </label>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Drives the hours banner, the Contact page, and which booking times the public can choose. Set a day to closed, or add one or more time blocks (e.g. a split day for prayer).</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {DISPLAY_ORDER.map((idx) => {
+                        const day = hoursWeek[idx];
+                        return (
+                          <div key={idx} style={{ background: `${BRAND.purple}08`, borderRadius: 10, padding: "12px 14px" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: day.closed ? 0 : 10 }}>
+                              <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{WEEKDAY_FULL[idx]}</div>
+                              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: BRAND.textLight, cursor: "pointer" }}>
+                                <input type="checkbox" checked={day.closed} onChange={(e) => toggleDayClosed(idx, e.target.checked)} style={{ width: 15, height: 15, accentColor: BRAND.purple }} />
+                                Closed
+                              </label>
+                            </div>
+                            {!day.closed && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {day.ranges.map((r, ri) => (
+                                  <div key={ri} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <input className="mk-input" type="time" value={r.start} onChange={(e) => setRange(idx, ri, { start: e.target.value })} style={{ flex: 1 }} />
+                                    <span style={{ color: BRAND.textLight }}>–</span>
+                                    <input className="mk-input" type="time" value={r.end} onChange={(e) => setRange(idx, ri, { end: e.target.value })} style={{ flex: 1 }} />
+                                    <button type="button" onClick={() => removeRange(idx, ri)} title="Remove this block" style={{ border: "none", background: "transparent", color: BRAND.textLight, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 4px" }}>✕</button>
+                                  </div>
+                                ))}
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button type="button" className="mk-outline" onClick={() => addRange(idx)} style={{ fontSize: 12, padding: "6px 12px" }}>+ Add time block</button>
+                                </div>
+                                <input className="mk-input" value={day.note ?? ""} onChange={(e) => setDayNote(idx, e.target.value)} placeholder="Note (optional) — e.g. Closed 12:00 – 13:30 for prayer" style={{ fontSize: 12.5 }} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

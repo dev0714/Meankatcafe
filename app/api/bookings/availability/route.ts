@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import { slotsForDate, toMinutes } from "@/lib/hours";
+import { getOpeningWeek } from "@/lib/hours-server";
 import { DEFAULT_BOOKINGS_PER_SLOT, type DayAvailability } from "@/lib/bookings";
 
 export async function GET(request: Request) {
@@ -11,7 +12,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "A valid ?date=YYYY-MM-DD is required." }, { status: 400 });
   }
 
-  const slots = slotsForDate(date);
+  const week = await getOpeningWeek();
+  const slots = slotsForDate(week, date);
   const open = slots.length > 0;
 
   // No backend → everything looks fully open (preview / local).

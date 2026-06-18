@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { type CatCard } from "@/lib/cats";
 import { emojify } from "@/lib/emojify";
 import { transformToStyle } from "@/lib/image-transform";
-import { todayInCafeTZ } from "@/lib/hours";
+import { todayInCafeTZ, parseWeek, groupWeek, DEFAULT_WEEK, type WeekHours } from "@/lib/hours";
 import { slotForCta, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { isMemberActive, type MembershipPlan } from "@/lib/membership";
 import type { DayAvailability } from "@/lib/bookings";
@@ -53,13 +53,6 @@ const ENTRANCE_FEES: Array<[string, string]> = [
   ["Free", "Children under 1 year"],
 ];
 
-const HOURS: Array<[string, string]> = [
-  ["MON", "CLOSED"],
-  ["TUE – THU", "09:00 – 17:00"],
-  ["FRI", "09:00 – 12:00 / 13:30 – 22:00"],
-  ["SAT", "09:00 – 22:00"],
-  ["SUN", "09:00 – 17:00"],
-];
 
 const PILLARS = [
   {
@@ -339,13 +332,27 @@ function Announcement() {
   );
 }
 
+function useOpeningHours(): WeekHours {
+  const [week, setWeek] = useState<WeekHours>(DEFAULT_WEEK);
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => {
+        if (d && typeof d.opening_hours === "string") setWeek(parseWeek(d.opening_hours));
+      })
+      .catch(() => {});
+  }, []);
+  return week;
+}
+
 function HoursBar() {
+  const groups = groupWeek(useOpeningHours());
   return (
     <div className="hours-bar">
-      {HOURS.map(([d, t], i) => (
-        <span key={d}>
-          <strong>{d}:</strong> {t}
-          {i < HOURS.length - 1 && <span className="sep">|</span>}
+      {groups.map((g, i) => (
+        <span key={i}>
+          <strong>{g.label.toUpperCase()}:</strong> {g.value.toUpperCase()}
+          {i < groups.length - 1 && <span className="sep">|</span>}
         </span>
       ))}
     </div>
@@ -1886,6 +1893,7 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const hoursGroups = groupWeek(useOpeningHours());
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1949,7 +1957,14 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
               <div className="contact-info-icon">⏰</div>
               <div>
                 <div className="contact-label">Opening hours</div>
-                <div className="contact-value">Mon: closed<br />Tue – Thu: 09:00 – 17:00<br />Fri: 09:00 – 12:00 / 13:30 – 22:00<br />Sat: 09:00 – 22:00<br />Sun: 09:00 – 12:00</div>
+                <div className="contact-value">
+                  {hoursGroups.map((g, i) => (
+                    <div key={i}>
+                      {g.label}: {g.value}
+                      {g.note && <span style={{ color: "var(--ink-soft)", fontStyle: "italic" }}> ({g.note})</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="contact-info-row">
