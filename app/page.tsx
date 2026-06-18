@@ -534,7 +534,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
             <div className="tagline">
               Stay because a cat <br />
               <span className="accent">sat on your lap</span> &amp; now <br />
-              you legally can&rsquo;t leave.
+              you legally cant leave.
             </div>
             <button className="btn btn-purple" onClick={() => setPage("Book")}>Book a Visit</button>
           </div>
