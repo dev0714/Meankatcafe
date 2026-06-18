@@ -7,7 +7,7 @@ import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { compressImage } from "@/lib/compress-image";
-import { DEFAULT_WEEK, parseWeek, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
+import { DEFAULT_WEEK, parseWeek, slotsForDate, CAFE_TZ, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -40,7 +40,7 @@ const SETTINGS_SUBTABS: { key: SettingsSubTab; label: string }[] = [
 ];
 type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; paidDate?: string | null; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
-type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; status: string; createdAt: string };
+type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; actualPartySize?: number | null; arrivedAt?: string | null; status: string; createdAt: string };
 type AdminBlock = { id: string; date: string; startTime: string; endTime: string; title: string; price?: string | null; notes?: string | null };
 type AdminEvent = { id: string; title: string; description: string; date: string; time?: string; imageUrl?: string | null; createdAt: string };
 type AdminUser = { id: string; email: string; is_admin: boolean; is_approved: boolean; role: UserRole; created_at: string };
@@ -102,6 +102,15 @@ const emptyUpload: CatFields = {
   whereToFind: "",
   howToMakeHappy: "",
 };
+
+// Clock time (HH:MM) in the café timezone for an ISO timestamp.
+function fmtClock(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: CAFE_TZ });
+}
+// One hour after the given timestamp — when a guest's hour is up.
+function plusHourClock(iso: string) {
+  return new Date(new Date(iso).getTime() + 3600000).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: CAFE_TZ });
+}
 
 export default function AdminClient() {
   const [auth, setAuth] = useState<AuthState>({ loading: true, user: null, error: "" });
@@ -165,6 +174,13 @@ export default function AdminClient() {
   const [bookingMonth, setBookingMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
   const [selectedBookingDate, setSelectedBookingDate] = useState<string | null>(null);
   const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
+  const [arrivingBookingId, setArrivingBookingId] = useState<string | null>(null);
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [bookingEditForm, setBookingEditForm] = useState({ name: "", phone: "", partySize: "1", actualPartySize: "" });
+  const [bookingEditSaving, setBookingEditSaving] = useState(false);
+  const [newBooking, setNewBooking] = useState({ slot: "", name: "", phone: "", email: "", partySize: "1" });
+  const [bookingAddSaving, setBookingAddSaving] = useState(false);
+  const [bookingAddMsg, setBookingAddMsg] = useState("");
 
   const [blocks, setBlocks] = useState<AdminBlock[]>([]);
   const [newBlock, setNewBlock] = useState({ date: "", startTime: "", endTime: "", title: "", price: "", notes: "" });
@@ -787,6 +803,65 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/bookings/${b.id}`, { method: "DELETE" });
     if (res.ok) setBookings((bs) => bs.filter((x) => x.id !== b.id));
     setDeletingBookingId(null);
+  }
+
+  async function patchBooking(id: string, patch: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.booking) {
+      setBookings((bs) => bs.map((x) => (x.id === id ? data.booking : x)));
+      return true;
+    }
+    return false;
+  }
+
+  async function handleToggleArrived(b: AdminBooking) {
+    setArrivingBookingId(b.id);
+    await patchBooking(b.id, { arrived: !b.arrivedAt });
+    setArrivingBookingId(null);
+  }
+
+  function handleStartEditBooking(b: AdminBooking) {
+    setEditingBookingId(b.id);
+    setBookingEditForm({
+      name: b.name,
+      phone: b.phone ?? "",
+      partySize: String(b.partySize),
+      actualPartySize: b.actualPartySize != null ? String(b.actualPartySize) : "",
+    });
+  }
+
+  async function handleSaveBooking(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    setBookingEditSaving(true);
+    const ok = await patchBooking(id, {
+      name: bookingEditForm.name,
+      phone: bookingEditForm.phone,
+      partySize: bookingEditForm.partySize,
+      actualPartySize: bookingEditForm.actualPartySize === "" ? null : bookingEditForm.actualPartySize,
+    });
+    setBookingEditSaving(false);
+    if (ok) setEditingBookingId(null);
+  }
+
+  async function handleAddBooking(e: FormEvent<HTMLFormElement>, date: string) {
+    e.preventDefault();
+    setBookingAddSaving(true); setBookingAddMsg("");
+    const res = await fetch("/api/admin/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...newBooking, date }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBookingAddSaving(false);
+    if (!res.ok) { setBookingAddMsg(data.error ?? "Could not add booking."); return; }
+    setBookings((bs) => [...bs, data.booking]);
+    setNewBooking({ slot: "", name: "", phone: "", email: "", partySize: "1" });
+    setBookingAddMsg(data.offHours ? "Booked in (note: outside posted opening hours)." : "Booked in.");
   }
 
   async function handleCreateBlock(e: FormEvent<HTMLFormElement>) {
@@ -1695,26 +1770,107 @@ export default function AdminClient() {
                     {selectedBookingDate ? new Date(`${selectedBookingDate}T00:00:00Z`).toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : "Select a day"}
                   </div>
                   {!selectedBookingDate ? (
-                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>Pick a day on the calendar to see its bookings.</div>
-                  ) : selectedList.length === 0 ? (
-                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>No bookings for this day.</div>
+                    <div style={{ color: BRAND.textLight, fontSize: 14 }}>Pick a day on the calendar to see and manage its bookings.</div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {selectedList.map((b) => (
-                        <div key={b.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 10, padding: "10px 12px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                          <div style={{ textAlign: "center", minWidth: 52, background: `${BRAND.yellow}33`, border: `2px solid ${BRAND.yellow}`, borderRadius: 8, padding: "6px 4px", flexShrink: 0 }}>
-                            <div style={{ fontWeight: 900, fontSize: 13, color: BRAND.text }}>{b.slot}</div>
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{b.name} · {b.partySize} {b.partySize === 1 ? "guest" : "guests"}</div>
-                            <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{b.email}{b.phone ? ` · ${b.phone}` : ""}</div>
-                          </div>
-                          <button className="mk-danger" onClick={() => handleDeleteBooking(b)} disabled={deletingBookingId === b.id} style={{ flexShrink: 0 }}>
-                            {deletingBookingId === b.id ? "…" : "Cancel"}
-                          </button>
+                    <>
+                      {selectedList.length === 0 ? (
+                        <div style={{ color: BRAND.textLight, fontSize: 14, marginBottom: 18 }}>No bookings for this day yet.</div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+                          {selectedList.map((b) => {
+                            const arrived = !!b.arrivedAt;
+                            const present = b.actualPartySize != null ? b.actualPartySize : b.partySize;
+                            const isEditing = editingBookingId === b.id;
+                            return (
+                              <div key={b.id} style={{ border: `1.5px solid ${arrived ? "#bbf7d0" : BRAND.purpleLight}`, borderRadius: 10, padding: "10px 12px", background: arrived ? "#f0fdf4" : BRAND.white, opacity: arrived ? 0.78 : 1 }}>
+                                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                                  <div style={{ textAlign: "center", minWidth: 52, background: `${BRAND.yellow}33`, border: `2px solid ${BRAND.yellow}`, borderRadius: 8, padding: "6px 4px", flexShrink: 0 }}>
+                                    <div style={{ fontWeight: 900, fontSize: 13, color: BRAND.text }}>{b.slot}</div>
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, textDecoration: arrived ? "line-through" : "none" }}>
+                                      {b.name} · {present} {present === 1 ? "guest" : "guests"}
+                                      {b.actualPartySize != null && b.actualPartySize !== b.partySize && (
+                                        <span style={{ fontWeight: 600, color: BRAND.textLight }}> (booked {b.partySize})</span>
+                                      )}
+                                    </div>
+                                    {(b.email || b.phone) && <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{b.email}{b.email && b.phone ? " · " : ""}{b.phone}</div>}
+                                    {arrived && (
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", marginTop: 3 }}>
+                                        ✓ Arrived {fmtClock(b.arrivedAt!)} · hour up {plusHourClock(b.arrivedAt!)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {isEditing ? (
+                                  <form onSubmit={(e) => handleSaveBooking(e, b.id)} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                                    <input className="mk-input" value={bookingEditForm.name} onChange={(e) => setBookingEditForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name" required />
+                                    <input className="mk-input" value={bookingEditForm.phone} onChange={(e) => setBookingEditForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Phone (optional)" />
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                      <label style={{ flex: 1 }}>
+                                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Booked</div>
+                                        <input className="mk-input" type="number" min={1} value={bookingEditForm.partySize} onChange={(e) => setBookingEditForm((f) => ({ ...f, partySize: e.target.value }))} />
+                                      </label>
+                                      <label style={{ flex: 1 }}>
+                                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Actually present</div>
+                                        <input className="mk-input" type="number" min={0} value={bookingEditForm.actualPartySize} onChange={(e) => setBookingEditForm((f) => ({ ...f, actualPartySize: e.target.value }))} placeholder="—" />
+                                      </label>
+                                    </div>
+                                    <div style={{ display: "flex", gap: 6 }}>
+                                      <button className="mk-primary" type="submit" disabled={bookingEditSaving} style={{ flex: 1 }}>{bookingEditSaving ? "Saving…" : "Save"}</button>
+                                      <button className="mk-outline" type="button" onClick={() => setEditingBookingId(null)} style={{ flex: 1 }}>Cancel</button>
+                                    </div>
+                                  </form>
+                                ) : (
+                                  <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+                                    <button type="button" className={arrived ? "mk-outline" : "mk-primary"} onClick={() => handleToggleArrived(b)} disabled={arrivingBookingId === b.id} style={{ fontSize: 12, padding: "6px 12px" }}>
+                                      {arrivingBookingId === b.id ? "…" : arrived ? "Undo arrival" : "✓ Mark arrived"}
+                                    </button>
+                                    <button type="button" className="mk-outline" onClick={() => handleStartEditBooking(b)} style={{ fontSize: 12, padding: "6px 12px" }}>Edit / head count</button>
+                                    <button type="button" className="mk-danger" onClick={() => handleDeleteBooking(b)} disabled={deletingBookingId === b.id} style={{ fontSize: 12, padding: "6px 12px", marginLeft: "auto" }}>
+                                      {deletingBookingId === b.id ? "…" : "Cancel"}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                      )}
+
+                      {/* Manual booking (walk-ins / phone bookings) */}
+                      <div style={{ borderTop: `1.5px dashed ${BRAND.purpleLight}`, paddingTop: 16 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.purple, marginBottom: 10 }}>➕ Book someone in</div>
+                        <form onSubmit={(e) => handleAddBooking(e, selectedBookingDate)} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <label style={{ flex: 1 }}>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Time</div>
+                              {(() => {
+                                const daySlots = slotsForDate(hoursWeek, selectedBookingDate);
+                                return daySlots.length > 0 ? (
+                                  <select className="mk-input" value={newBooking.slot} onChange={(e) => setNewBooking((v) => ({ ...v, slot: e.target.value }))} required>
+                                    <option value="">Pick…</option>
+                                    {daySlots.map((s) => <option key={s} value={s}>{s}</option>)}
+                                  </select>
+                                ) : (
+                                  <input className="mk-input" type="time" value={newBooking.slot} onChange={(e) => setNewBooking((v) => ({ ...v, slot: e.target.value }))} required />
+                                );
+                              })()}
+                            </label>
+                            <label style={{ width: 90 }}>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 4, fontSize: 10 }}>Guests</div>
+                              <input className="mk-input" type="number" min={1} value={newBooking.partySize} onChange={(e) => setNewBooking((v) => ({ ...v, partySize: e.target.value }))} required />
+                            </label>
+                          </div>
+                          <input className="mk-input" value={newBooking.name} onChange={(e) => setNewBooking((v) => ({ ...v, name: e.target.value }))} placeholder="Name" required />
+                          <input className="mk-input" value={newBooking.phone} onChange={(e) => setNewBooking((v) => ({ ...v, phone: e.target.value }))} placeholder="Phone (optional)" />
+                          <input className="mk-input" type="email" value={newBooking.email} onChange={(e) => setNewBooking((v) => ({ ...v, email: e.target.value }))} placeholder="Email (optional)" />
+                          {bookingAddMsg && <div style={{ fontSize: 12, fontWeight: 700, color: bookingAddMsg.startsWith("Booked") ? "#16a34a" : "#b42318" }}>{bookingAddMsg}</div>}
+                          <button className="mk-primary" type="submit" disabled={bookingAddSaving}>{bookingAddSaving ? "Adding…" : "Add booking"}</button>
+                        </form>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
