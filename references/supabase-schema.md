@@ -195,6 +195,8 @@ create table meankatcafe.bookings (
   email text not null,
   phone text,
   party_size integer not null default 1,
+  actual_party_size integer,          -- true head count recorded by volunteers (null = use party_size)
+  arrived_at timestamptz,             -- check-in time stamped when a guest is marked arrived (null = not arrived)
   status text not null default 'confirmed' check (status in ('confirmed','cancelled')),
   created_at timestamptz not null default now()
 );
