@@ -51,20 +51,25 @@ export async function GET(request: Request) {
   const to = searchParams.get("to");
 
   const supabase = getSupabaseAdminClient();
-  let query = supabase
-    .schema("meankatcafe")
-    .from("bookings")
-    .select(SELECT)
-    .eq("status", "confirmed");
+  const run = (cols: string) => {
+    let query = supabase
+      .schema("meankatcafe")
+      .from("bookings")
+      .select(cols)
+      .eq("status", "confirmed");
+    if (from) query = query.gte("date", from);
+    if (to) query = query.lte("date", to);
+    return query.order("date", { ascending: true }).order("slot", { ascending: true });
+  };
 
-  if (from) query = query.gte("date", from);
-  if (to) query = query.lte("date", to);
-
-  const { data, error } = await query.order("date", { ascending: true }).order("slot", { ascending: true });
-
+  let { data, error } = await run(SELECT);
+  // Fallback for before the arrived_at / actual_party_size migration is run.
+  if (error) {
+    ({ data, error } = await run("id, date, slot, name, email, phone, party_size, status, created_at"));
+  }
   if (error || !data) return NextResponse.json([]);
 
-  return NextResponse.json((data as Row[]).map(mapBooking));
+  return NextResponse.json((data as unknown as Row[]).map(mapBooking));
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
