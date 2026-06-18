@@ -267,7 +267,7 @@ export default function AdminClient() {
 
   useEffect(() => {
     if (!auth.user) return;
-    fetch("/api/cats")
+    fetch("/api/cats?all=1")
       .then((r) => r.ok ? r.json() : [])
       .then((data: CatCard[]) => setCats(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -424,6 +424,21 @@ export default function AdminClient() {
     setCats((c) => c.filter((x) => x.id !== cat.id));
     setCatMsg(data.warning ?? "Cat removed.");
     setDeletingCatId(null);
+  }
+
+  async function handleToggleHiddenCat(cat: CatCard) {
+    const hidden = !cat.hidden;
+    setCats((c) => c.map((x) => (x.id === cat.id ? { ...x, hidden } : x)));
+    const res = await fetch(`/api/admin/cats/${cat.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: { hidden } }),
+    });
+    if (!res.ok) {
+      // Revert on failure.
+      setCats((c) => c.map((x) => (x.id === cat.id ? { ...x, hidden: !hidden } : x)));
+      setCatMsg("Could not update visibility.");
+    }
   }
 
   function handleStartEditCat(cat: CatCard) {
@@ -1295,10 +1310,13 @@ export default function AdminClient() {
                       ? <div style={{ color: BRAND.textLight, fontSize: 14 }}>No cats in this group yet.</div>
                       : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
                           {items.map((cat) => (
-                            <div key={cat.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, overflow: "hidden", background: BRAND.white }}>
+                            <div key={cat.id} style={{ border: cat.hidden ? `1.5px dashed ${BRAND.purple}` : `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, overflow: "hidden", background: cat.hidden ? `${BRAND.purple}0c` : BRAND.white }}>
                               {cat.images?.[0] && (
-                                <div style={{ width: "100%", height: 120, overflow: "hidden", display: "block", background: BRAND.purpleLight }}>
-                                  <img src={cat.images[0]} alt={cat.name} style={transformToStyle(cat.imageTransforms?.[0])} />
+                                <div style={{ position: "relative", width: "100%", height: 120, overflow: "hidden", display: "block", background: BRAND.purpleLight }}>
+                                  <img src={cat.images[0]} alt={cat.name} style={{ ...transformToStyle(cat.imageTransforms?.[0]), opacity: cat.hidden ? 0.5 : 1 }} />
+                                  {cat.hidden && (
+                                    <div style={{ position: "absolute", top: 8, left: 8, background: BRAND.purpleDark, color: "white", fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", padding: "3px 8px", borderRadius: 999 }}>🚫 Hidden</div>
+                                  )}
                                 </div>
                               )}
                               <div style={{ padding: 12 }}>
@@ -1391,9 +1409,12 @@ export default function AdminClient() {
                                   </div>
                                 )}
 
-                                <div style={{ display: "flex", gap: 6 }}>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                   <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleStartEditCat(cat)}>Edit details</button>
-                                  <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id}>
+                                  <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleToggleHiddenCat(cat)} title={cat.hidden ? "Show on the public site" : "Hide from the public site (keeps the profile)"}>
+                                    {cat.hidden ? "👁 Show" : "🙈 Hide"}
+                                  </button>
+                                  <button className="mk-danger" onClick={() => handleDeleteCat(cat)} disabled={deletingCatId === cat.id} style={{ marginLeft: "auto" }}>
                                     {deletingCatId === cat.id ? "Removing…" : "Remove"}
                                   </button>
                                 </div>

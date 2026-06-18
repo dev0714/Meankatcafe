@@ -22,6 +22,7 @@ export type CatCard = {
   beforeImages?: string[];
   beforeImageDbIds?: (string | null)[];
   beforeImageTransforms?: (ImageTransform | null)[];
+  hidden?: boolean;
   createdAt?: string;
 };
 
