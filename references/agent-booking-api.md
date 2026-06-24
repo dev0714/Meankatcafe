@@ -20,7 +20,7 @@ platform. Rotate by changing that env var (no code change needed).
 ## Base URL
 
 ```
-https://<your-site-domain>/api/agent/bookings
+https://meankatcafe.co.za/api/agent/bookings
 ```
 
 ## 1. Check availability
@@ -28,7 +28,7 @@ https://<your-site-domain>/api/agent/bookings
 `GET /api/agent/bookings?date=YYYY-MM-DD`
 
 ```bash
-curl -s "https://<your-site-domain>/api/agent/bookings?date=2026-07-01" \
+curl -s "https://meankatcafe.co.za/api/agent/bookings?date=2026-07-01" \
   -H "Authorization: Bearer $BOOKING_API_KEY"
 ```
 
@@ -63,7 +63,7 @@ Pick any slot where `remaining > 0` and `blocked` is false.
 | phone      | string | no       | free text                      |
 
 ```bash
-curl -s -X POST "https://<your-site-domain>/api/agent/bookings" \
+curl -s -X POST "https://meankatcafe.co.za/api/agent/bookings" \
   -H "Authorization: Bearer $BOOKING_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
