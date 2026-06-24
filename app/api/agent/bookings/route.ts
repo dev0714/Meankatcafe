@@ -71,17 +71,35 @@ async function dayAvailability(date: string, week: WeekHours): Promise<DayAvaila
     return blockRanges.some(([s, e]) => t >= s && t < e);
   };
 
+  const slotInfos = slots.map((slot) => {
+    const booked = counts.get(slot) ?? 0;
+    const blocked = isBlocked(slot);
+    return { slot, booked, remaining: blocked ? 0 : Math.max(0, limit - booked), blocked };
+  });
+
   return {
     date,
     open,
     limit,
     totalBooked: rows?.length ?? 0,
-    slots: slots.map((slot) => {
-      const booked = counts.get(slot) ?? 0;
-      const blocked = isBlocked(slot);
-      return { slot, booked, remaining: blocked ? 0 : Math.max(0, limit - booked), blocked };
-    }),
+    slots: slotInfos,
+    availableSlots: slotInfos.filter((s) => s.remaining > 0).map((s) => s.slot),
   };
+}
+
+// Iterate YYYY-MM-DD strings inclusively, timezone-independent.
+function eachDate(from: string, to: string): string[] {
+  const out: string[] = [];
+  const [fy, fm, fd] = from.split("-").map(Number);
+  const [ty, tm, td] = to.split("-").map(Number);
+  let cur = Date.UTC(fy, fm - 1, fd);
+  const end = Date.UTC(ty, tm - 1, td);
+  while (cur <= end) {
+    const d = new Date(cur);
+    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
+    cur += 86400000;
+  }
+  return out;
 }
 
 export async function GET(request: Request) {
@@ -90,15 +108,36 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const date = (searchParams.get("date") ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: "A valid ?date=YYYY-MM-DD is required." }, { status: 400 });
-  }
+  const from = (searchParams.get("from") ?? "").trim();
+  const to = (searchParams.get("to") ?? "").trim();
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: "No backend configured." }, { status: 503 });
   }
 
   const week = await getOpeningWeek();
+
+  // Range mode: ?from=YYYY-MM-DD&to=YYYY-MM-DD → availability for each day.
+  if (from || to) {
+    if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
+      return NextResponse.json({ error: "from and to must both be YYYY-MM-DD." }, { status: 400 });
+    }
+    if (to < from) {
+      return NextResponse.json({ error: "to must be on or after from." }, { status: 400 });
+    }
+    const dates = eachDate(from, to);
+    if (dates.length > 62) {
+      return NextResponse.json({ error: "Range too large — max 62 days." }, { status: 400 });
+    }
+    const days = await Promise.all(dates.map((d) => dayAvailability(d, week)));
+    return NextResponse.json({ from, to, days });
+  }
+
+  // Single-day mode: ?date=YYYY-MM-DD
+  if (!DATE_RE.test(date)) {
+    return NextResponse.json({ error: "Provide ?date=YYYY-MM-DD, or ?from=…&to=… for a range." }, { status: 400 });
+  }
   return NextResponse.json(await dayAvailability(date, week));
 }
 

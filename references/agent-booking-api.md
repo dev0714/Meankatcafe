@@ -43,11 +43,40 @@ Response:
   "slots": [
     { "slot": "09:00", "booked": 0, "remaining": 6, "blocked": false },
     { "slot": "10:00", "booked": 2, "remaining": 4, "blocked": false }
+  ],
+  "availableSlots": ["09:00", "10:00"]
+}
+```
+
+`availableSlots` is the convenience list of bookable times — just pick one
+from it. (Equivalent to every slot where `remaining > 0` and `blocked` is
+false. An empty array / `open: false` means the café is closed or fully
+booked that day.)
+
+### Scan a date range for openings
+
+`GET /api/agent/bookings?from=YYYY-MM-DD&to=YYYY-MM-DD` (max 62 days)
+
+```bash
+curl -s "https://meankatcafe.co.za/api/agent/bookings?from=2026-07-01&to=2026-07-07" \
+  -H "Authorization: Bearer $BOOKING_API_KEY"
+```
+
+Returns one entry per day, each in the same shape as the single-day response:
+
+```json
+{
+  "from": "2026-07-01",
+  "to": "2026-07-07",
+  "days": [
+    { "date": "2026-07-01", "open": true,  "availableSlots": ["09:00", "10:00"], "slots": [ ... ] },
+    { "date": "2026-07-02", "open": false, "availableSlots": [], "slots": [] }
   ]
 }
 ```
 
-Pick any slot where `remaining > 0` and `blocked` is false.
+Use this when the agent needs to find the next free time across several days,
+then call the create endpoint with a `date` + `slot` from `availableSlots`.
 
 ## 2. Create a booking
 

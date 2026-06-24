@@ -27,4 +27,5 @@ export type DayAvailability = {
   limit: number;
   totalBooked: number;
   slots: SlotAvailability[];
+  availableSlots?: string[]; // just the bookable times (remaining > 0, not blocked)
 };
