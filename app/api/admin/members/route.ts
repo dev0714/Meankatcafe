@@ -19,6 +19,8 @@ function mapMember(r: Record<string, unknown>) {
     validUntil: r.valid_until,
     memberCode: r.member_code,
     notes: r.notes,
+    memberNames: r.member_names,
+    extraMembers: r.extra_members,
     createdAt: r.created_at,
   };
 }
@@ -35,7 +37,7 @@ export async function GET() {
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("members")
-    .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, created_at")
+    .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, member_names, extra_members, created_at")
     .order("created_at", { ascending: false });
 
   if (error || !data) return NextResponse.json([]);
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
       .schema("meankatcafe")
       .from("members")
       .insert({ name, email, phone: phone || null, plan_id: planId || null, plan_name: planName, price, status: "pending", member_code })
-      .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, created_at")
+      .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, member_names, extra_members, created_at")
       .single();
     if (!error && data) return NextResponse.json({ ok: true, member: mapMember(data) });
     if (!error?.message.toLowerCase().includes("unique") || !error.message.includes("member_code")) {

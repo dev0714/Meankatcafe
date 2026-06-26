@@ -9,7 +9,7 @@ export async function GET() {
   const { data, error } = await supabase
     .schema("meankatcafe")
     .from("membership_plans")
-    .select("id, name, price, period_months, description, active, display_order")
+    .select("id, name, price, period_months, description, active, display_order, max_members, extra_member_price")
     .eq("active", true)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -24,6 +24,8 @@ export async function GET() {
       description: p.description,
       active: p.active,
       displayOrder: p.display_order,
+      maxMembers: p.max_members ?? 1,
+      extraMemberPrice: p.extra_member_price,
     }))
   );
 }
