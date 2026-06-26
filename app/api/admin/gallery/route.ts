@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
-const ALLOWED = ["about", "home2"];
+const ALLOWED = ["about", "home2", "membership"];
 
 export async function POST(request: Request) {
   const session = await getSession();
