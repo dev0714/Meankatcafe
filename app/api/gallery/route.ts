@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
 
-const ALLOWED = ["about", "home2"];
+const ALLOWED = ["about", "home2", "membership"];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
