@@ -6,6 +6,8 @@ export type MembershipPlan = {
   description?: string | null;
   active: boolean;
   displayOrder: number;
+  maxMembers: number; // names included in the plan (1 = individual; >1 = family)
+  extraMemberPrice?: string | null; // e.g. "R150" — charged per member beyond maxMembers
 };
 
 export type MemberStatus = "pending" | "active" | "cancelled";
@@ -22,6 +24,8 @@ export type Member = {
   validUntil?: string | null; // YYYY-MM-DD
   memberCode: string;
   notes?: string | null;
+  memberNames?: string[] | null; // family member names (family plans)
+  extraMembers?: number; // paid members beyond the plan's included count
   createdAt?: string;
 };
 

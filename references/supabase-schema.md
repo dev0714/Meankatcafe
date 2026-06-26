@@ -221,6 +221,8 @@ create table meankatcafe.membership_plans (
   period_months integer not null default 1,
   description text, active boolean not null default true,
   display_order integer not null default 0,
+  max_members integer not null default 1,   -- names included (1 = individual; >1 = family, e.g. Colony Cats = 4)
+  extra_member_price text,                   -- per extra member beyond max_members, e.g. "R150"
   created_at timestamptz not null default now()
 );
 create table meankatcafe.members (
@@ -230,6 +232,8 @@ create table meankatcafe.members (
   plan_name text, price text,
   status text not null default 'pending' check (status in ('pending','active','cancelled')),
   valid_until date, member_code text not null unique, notes text,
+  member_names jsonb,                         -- family member names (family plans)
+  extra_members integer not null default 0,   -- paid members beyond the plan's included count
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 ```

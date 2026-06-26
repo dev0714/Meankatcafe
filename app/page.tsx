@@ -1371,6 +1371,8 @@ type MemberStatusResult = {
 function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [form, setForm] = useState({ name: "", email: "", phone: "", planId: "" });
+  const [familyNames, setFamilyNames] = useState<string[]>([]);
+  const [graphic, setGraphic] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
@@ -1387,21 +1389,36 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
         if (data.length > 0) setForm((f) => ({ ...f, planId: data[0].id }));
       })
       .catch(() => {});
+    fetch("/api/gallery?section=membership")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((imgs: MenuImage[]) => { if (imgs && imgs.length > 0) setGraphic(imgs[0].url); })
+      .catch(() => {});
   }, []);
+
+  const selectedPlan = plans.find((p) => p.id === form.planId);
+  const maxMembers = selectedPlan?.maxMembers ?? 1;
+  const isFamily = maxMembers > 1;
+  const extraPrice = selectedPlan?.extraMemberPrice ?? "R150";
+  // Members beyond the main applicant. Included free slots = maxMembers - 1.
+  const extraCount = Math.max(0, familyNames.filter((n) => n.trim()).length - (maxMembers - 1));
 
   const apply = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSending(true);
     try {
+      const memberNames = isFamily
+        ? [form.name, ...familyNames].map((n) => n.trim()).filter(Boolean)
+        : [];
       const res = await fetch("/api/membership/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, memberNames }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Something went wrong. Please try again.");
       setApplied(true);
+      setFamilyNames([]);
       window.scrollTo(0, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -1440,6 +1457,11 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
 
       <section className="member-section">
         <div className="member-inner">
+          {graphic && (
+            <div style={{ maxWidth: 560, margin: "0 auto 32px" }}>
+              <img src={graphic} alt="MeanKat Purrks Club membership plans" style={{ width: "100%", borderRadius: 20, display: "block", boxShadow: "0 10px 30px rgba(135,76,158,0.18)" }} />
+            </div>
+          )}
           <div className="member-grid">
             {/* Apply */}
             <div className="book-card" id="member-apply">
@@ -1462,11 +1484,40 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
                   {plans.length > 0 && (
                     <>
                       <label className="field-label" htmlFor="m-plan">Plan</label>
-                      <select id="m-plan" className="input-field" value={form.planId} onChange={(e) => setForm({ ...form, planId: e.target.value })}>
+                      <select id="m-plan" className="input-field" value={form.planId} onChange={(e) => { setForm({ ...form, planId: e.target.value }); setFamilyNames([]); }}>
                         {plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price}</option>)}
                       </select>
                     </>
                   )}
+
+                  {isFamily && (
+                    <div style={{ background: "var(--lilac-pale)", borderRadius: 14, padding: "14px 16px", margin: "4px 0 14px" }}>
+                      <label className="field-label" style={{ marginTop: 0 }}>Family members</label>
+                      <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.6 }}>
+                        Your {selectedPlan?.name} covers up to <strong>{maxMembers}</strong> people (you + {maxMembers - 1}). Add their names below — extra members beyond {maxMembers} are <strong>{extraPrice} each / month</strong>.
+                      </p>
+                      {familyNames.map((n, i) => {
+                        const memberNo = i + 2; // member 1 is the main applicant above
+                        const isExtra = memberNo > maxMembers;
+                        return (
+                          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                            <input className="input-field" style={{ marginBottom: 0 }} value={n}
+                              onChange={(e) => setFamilyNames((arr) => arr.map((x, j) => (j === i ? e.target.value : x)))}
+                              placeholder={`Member ${memberNo}${isExtra ? ` · +${extraPrice}` : ""}`} />
+                            <button type="button" className="link-btn" onClick={() => setFamilyNames((arr) => arr.filter((_, j) => j !== i))} aria-label="Remove member">✕</button>
+                          </div>
+                        );
+                      })}
+                      <button type="button" className="btn btn-outline-dark" style={{ width: "100%", marginTop: 2 }}
+                        onClick={() => setFamilyNames((arr) => [...arr, ""])}>+ Add a family member</button>
+                      {extraCount > 0 && (
+                        <p style={{ fontSize: 13, fontWeight: 800, color: "var(--purple-dark)", marginTop: 12, marginBottom: 0 }}>
+                          +{extraCount} extra member{extraCount > 1 ? "s" : ""} × {extraPrice}/month, on top of {selectedPlan?.price}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <button type="submit" className="btn btn-purple" disabled={sending} style={{ marginTop: 6, width: "100%" }}>{sending ? "Sending…" : "Apply Now"}</button>
                   <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 12 }}>We&apos;ll be in touch with payment details. Membership activates once your payment is received.</p>
                 </form>

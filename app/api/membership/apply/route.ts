@@ -13,6 +13,9 @@ export async function POST(request: Request) {
   const email = str(body.email);
   const phone = str(body.phone);
   const planId = str(body.planId);
+  const memberNames = Array.isArray(body.memberNames)
+    ? body.memberNames.map(str).filter(Boolean).slice(0, 20)
+    : [];
 
   if (!name || !email) return NextResponse.json({ error: "Name and email are required." }, { status: 400 });
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
@@ -25,15 +28,24 @@ export async function POST(request: Request) {
 
   let planName: string | null = null;
   let price: string | null = null;
+  let maxMembers = 1;
   if (planId) {
     const { data: plan } = await supabase
       .schema("meankatcafe")
       .from("membership_plans")
-      .select("name, price")
+      .select("name, price, max_members")
       .eq("id", planId)
       .maybeSingle();
-    if (plan) { planName = plan.name as string; price = plan.price as string; }
+    if (plan) {
+      planName = plan.name as string;
+      price = plan.price as string;
+      maxMembers = (plan.max_members as number) ?? 1;
+    }
   }
+
+  // Family plans: keep the captured names, and count anyone beyond the included max.
+  const names = maxMembers > 1 ? memberNames : [];
+  const extraMembers = Math.max(0, names.length - maxMembers);
 
   // Retry a couple of times on the (rare) code collision.
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -50,6 +62,8 @@ export async function POST(request: Request) {
         price,
         status: "pending",
         member_code,
+        member_names: names.length > 0 ? names : null,
+        extra_members: extraMembers,
       });
     if (!error) return NextResponse.json({ ok: true });
     if (!error.message.toLowerCase().includes("unique") || !error.message.includes("member_code")) {

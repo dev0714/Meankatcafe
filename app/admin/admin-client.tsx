@@ -38,7 +38,7 @@ const SETTINGS_SUBTABS: { key: SettingsSubTab; label: string }[] = [
   { key: "help", label: "Foster & Help" },
   { key: "access", label: "Permissions" },
 ];
-type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; paidDate?: string | null; validUntil?: string | null; memberCode: string; notes?: string | null; createdAt: string };
+type AdminMember = { id: string; name: string; email: string; phone?: string | null; planId?: string | null; planName?: string | null; price?: string | null; status: "pending" | "active" | "cancelled"; paidDate?: string | null; validUntil?: string | null; memberCode: string; notes?: string | null; memberNames?: string[] | null; extraMembers?: number | null; createdAt: string };
 type AdminPlan = { id: string; name: string; price: string; periodMonths: number; description?: string | null; active: boolean; displayOrder: number };
 type AdminBooking = { id: string; date: string; slot: string; name: string; email: string; phone?: string | null; partySize: number; actualPartySize?: number | null; arrivedAt?: string | null; status: string; createdAt: string };
 type AdminBlock = { id: string; date: string; startTime: string; endTime: string; title: string; price?: string | null; notes?: string | null };
@@ -226,7 +226,7 @@ export default function AdminClient() {
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
 
   const [galleries, setGalleries] = useState<Record<string, MenuImage[]>>({ about: [], home2: [] });
-  const [galleryFile, setGalleryFile] = useState<Record<string, File | null>>({ about: null, home2: null });
+  const [galleryFile, setGalleryFile] = useState<Record<string, File | null>>({ about: null, home2: null, membership: null });
   const [gallerySaving, setGallerySaving] = useState<string | null>(null);
   const [galleryMsg, setGalleryMsg] = useState("");
   const [deletingGalleryId, setDeletingGalleryId] = useState<string | null>(null);
@@ -295,7 +295,7 @@ export default function AdminClient() {
       .then((r) => r.ok ? r.json() : [])
       .then((imgs: MenuImage[]) => setRuleImages(imgs))
       .catch(() => {});
-    (["about", "home2"] as const).forEach((sec) => {
+    (["about", "home2", "membership"] as const).forEach((sec) => {
       fetch(`/api/gallery?section=${sec}`)
         .then((r) => r.ok ? r.json() : [])
         .then((imgs: MenuImage[]) => setGalleries((g) => ({ ...g, [sec]: imgs })))
@@ -1546,6 +1546,7 @@ export default function AdminClient() {
             {([
               { sec: "about", title: "👩 About — Founder Photos", sub: "Carousel next to ‘How it all started’ on the About page." },
               { sec: "home2", title: "🐱 Homepage — ‘Second Chances’ Photos", sub: "Carousel in the ‘Coffee, Cats & Second Chances’ section on the home page." },
+              { sec: "membership", title: "💳 Membership — Purrks Club Graphic", sub: "Shown at the top of the Membership page. Upload the Purrks Club plans graphic here." },
             ] as const).map(({ sec, title, sub }) => (
               <div key={sec} className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 20, alignItems: "start", marginBottom: 28 }}>
                 <div className="panel">
@@ -2065,6 +2066,12 @@ export default function AdminClient() {
                                 <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{m.name} <span style={{ fontFamily: "monospace", fontSize: 12, color: BRAND.purple }}>{m.memberCode}</span></div>
                                 <div style={{ fontSize: 12, color: BRAND.textLight, wordBreak: "break-all" }}>{m.email}{m.phone ? ` · ${m.phone}` : ""}</div>
                                 <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>{m.planName ?? "No plan"}</div>
+                                {m.memberNames && m.memberNames.length > 0 && (
+                                  <div style={{ fontSize: 12, color: BRAND.text, marginTop: 4, background: `${BRAND.purple}10`, borderRadius: 8, padding: "6px 10px" }}>
+                                    👪 {m.memberNames.join(", ")}
+                                    {!!m.extraMembers && m.extraMembers > 0 && <span style={{ color: BRAND.purple, fontWeight: 700 }}> · {m.extraMembers} extra</span>}
+                                  </div>
+                                )}
                                 {(m.paidDate || m.validUntil) && (
                                   <div style={{ fontSize: 12, marginTop: 2, color: BRAND.text }}>
                                     {m.paidDate && <span>Paid <strong>{fmt(m.paidDate)}</strong></span>}
