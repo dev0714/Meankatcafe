@@ -1,40 +1,18 @@
 import { NextResponse } from "next/server";
-import crypto from "node:crypto";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import { slotsForDate, todayInCafeTZ, toMinutes, type WeekHours } from "@/lib/hours";
 import { getOpeningWeek } from "@/lib/hours-server";
+import { checkAgentAuth } from "@/lib/agent-auth";
 import { DEFAULT_BOOKINGS_PER_SLOT, type DayAvailability } from "@/lib/bookings";
 
 // ───────────────────────────────────────────────────────────────
 // Machine-to-machine booking API for an external AI agent.
 //   GET  /api/agent/bookings?date=YYYY-MM-DD  → availability for a day
 //   POST /api/agent/bookings                  → create a booking
-// Auth: send the API key as either
+// Auth (shared with /api/agent/chat): send the API key as either
 //   Authorization: Bearer <KEY>     or     x-api-key: <KEY>
-// The key is the BOOKING_API_KEY environment variable.
+// The key is the AGENT_API_KEY (or BOOKING_API_KEY) environment variable.
 // ───────────────────────────────────────────────────────────────
-
-function timingSafeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ab, bb);
-}
-
-// Returns null when authorised, or a NextResponse to return when not.
-function checkAuth(request: Request): NextResponse | null {
-  const expected = process.env.BOOKING_API_KEY;
-  if (!expected) {
-    return NextResponse.json({ error: "Booking API is not configured (missing BOOKING_API_KEY)." }, { status: 503 });
-  }
-  const header = request.headers.get("authorization") ?? "";
-  const bearer = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  const provided = bearer || request.headers.get("x-api-key")?.trim() || "";
-  if (!provided || !timingSafeEqual(provided, expected)) {
-    return NextResponse.json({ error: "Unauthorized — invalid or missing API key." }, { status: 401 });
-  }
-  return null;
-}
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
@@ -103,7 +81,7 @@ function eachDate(from: string, to: string): string[] {
 }
 
 export async function GET(request: Request) {
-  const unauth = checkAuth(request);
+  const unauth = checkAgentAuth(request);
   if (unauth) return unauth;
 
   const { searchParams } = new URL(request.url);
@@ -144,7 +122,7 @@ export async function GET(request: Request) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
-  const unauth = checkAuth(request);
+  const unauth = checkAgentAuth(request);
   if (unauth) return unauth;
 
   const body = await request.json().catch(() => null);
