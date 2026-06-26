@@ -2055,7 +2055,7 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
             )}
             <form onSubmit={submit}>
               <label className="field-label" htmlFor="cf-name">Your name</label>
-              <input id="cf-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
+              <input id="cf-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your name" />
 
               <label className="field-label" htmlFor="cf-email">Email</label>
               <input id="cf-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
