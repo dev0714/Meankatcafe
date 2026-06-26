@@ -13,7 +13,9 @@ function safeEqual(a: string, b: string): boolean {
 // Key is sent as `Authorization: Bearer <KEY>` or `x-api-key: <KEY>`.
 // Returns null when authorised, or a NextResponse to return when not.
 export function checkAgentAuth(request: Request): NextResponse | null {
-  const expected = process.env.AGENT_API_KEY || process.env.BOOKING_API_KEY;
+  // Trim both vars so a pasted trailing newline/space in the hosting config
+  // doesn't cause a spurious mismatch. AGENT_API_KEY takes precedence, then BOOKING_API_KEY.
+  const expected = (process.env.AGENT_API_KEY || process.env.BOOKING_API_KEY || "").trim();
   if (!expected) {
     return NextResponse.json({ error: "Agent API is not configured (missing AGENT_API_KEY)." }, { status: 503 });
   }
