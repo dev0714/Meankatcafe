@@ -1476,7 +1476,7 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
                 <form onSubmit={apply}>
                   {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
                   <label className="field-label" htmlFor="m-name">Full name</label>
-                  <input id="m-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Maahira Essack" />
+                  <input id="m-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your name" />
                   <label className="field-label" htmlFor="m-email">Email</label>
                   <input id="m-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
                   <label className="field-label" htmlFor="m-phone">Phone / WhatsApp</label>
