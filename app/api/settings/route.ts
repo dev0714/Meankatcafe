@@ -13,6 +13,12 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   stat_drinks: "30+",
   stat_desserts: "8+",
   opening_hours: "", // JSON: WeekHours (see lib/hours.ts). Empty = DEFAULT_WEEK.
+  contact_address: "87 Smiso Nkwanyana Road\nMorningside, Durban\nKwa-Zulu Natal",
+  contact_maps_url: "https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal",
+  contact_phone: "+27 (0)31 000 0000",
+  contact_whatsapp_url: "https://wa.me/",
+  contact_email: "hello@meankatcafe.co.za",
+  contact_socials: "@meankatcafe_durban on Instagram, TikTok & Facebook",
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
