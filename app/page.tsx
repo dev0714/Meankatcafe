@@ -1944,7 +1944,22 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const hoursGroups = groupWeek(useOpeningHours());
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => { if (d) setSettings(d); })
+      .catch(() => {});
+  }, []);
+  const hoursGroups = groupWeek(parseWeek(settings.opening_hours));
+  const c = {
+    address: settings.contact_address || "87 Smiso Nkwanyana Road\nMorningside, Durban\nKwa-Zulu Natal",
+    mapsUrl: settings.contact_maps_url || "https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal",
+    phone: settings.contact_phone || "+27 (0)31 000 0000",
+    whatsappUrl: settings.contact_whatsapp_url || "https://wa.me/",
+    email: settings.contact_email || "hello@meankatcafe.co.za",
+    socials: settings.contact_socials || "@meankatcafe_durban on Instagram, TikTok & Facebook",
+  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1993,12 +2008,12 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
                 <div className="contact-label">Location</div>
                 <div className="contact-value">
                   <a
-                    href="https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal"
+                    href={c.mapsUrl}
                     target="_blank"
                     rel="noopener"
                     className="map-link"
                   >
-                    87 Smiso Nkwanyana Road<br />Morningside, Durban<br />Kwa-Zulu Natal
+                    {c.address.split("\n").map((line, i) => <span key={i}>{line}<br /></span>)}
                     <span className="map-link-tag">📍 Open in Google Maps</span>
                   </a>
                 </div>
@@ -2022,21 +2037,21 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
               <div className="contact-info-icon">📞</div>
               <div>
                 <div className="contact-label">Phone &amp; WhatsApp</div>
-                <div className="contact-value">+27 (0)31 000 0000<br /><a href="https://wa.me/" style={{ color: "var(--purple-dark)", fontWeight: 700 }}>Chat on WhatsApp</a></div>
+                <div className="contact-value">{c.phone}<br /><a href={c.whatsappUrl} style={{ color: "var(--purple-dark)", fontWeight: 700 }}>Chat on WhatsApp</a></div>
               </div>
             </div>
             <div className="contact-info-row">
               <div className="contact-info-icon">✉️</div>
               <div>
                 <div className="contact-label">Email</div>
-                <div className="contact-value">hello@meankatcafe.co.za</div>
+                <div className="contact-value"><a href={`mailto:${c.email}`} style={{ color: "inherit" }}>{c.email}</a></div>
               </div>
             </div>
             <div className="contact-info-row">
               <div className="contact-info-icon">💜</div>
               <div>
                 <div className="contact-label">Socials</div>
-                <div className="contact-value">@meankatcafe_durban on Instagram, TikTok &amp; Facebook</div>
+                <div className="contact-value">{c.socials}</div>
               </div>
             </div>
           </div>

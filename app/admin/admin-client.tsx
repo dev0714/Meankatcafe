@@ -58,6 +58,12 @@ const SETTINGS_DEFAULTS = {
   stat_drinks: "30+",
   stat_desserts: "8+",
   opening_hours: "", // JSON: WeekHours (see lib/hours.ts). Empty = DEFAULT_WEEK.
+  contact_address: "87 Smiso Nkwanyana Road\nMorningside, Durban\nKwa-Zulu Natal",
+  contact_maps_url: "https://www.google.com/maps/search/?api=1&query=87%20Smiso%20Nkwanyana%20Road%2C%20Morningside%2C%20Durban%2C%20KwaZulu-Natal",
+  contact_phone: "+27 (0)31 000 0000",
+  contact_whatsapp_url: "https://wa.me/",
+  contact_email: "hello@meankatcafe.co.za",
+  contact_socials: "@meankatcafe_durban on Instagram, TikTok & Facebook",
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
@@ -2262,6 +2268,38 @@ export default function AdminClient() {
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Contact details (Find Us card) */}
+                  <div className="panel" style={{ marginTop: 20 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>📍 Contact details</div>
+                    <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Shown in the “Find us” card on the Contact page.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Address (one line per row)</div>
+                        <textarea className="mk-input" value={settings.contact_address} onChange={(e) => setSettings((s) => ({ ...s, contact_address: e.target.value }))} style={{ minHeight: 70, resize: "vertical" }} />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>“Open in Google Maps” link</div>
+                        <input className="mk-input" value={settings.contact_maps_url} onChange={(e) => setSettings((s) => ({ ...s, contact_maps_url: e.target.value }))} placeholder="https://www.google.com/maps/..." />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Phone number</div>
+                        <input className="mk-input" value={settings.contact_phone} onChange={(e) => setSettings((s) => ({ ...s, contact_phone: e.target.value }))} placeholder="+27 (0)31 000 0000" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>“Chat on WhatsApp” link</div>
+                        <input className="mk-input" value={settings.contact_whatsapp_url} onChange={(e) => setSettings((s) => ({ ...s, contact_whatsapp_url: e.target.value }))} placeholder="https://wa.me/2731..." />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Email</div>
+                        <input className="mk-input" value={settings.contact_email} onChange={(e) => setSettings((s) => ({ ...s, contact_email: e.target.value }))} placeholder="hello@meankatcafe.co.za" />
+                      </label>
+                      <label>
+                        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Socials line</div>
+                        <input className="mk-input" value={settings.contact_socials} onChange={(e) => setSettings((s) => ({ ...s, contact_socials: e.target.value }))} placeholder="@meankatcafe_durban on Instagram, TikTok & Facebook" />
+                      </label>
                     </div>
                   </div>
                 </>)}
