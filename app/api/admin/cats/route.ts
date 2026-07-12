@@ -11,6 +11,7 @@ const uploadSchema = z.object({
   tagline: z.string().max(120).optional(),
   whereToFind: z.string().max(600).optional(),
   howToMakeHappy: z.string().max(600).optional(),
+  howToHelp: z.string().max(600).optional(),
 });
 
 function sanitizeFileName(name: string) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       tagline: (formData.get("tagline") as string) || undefined,
       whereToFind: (formData.get("whereToFind") as string) || undefined,
       howToMakeHappy: (formData.get("howToMakeHappy") as string) || undefined,
+      howToHelp: (formData.get("howToHelp") as string) || undefined,
     });
     const image = formData.get("image");
 
@@ -61,21 +63,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const { data: created, error: insertError } = await supabase
-      .schema("meankatcafe")
-      .from("cats")
-      .insert({
-        name: parsed.data.name,
-        description: parsed.data.description,
-        category: parsed.data.category,
-        tagline: parsed.data.tagline ?? null,
-        where_to_find: parsed.data.whereToFind ?? null,
-        how_to_make_happy: parsed.data.howToMakeHappy ?? null,
-        image_path: filePath,
-        created_by: session.userId,
-      })
-      .select("id, name, description, category, tagline, where_to_find, how_to_make_happy, image_path, created_at")
-      .single();
+    const baseRow = {
+      name: parsed.data.name,
+      description: parsed.data.description,
+      category: parsed.data.category,
+      tagline: parsed.data.tagline ?? null,
+      where_to_find: parsed.data.whereToFind ?? null,
+      how_to_make_happy: parsed.data.howToMakeHappy ?? null,
+      image_path: filePath,
+      created_by: session.userId,
+    };
+    const insertCat = (row: Record<string, unknown>) =>
+      supabase
+        .schema("meankatcafe")
+        .from("cats")
+        .insert(row)
+        .select("id, name, description, category, tagline, where_to_find, how_to_make_happy, image_path, created_at")
+        .single();
+
+    let { data: created, error: insertError } = await insertCat({ ...baseRow, how_to_help: parsed.data.howToHelp ?? null });
+    // Fallback for before the how_to_help column migration is run.
+    if (insertError) {
+      ({ data: created, error: insertError } = await insertCat(baseRow));
+    }
 
     if (insertError || !created) {
       return NextResponse.json({ error: insertError?.message ?? "Unable to save cat." }, { status: 500 });
@@ -93,6 +103,7 @@ export async function POST(request: Request) {
         tagline: created.tagline,
         whereToFind: created.where_to_find,
         howToMakeHappy: created.how_to_make_happy,
+        howToHelp: parsed.data.howToHelp ?? null,
         images: [publicUrl],
         createdAt: created.created_at,
       },
