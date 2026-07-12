@@ -268,3 +268,26 @@ Public: `GET /api/membership/plans`, `POST /api/membership/apply` (pending),
 - `app/api/contact` accepts public Contact form submissions (POST); stores to `contact_messages` when Supabase is configured
 - `app/api/volunteer` accepts public volunteer applications (POST); stores to `volunteer_applications`
 - `app/api/admin/volunteers` lists volunteer applications (admin only); `app/api/admin/volunteers/[id]` deletes one
+
+## Shop (products & orders)
+
+Shared with the standalone shop app (`Meankatcafeshop`). Products are managed
+from the café admin (Shop Products tab); orders placed in the shop are written
+back here and shown in the café admin (Shop Orders tab). Prices in CENTS (ZAR).
+
+- `products` — `id` (uuid), `slug` (unique), `name`, `category`, `price_cents`,
+  `description`, `badge`, `emoji`, `tile_color`, `image_path` (bucket path under
+  `products/`), `active`, `stock`, `sort`, `created_at`.
+- `orders` — `id` (uuid), `reference` (unique, e.g. `MK482913`), `email`,
+  `first_name`, `last_name`, `phone`, `fulfilment` (`ship`|`pickup`), `address`
+  (jsonb, null for pickup), `subtotal_cents`, `shipping_cents`, `total_cents`,
+  `status` (`pending`|`paid`|`fulfilled`|`cancelled`), `created_at`.
+- `order_items` — `id`, `order_id` (fk → orders, cascade), `product_id`, `name`,
+  `emoji`, `unit_price_cents`, `qty`.
+- Migration: `references/migrations/2026-07-shop-products-and-orders.sql`.
+
+Café app expectations:
+- `app/api/products` returns the public catalogue (`?all=1` includes inactive, admin only)
+- `app/api/admin/products` lists (GET) / creates (POST) products; `[id]` PATCH/DELETE
+- `app/api/admin/orders` lists shop orders; `[id]` PATCH updates status
+- Product photos upload to the `cat-images` bucket under `products/`
