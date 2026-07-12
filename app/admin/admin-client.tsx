@@ -99,7 +99,7 @@ const SETTINGS_DEFAULTS = {
 };
 type SiteSettings = typeof SETTINGS_DEFAULTS;
 
-type CatFields = { name: string; description: string; category: CatCategory; tagline: string; whereToFind: string; howToMakeHappy: string };
+type CatFields = { name: string; description: string; category: CatCategory; tagline: string; whereToFind: string; howToMakeHappy: string; howToHelp: string };
 const emptyUpload: CatFields = {
   name: "",
   description: "",
@@ -107,6 +107,7 @@ const emptyUpload: CatFields = {
   tagline: "",
   whereToFind: "",
   howToMakeHappy: "",
+  howToHelp: "",
 };
 
 // Clock time (HH:MM) in the café timezone for an ISO timestamp.
@@ -409,6 +410,7 @@ export default function AdminClient() {
     fd.append("tagline", upload.tagline);
     fd.append("whereToFind", upload.whereToFind);
     fd.append("howToMakeHappy", upload.howToMakeHappy);
+    fd.append("howToHelp", upload.howToHelp);
     fd.append("image", await compressImage(selectedImage));
     const res = await fetch("/api/admin/cats", { method: "POST", body: fd });
     const text = await res.text();
@@ -456,6 +458,7 @@ export default function AdminClient() {
       tagline: cat.tagline ?? "",
       whereToFind: cat.whereToFind ?? "",
       howToMakeHappy: cat.howToMakeHappy ?? "",
+      howToHelp: cat.howToHelp ?? "",
     });
     setCatMsg("");
   }
@@ -1299,6 +1302,10 @@ export default function AdminClient() {
                     <textarea className="mk-input" value={upload.howToMakeHappy} onChange={(e) => setUpload((c) => ({ ...c, howToMakeHappy: e.target.value }))} placeholder="Gently pet my head and stay calm…" style={{ minHeight: 60 }} />
                   </label>
                   <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>How to help (optional)</div>
+                    <textarea className="mk-input" value={upload.howToHelp} onChange={(e) => setUpload((c) => ({ ...c, howToHelp: e.target.value }))} placeholder="Any donation helps toward medical care…" style={{ minHeight: 60 }} />
+                  </label>
+                  <label>
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Image</div>
                     <input className="mk-input" type="file" accept="image/*" onChange={(e) => setSelectedImage(e.target.files?.[0] ?? null)} required />
                   </label>
@@ -1336,6 +1343,7 @@ export default function AdminClient() {
                                     <textarea className="mk-input" value={catEditForm.description} onChange={(e) => setCatEditForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description" required style={{ minHeight: 70 }} />
                                     <textarea className="mk-input" value={catEditForm.whereToFind} onChange={(e) => setCatEditForm((f) => ({ ...f, whereToFind: e.target.value }))} placeholder="Where to find me" style={{ minHeight: 50 }} />
                                     <textarea className="mk-input" value={catEditForm.howToMakeHappy} onChange={(e) => setCatEditForm((f) => ({ ...f, howToMakeHappy: e.target.value }))} placeholder="How to make me happy" style={{ minHeight: 50 }} />
+                                    <textarea className="mk-input" value={catEditForm.howToHelp} onChange={(e) => setCatEditForm((f) => ({ ...f, howToHelp: e.target.value }))} placeholder="How to help" style={{ minHeight: 50 }} />
                                     <div style={{ display: "flex", gap: 6 }}>
                                       <button className="mk-primary" type="submit" disabled={catEditSaving} style={{ flex: 1 }}>{catEditSaving ? "Saving…" : "Save"}</button>
                                       <button className="mk-outline" type="button" onClick={() => setEditingCatId(null)} style={{ flex: 1 }}>Cancel</button>

@@ -36,10 +36,22 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (f.whereToFind !== undefined) updates.where_to_find = str(f.whereToFind) || null;
     if (f.howToMakeHappy !== undefined) updates.how_to_make_happy = str(f.howToMakeHappy) || null;
     if (typeof f.hidden === "boolean") updates.hidden = f.hidden;
+    const hasHowToHelp = f.howToHelp !== undefined;
+    if (hasHowToHelp) updates.how_to_help = str(f.howToHelp) || null;
     if (Object.keys(updates).length === 0) return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
     if (updates.name === "" || updates.description === "") return NextResponse.json({ error: "Name and description are required." }, { status: 400 });
 
-    const { error } = await supabase.schema("meankatcafe").from("cats").update(updates).eq("id", catId);
+    let { error } = await supabase.schema("meankatcafe").from("cats").update(updates).eq("id", catId);
+    // Fallback for before the how_to_help column migration is run: retry without it.
+    if (error && hasHowToHelp) {
+      const { how_to_help, ...rest } = updates;
+      void how_to_help;
+      if (Object.keys(rest).length > 0) {
+        ({ error } = await supabase.schema("meankatcafe").from("cats").update(rest).eq("id", catId));
+      } else {
+        error = null;
+      }
+    }
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }

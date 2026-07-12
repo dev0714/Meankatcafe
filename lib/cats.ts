@@ -13,6 +13,7 @@ export type CatCard = {
   tagline?: string;
   whereToFind?: string;
   howToMakeHappy?: string;
+  howToHelp?: string;
   breed?: string;
   mood?: string;
   emoji?: string;

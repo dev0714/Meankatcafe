@@ -14,11 +14,21 @@ export async function GET(request: Request) {
   const includeHidden = wantsAll && !!(await getSessionForArea("cats"));
 
   const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase
+  const COLS_FULL = "id, name, description, category, tagline, where_to_find, how_to_make_happy, how_to_help, hidden, image_path, before_image_path, image_transform, before_image_transform, created_at";
+  const COLS_FALLBACK = "id, name, description, category, tagline, where_to_find, how_to_make_happy, hidden, image_path, before_image_path, image_transform, before_image_transform, created_at";
+  let { data, error } = await supabase
     .schema("meankatcafe")
     .from("cats")
-    .select("id, name, description, category, tagline, where_to_find, how_to_make_happy, hidden, image_path, before_image_path, image_transform, before_image_transform, created_at")
+    .select(COLS_FULL)
     .order("created_at", { ascending: false });
+  // Fallback for before the how_to_help column migration is run.
+  if (error) {
+    ({ data, error } = await supabase
+      .schema("meankatcafe")
+      .from("cats")
+      .select(COLS_FALLBACK)
+      .order("created_at", { ascending: false }));
+  }
 
   if (error || !data) {
     return NextResponse.json(DEFAULT_CATS);
@@ -65,6 +75,7 @@ export async function GET(request: Request) {
       tagline: row.tagline,
       whereToFind: row.where_to_find,
       howToMakeHappy: row.how_to_make_happy,
+      howToHelp: (row as { how_to_help?: string }).how_to_help ?? null,
       hidden: row.hidden ?? false,
       images: images.map((i) => i.url),
       afterImageDbIds: images.map((i) => i.dbId),

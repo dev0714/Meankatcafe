@@ -866,6 +866,12 @@ function CatsPage({ setPage, initialFilter = "All" }: { setPage: (p: Page) => vo
                 <p>{emojify(modalCat.howToMakeHappy)}</p>
               </div>
             )}
+            {modalCat.howToHelp && (
+              <div className="cat-info-box">
+                <div className="cat-info-h">🤝 How to help</div>
+                <p>{emojify(modalCat.howToHelp)}</p>
+              </div>
+            )}
 
             {activeImages.length > 1 && (
               <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
