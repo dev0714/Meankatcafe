@@ -8,6 +8,7 @@ import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { compressImage } from "@/lib/compress-image";
 import { DEFAULT_WEEK, parseWeek, slotsForDate, CAFE_TZ, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
+import { SHOP_CATEGORIES, CATEGORY_TILE, type Product, type Order, type OrderStatus, type ShopCategory } from "@/lib/shop";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -29,7 +30,29 @@ type UserRole = "admin" | "volunteer";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "products" | "orders";
+
+type ProductForm = {
+  name: string;
+  category: ShopCategory;
+  priceRands: string;
+  description: string;
+  badge: string;
+  emoji: string;
+  stock: string;
+  active: boolean;
+};
+
+const emptyProductForm: ProductForm = {
+  name: "",
+  category: "Treats",
+  priceRands: "",
+  description: "",
+  badge: "",
+  emoji: "",
+  stock: "",
+  active: true,
+};
 type SettingsSubTab = "general" | "banner" | "donate" | "help" | "access";
 const SETTINGS_SUBTABS: { key: SettingsSubTab; label: string }[] = [
   { key: "general", label: "General" },
@@ -206,6 +229,26 @@ export default function AdminClient() {
   const [newPlan, setNewPlan] = useState({ name: "", price: "", periodMonths: "1", description: "" });
   const [planSaving, setPlanSaving] = useState(false);
 
+  // --- shop products ---
+  const [products, setProducts] = useState<Product[]>([]);
+  const [newProduct, setNewProduct] = useState<ProductForm>(emptyProductForm);
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [productSaving, setProductSaving] = useState(false);
+  const [productMsg, setProductMsg] = useState("");
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editProduct, setEditProduct] = useState<ProductForm>(emptyProductForm);
+  const [editProductImage, setEditProductImage] = useState<File | null>(null);
+  const [editProductSaving, setEditProductSaving] = useState(false);
+  const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
+
+  // --- shop orders ---
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [orderFilter, setOrderFilter] = useState<"all" | OrderStatus>("all");
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [orderMsg, setOrderMsg] = useState("");
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+
   // --- menu images ---
   const [menuImages, setMenuImages] = useState<MenuImage[]>([]);
   const [menuImageFile, setMenuImageFile] = useState<File | null>(null);
@@ -263,6 +306,7 @@ export default function AdminClient() {
     const perms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
     const tabArea: Record<AdminTab, string | null> = {
       cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members",
+      products: "products", orders: "orders",
       "menu-images": null, settings: null, users: null,
     };
     const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
@@ -368,6 +412,18 @@ export default function AdminClient() {
     fetch("/api/admin/membership-plans")
       .then((r) => r.ok ? r.json() : [])
       .then((data: AdminPlan[]) => setMemberPlans(data))
+      .catch(() => {});
+  }, [auth.user]);
+
+  useEffect(() => {
+    if (!auth.user) return;
+    fetch("/api/admin/products")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: Product[]) => Array.isArray(data) && setProducts(data))
+      .catch(() => {});
+    fetch("/api/admin/orders")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: Order[]) => Array.isArray(data) && setOrders(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -710,6 +766,8 @@ export default function AdminClient() {
     { key: "bookings", label: "Bookings" },
     { key: "members", label: "Members (door check)" },
     { key: "volunteers", label: "Volunteer applications" },
+    { key: "products", label: "Shop products" },
+    { key: "orders", label: "Shop orders" },
   ];
 
   function toggleVolPerm(key: string) {
@@ -808,6 +866,104 @@ export default function AdminClient() {
     setAdminEvents((evs) => evs.map((x) => x.id === eventId ? data.event : x).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
     setEditingEventId(null);
     setEventMsg("Event updated successfully.");
+  }
+
+  // ── shop products ──────────────────────────────────────────────────────────
+  async function handleCreateProduct(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setProductSaving(true); setProductMsg("");
+    const fd = new FormData();
+    fd.append("name", newProduct.name);
+    fd.append("category", newProduct.category);
+    fd.append("priceRands", newProduct.priceRands);
+    fd.append("description", newProduct.description);
+    if (newProduct.badge) fd.append("badge", newProduct.badge);
+    if (newProduct.emoji) fd.append("emoji", newProduct.emoji);
+    fd.append("tileColor", CATEGORY_TILE[newProduct.category] ?? "#f7daff");
+    if (newProduct.stock) fd.append("stock", newProduct.stock);
+    if (newProductImage) fd.append("image", await compressImage(newProductImage));
+    const res = await fetch("/api/admin/products", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setProductSaving(false);
+    if (!res.ok) { setProductMsg(data.error ?? "Failed to create product."); return; }
+    setProducts((ps) => [...ps, data.product].sort((a, b) => a.sort - b.sort));
+    setNewProduct(emptyProductForm);
+    setNewProductImage(null);
+    setProductMsg("Product added successfully.");
+  }
+
+  function handleStartEditProduct(p: Product) {
+    setEditingProductId(p.id);
+    setEditProduct({
+      name: p.name,
+      category: (SHOP_CATEGORIES.includes(p.category as ShopCategory) ? p.category : "Treats") as ShopCategory,
+      priceRands: String(p.priceCents / 100),
+      description: p.description,
+      badge: p.badge ?? "",
+      emoji: p.emoji,
+      stock: p.stock != null ? String(p.stock) : "",
+      active: p.active,
+    });
+    setEditProductImage(null);
+    setProductMsg("");
+  }
+
+  async function handleSaveEditProduct(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    setEditProductSaving(true); setProductMsg("");
+    const fd = new FormData();
+    fd.append("name", editProduct.name);
+    fd.append("category", editProduct.category);
+    fd.append("priceRands", editProduct.priceRands);
+    fd.append("description", editProduct.description);
+    fd.append("badge", editProduct.badge);
+    if (editProduct.emoji) fd.append("emoji", editProduct.emoji);
+    fd.append("tileColor", CATEGORY_TILE[editProduct.category] ?? "#f7daff");
+    fd.append("stock", editProduct.stock);
+    fd.append("active", editProduct.active ? "true" : "false");
+    if (editProductImage) fd.append("image", await compressImage(editProductImage));
+    const res = await fetch(`/api/admin/products/${id}`, { method: "PATCH", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setEditProductSaving(false);
+    if (!res.ok) { setProductMsg(data.error ?? "Update failed."); return; }
+    setProducts((ps) => ps.map((x) => x.id === id ? data.product : x).sort((a, b) => a.sort - b.sort));
+    setEditingProductId(null);
+    setProductMsg("Product updated successfully.");
+  }
+
+  async function handleToggleProductActive(p: Product) {
+    setTogglingProductId(p.id);
+    const fd = new FormData();
+    fd.append("active", p.active ? "false" : "true");
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setTogglingProductId(null);
+    if (!res.ok) { setProductMsg(data.error ?? "Update failed."); return; }
+    setProducts((ps) => ps.map((x) => x.id === p.id ? data.product : x));
+  }
+
+  async function handleDeleteProduct(p: Product) {
+    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    setDeletingProductId(p.id);
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setDeletingProductId(null);
+    if (!res.ok) { setProductMsg(data.error ?? "Delete failed."); return; }
+    setProducts((ps) => ps.filter((x) => x.id !== p.id));
+  }
+
+  // ── shop orders ────────────────────────────────────────────────────────────
+  async function handleSetOrderStatus(o: Order, status: OrderStatus) {
+    setBusyOrderId(o.id); setOrderMsg("");
+    const res = await fetch(`/api/admin/orders/${o.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusyOrderId(null);
+    if (!res.ok) { setOrderMsg(data.error ?? "Update failed."); return; }
+    setOrders((os) => os.map((x) => x.id === o.id ? { ...x, status } : x));
   }
 
   async function handleDeleteVolunteer(v: VolunteerApplication) {
@@ -1070,6 +1226,8 @@ export default function AdminClient() {
   const NAV: { id: AdminTab; label: string; icon: string; area: string | null }[] = [
     { id: "cats", label: "Cats", icon: "🐾", area: "cats" },
     { id: "menu-images", label: "Hero & Menu Photos", icon: "📸", area: null },
+    { id: "products", label: "Shop Products", icon: "🛍️", area: "products" },
+    { id: "orders", label: "Shop Orders", icon: "🧾", area: "orders" },
     { id: "events", label: "Events", icon: "🎉", area: "events" },
     { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
     { id: "members", label: "Members", icon: "🎟️", area: "members" },
@@ -1081,6 +1239,18 @@ export default function AdminClient() {
   const isVolunteer = auth.user?.role === "volunteer";
   const volPerms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
   const visibleNav = NAV.filter((item) => (isVolunteer ? !!item.area && volPerms.includes(item.area) : true));
+
+  // Cents (ZAR) → "R55" / "R55.50".
+  const money = (cents: number) => {
+    const v = Math.round(cents) / 100;
+    return Number.isInteger(v) ? `R${v}` : `R${v.toFixed(2)}`;
+  };
+  const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; fg: string }> = {
+    pending: { bg: "#fff7ed", fg: "#b45309" },
+    paid: { bg: "#f0fdf4", fg: "#15803d" },
+    fulfilled: { bg: "#eff6ff", fg: "#1d4ed8" },
+    cancelled: { bg: "#fef2f2", fg: "#b91c1c" },
+  };
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -1741,6 +1911,213 @@ export default function AdminClient() {
                   </div>
                 )}
               </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Products Tab ── */}
+        {activeTab === "products" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Shop</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Shop Products</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Add and manage the products sold in the MeanKat Café online shop.</p>
+            </div>
+
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+              {/* Create form */}
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>Add New Product</div>
+                <form onSubmit={handleCreateProduct} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Product name</div>
+                    <input className="mk-input" value={newProduct.name} onChange={(e) => setNewProduct((v) => ({ ...v, name: e.target.value }))} placeholder="Salmon Crunch Treats" required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Category</div>
+                    <select className="mk-input" value={newProduct.category} onChange={(e) => setNewProduct((v) => ({ ...v, category: e.target.value as ShopCategory }))}>
+                      {SHOP_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </label>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <label style={{ flex: 1 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Price (R)</div>
+                      <input className="mk-input" type="number" min="0" step="0.01" value={newProduct.priceRands} onChange={(e) => setNewProduct((v) => ({ ...v, priceRands: e.target.value }))} placeholder="55" required />
+                    </label>
+                    <label style={{ width: 96 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Emoji</div>
+                      <input className="mk-input" value={newProduct.emoji} onChange={(e) => setNewProduct((v) => ({ ...v, emoji: e.target.value }))} placeholder="🐟" />
+                    </label>
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <label style={{ flex: 1 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Badge (optional)</div>
+                      <input className="mk-input" value={newProduct.badge} onChange={(e) => setNewProduct((v) => ({ ...v, badge: e.target.value }))} placeholder="Bestseller" />
+                    </label>
+                    <label style={{ width: 110 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Stock (opt.)</div>
+                      <input className="mk-input" type="number" min="0" value={newProduct.stock} onChange={(e) => setNewProduct((v) => ({ ...v, stock: e.target.value }))} placeholder="—" />
+                    </label>
+                  </div>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Description</div>
+                    <textarea className="mk-input" value={newProduct.description} onChange={(e) => setNewProduct((v) => ({ ...v, description: e.target.value }))} placeholder="A few lines about the product…" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Product photo (optional)</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setNewProductImage(e.target.files?.[0] ?? null)} />
+                  </label>
+                  {productMsg && (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: productMsg.includes("success") ? "#16a34a" : "#b42318", background: productMsg.includes("success") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${productMsg.includes("success") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px" }}>
+                      {productMsg}
+                    </div>
+                  )}
+                  <button className="mk-primary" type="submit" disabled={productSaving}>{productSaving ? "Adding…" : "Add product"}</button>
+                </form>
+              </div>
+
+              {/* Products list */}
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Products ({products.length})</div>
+                {products.length === 0 ? (
+                  <div style={{ color: BRAND.textLight, fontSize: 14 }}>No products yet. Add one to get started.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {products.map((p) => {
+                      if (editingProductId === p.id) {
+                        return (
+                          <form key={p.id} onSubmit={(e) => handleSaveEditProduct(e, p.id)} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purple}`, background: BRAND.white, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                            <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text }}>Edit product</div>
+                            <input className="mk-input" value={editProduct.name} onChange={(e) => setEditProduct((v) => ({ ...v, name: e.target.value }))} placeholder="Product name" required />
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <select className="mk-input" value={editProduct.category} onChange={(e) => setEditProduct((v) => ({ ...v, category: e.target.value as ShopCategory }))} style={{ flex: 1 }}>
+                                {SHOP_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <input className="mk-input" type="number" min="0" step="0.01" value={editProduct.priceRands} onChange={(e) => setEditProduct((v) => ({ ...v, priceRands: e.target.value }))} placeholder="Price" style={{ width: 100 }} required />
+                              <input className="mk-input" value={editProduct.emoji} onChange={(e) => setEditProduct((v) => ({ ...v, emoji: e.target.value }))} placeholder="🐟" style={{ width: 70 }} />
+                            </div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <input className="mk-input" value={editProduct.badge} onChange={(e) => setEditProduct((v) => ({ ...v, badge: e.target.value }))} placeholder="Badge (optional)" style={{ flex: 1 }} />
+                              <input className="mk-input" type="number" min="0" value={editProduct.stock} onChange={(e) => setEditProduct((v) => ({ ...v, stock: e.target.value }))} placeholder="Stock" style={{ width: 100 }} />
+                            </div>
+                            <textarea className="mk-input" value={editProduct.description} onChange={(e) => setEditProduct((v) => ({ ...v, description: e.target.value }))} placeholder="Description" />
+                            <label>
+                              <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Replace photo (optional)</div>
+                              <input className="mk-input" type="file" accept="image/*" onChange={(e) => setEditProductImage(e.target.files?.[0] ?? null)} />
+                            </label>
+                            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: BRAND.text }}>
+                              <input type="checkbox" checked={editProduct.active} onChange={(e) => setEditProduct((v) => ({ ...v, active: e.target.checked }))} />
+                              Visible in shop
+                            </label>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button className="mk-primary" type="submit" disabled={editProductSaving} style={{ flex: 1 }}>{editProductSaving ? "Saving…" : "Save changes"}</button>
+                              <button className="mk-outline" type="button" onClick={() => setEditingProductId(null)} style={{ flex: 1 }}>Cancel</button>
+                            </div>
+                          </form>
+                        );
+                      }
+                      return (
+                        <div key={p.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, padding: "14px 16px", display: "flex", gap: 14, alignItems: "center", opacity: p.active ? 1 : 0.6 }}>
+                          <div style={{ width: 56, height: 56, borderRadius: 10, background: p.tileColor || "#f7daff", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontSize: 26 }}>
+                            {p.imageUrl ? <img src={p.imageUrl} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span>{p.emoji}</span>}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{p.name}</div>
+                              {p.badge && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: `${BRAND.yellow}44`, color: BRAND.text }}>{p.badge}</span>}
+                              {!p.active && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f0f0f0", color: "#999" }}>Hidden</span>}
+                            </div>
+                            <div style={{ fontSize: 12, color: BRAND.purple, fontWeight: 700, marginTop: 2 }}>{p.category} · {money(p.priceCents)}{p.stock != null ? ` · ${p.stock} in stock` : ""}</div>
+                            {p.description && <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 4, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.description}</div>}
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                            <button className="mk-outline" onClick={() => handleStartEditProduct(p)} style={{ padding: "6px 12px", fontSize: 12 }}>Edit</button>
+                            <button className="mk-outline" onClick={() => handleToggleProductActive(p)} disabled={togglingProductId === p.id} style={{ padding: "6px 12px", fontSize: 12 }}>{togglingProductId === p.id ? "…" : p.active ? "Hide" : "Show"}</button>
+                            <button className="mk-danger" onClick={() => handleDeleteProduct(p)} disabled={deletingProductId === p.id}>{deletingProductId === p.id ? "Deleting…" : "Delete"}</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Orders Tab ── */}
+        {activeTab === "orders" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Shop</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Shop Orders</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Orders placed through the online shop. Mark them fulfilled once shipped or collected.</p>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+              {(["all", "pending", "paid", "fulfilled", "cancelled"] as const).map((f) => (
+                <button key={f} onClick={() => setOrderFilter(f)} className={orderFilter === f ? "mk-primary" : "mk-outline"} style={{ padding: "6px 14px", fontSize: 12, textTransform: "capitalize" }}>
+                  {f}{f !== "all" ? ` (${orders.filter((o) => o.status === f).length})` : ` (${orders.length})`}
+                </button>
+              ))}
+            </div>
+            {orderMsg && <div style={{ fontSize: 13, fontWeight: 700, color: "#b42318", marginBottom: 12 }}>{orderMsg}</div>}
+
+            <div className="panel">
+              {(() => {
+                const shown = orders.filter((o) => orderFilter === "all" || o.status === orderFilter);
+                if (shown.length === 0) return <div style={{ color: BRAND.textLight, fontSize: 14 }}>No orders{orderFilter === "all" ? " yet" : ` with status “${orderFilter}”`}.</div>;
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {shown.map((o) => {
+                      const c = ORDER_STATUS_COLORS[o.status];
+                      const expanded = expandedOrderId === o.id;
+                      return (
+                        <div key={o.id} style={{ borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.white, overflow: "hidden" }}>
+                          <div style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }} onClick={() => setExpandedOrderId(expanded ? null : o.id)}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, fontFamily: "'Courier Prime', monospace" }}>#{o.reference}</span>
+                                <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 999, background: c.bg, color: c.fg, textTransform: "uppercase", letterSpacing: 0.5 }}>{o.status}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f4f2fb", color: BRAND.purple }}>{o.fulfilment === "ship" ? "🚚 Ship" : "🏬 Pickup"}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 3 }}>{o.firstName} {o.lastName} · {o.email} · {new Date(o.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}</div>
+                            </div>
+                            <div style={{ fontWeight: 900, fontSize: 16, color: BRAND.text }}>{money(o.totalCents)}</div>
+                          </div>
+                          {expanded && (
+                            <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${BRAND.purpleLight}55` }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "12px 0" }}>
+                                {o.items.map((it) => (
+                                  <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: BRAND.text }}>
+                                    <span>{it.emoji ? `${it.emoji} ` : ""}{it.name} ×{it.qty}</span>
+                                    <span style={{ fontWeight: 700 }}>{money(it.unitPriceCents * it.qty)}</span>
+                                  </div>
+                                ))}
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: BRAND.textLight, borderTop: `1px solid ${BRAND.purpleLight}55`, paddingTop: 6 }}>
+                                  <span>Subtotal</span><span>{money(o.subtotalCents)}</span>
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: BRAND.textLight }}>
+                                  <span>{o.fulfilment === "ship" ? "Shipping" : "Pickup"}</span><span>{o.shippingCents ? money(o.shippingCents) : "Free"}</span>
+                                </div>
+                              </div>
+                              {o.address && (
+                                <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 10 }}>📍 {o.address.street}, {o.address.city}, {o.address.postalCode}</div>
+                              )}
+                              <div style={{ fontSize: 12, color: BRAND.textLight, marginBottom: 12 }}>📞 {o.phone}</div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {o.status !== "fulfilled" && <button className="mk-primary" style={{ padding: "7px 14px", fontSize: 12 }} disabled={busyOrderId === o.id} onClick={() => handleSetOrderStatus(o, "fulfilled")}>Mark fulfilled</button>}
+                                {o.status !== "paid" && o.status !== "fulfilled" && <button className="mk-outline" style={{ padding: "7px 14px", fontSize: 12 }} disabled={busyOrderId === o.id} onClick={() => handleSetOrderStatus(o, "paid")}>Mark paid</button>}
+                                {o.status !== "cancelled" && <button className="mk-danger" style={{ padding: "7px 14px", fontSize: 12 }} disabled={busyOrderId === o.id} onClick={() => handleSetOrderStatus(o, "cancelled")}>Cancel</button>}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}
