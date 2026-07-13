@@ -21,6 +21,17 @@ export const CATEGORY_TILE: Record<ShopCategory, string> = {
   Grooming: "#fbee9b",
 };
 
+// Admin-managed shop category (drives the shop's "Shop by Category" tiles).
+export type ShopProductCategory = {
+  id: string;
+  name: string;
+  emoji: string;
+  imageUrl?: string | null;
+  bgColor: string;
+  sort: number;
+  active: boolean;
+};
+
 export type Product = {
   id: string;
   slug: string;

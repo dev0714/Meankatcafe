@@ -8,7 +8,7 @@ import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
 import { compressImage } from "@/lib/compress-image";
 import { DEFAULT_WEEK, parseWeek, slotsForDate, CAFE_TZ, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
-import { SHOP_CATEGORIES, CATEGORY_TILE, type Product, type Order, type OrderStatus, type ShopCategory } from "@/lib/shop";
+import { SHOP_CATEGORIES, CATEGORY_TILE, type Product, type Order, type OrderStatus, type ShopCategory, type ShopProductCategory } from "@/lib/shop";
 
 type CropTarget = { catId: string; type: "after" | "before"; index: number; dbId: string | null; url: string; transform: ImageTransform };
 
@@ -34,7 +34,7 @@ type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volu
 
 type ProductForm = {
   name: string;
-  category: ShopCategory;
+  category: string;
   priceRands: string;
   description: string;
   badge: string;
@@ -242,6 +242,17 @@ export default function AdminClient() {
   const [editProductSaving, setEditProductSaving] = useState(false);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
 
+  // --- shop categories ---
+  const [shopCategories, setShopCategories] = useState<ShopProductCategory[]>([]);
+  const [newCategory, setNewCategory] = useState({ name: "", emoji: "", bgColor: "#f7daff" });
+  const [newCategoryImage, setNewCategoryImage] = useState<File | null>(null);
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categoryMsg, setCategoryMsg] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategory, setEditCategory] = useState({ name: "", emoji: "", bgColor: "#f7daff", active: true });
+  const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
+  const [categoryBusyId, setCategoryBusyId] = useState<string | null>(null);
+
   // --- shop storefront hero image ---
   const [shopHeroUrl, setShopHeroUrl] = useState<string | null>(null);
   const [shopHeroFile, setShopHeroFile] = useState<File | null>(null);
@@ -434,6 +445,10 @@ export default function AdminClient() {
     fetch("/api/shop-hero")
       .then((r) => r.ok ? r.json() : { imageUrl: null })
       .then((data: { imageUrl: string | null }) => setShopHeroUrl(data.imageUrl))
+      .catch(() => {});
+    fetch("/api/admin/product-categories")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: ShopProductCategory[]) => Array.isArray(data) && setShopCategories(data))
       .catch(() => {});
   }, [auth.user]);
 
@@ -889,7 +904,7 @@ export default function AdminClient() {
     fd.append("description", newProduct.description);
     if (newProduct.badge) fd.append("badge", newProduct.badge);
     if (newProduct.emoji) fd.append("emoji", newProduct.emoji);
-    fd.append("tileColor", CATEGORY_TILE[newProduct.category] ?? "#f7daff");
+    fd.append("tileColor", tileFor(newProduct.category));
     if (newProduct.stock) fd.append("stock", newProduct.stock);
     if (newProductImage) fd.append("image", await compressImage(newProductImage));
     const res = await fetch("/api/admin/products", { method: "POST", body: fd });
@@ -906,7 +921,7 @@ export default function AdminClient() {
     setEditingProductId(p.id);
     setEditProduct({
       name: p.name,
-      category: (SHOP_CATEGORIES.includes(p.category as ShopCategory) ? p.category : "Treats") as ShopCategory,
+      category: p.category || categoryNames[0] || "Treats",
       priceRands: String(p.priceCents / 100),
       description: p.description,
       badge: p.badge ?? "",
@@ -928,7 +943,7 @@ export default function AdminClient() {
     fd.append("description", editProduct.description);
     fd.append("badge", editProduct.badge);
     if (editProduct.emoji) fd.append("emoji", editProduct.emoji);
-    fd.append("tileColor", CATEGORY_TILE[editProduct.category] ?? "#f7daff");
+    fd.append("tileColor", tileFor(editProduct.category));
     fd.append("stock", editProduct.stock);
     fd.append("active", editProduct.active ? "true" : "false");
     if (editProductImage) fd.append("image", await compressImage(editProductImage));
@@ -960,6 +975,61 @@ export default function AdminClient() {
     setDeletingProductId(null);
     if (!res.ok) { setProductMsg(data.error ?? "Delete failed."); return; }
     setProducts((ps) => ps.filter((x) => x.id !== p.id));
+  }
+
+  // ── shop categories ────────────────────────────────────────────────────────
+  async function handleCreateCategory(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setCategorySaving(true); setCategoryMsg("");
+    const fd = new FormData();
+    fd.append("name", newCategory.name);
+    if (newCategory.emoji) fd.append("emoji", newCategory.emoji);
+    fd.append("bgColor", newCategory.bgColor);
+    fd.append("sort", String((shopCategories.length + 1) * 10));
+    if (newCategoryImage) fd.append("image", await compressImage(newCategoryImage));
+    const res = await fetch("/api/admin/product-categories", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setCategorySaving(false);
+    if (!res.ok) { setCategoryMsg(data.error ?? "Failed to add category."); return; }
+    setShopCategories((cs) => [...cs, data.category].sort((a, b) => a.sort - b.sort));
+    setNewCategory({ name: "", emoji: "", bgColor: "#f7daff" });
+    setNewCategoryImage(null);
+    setCategoryMsg("Category added.");
+  }
+
+  function handleStartEditCategory(c: ShopProductCategory) {
+    setEditingCategoryId(c.id);
+    setEditCategory({ name: c.name, emoji: c.emoji, bgColor: c.bgColor, active: c.active });
+    setEditCategoryImage(null);
+    setCategoryMsg("");
+  }
+
+  async function handleSaveEditCategory(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    setCategoryBusyId(id); setCategoryMsg("");
+    const fd = new FormData();
+    fd.append("name", editCategory.name);
+    if (editCategory.emoji) fd.append("emoji", editCategory.emoji);
+    fd.append("bgColor", editCategory.bgColor);
+    fd.append("active", editCategory.active ? "true" : "false");
+    if (editCategoryImage) fd.append("image", await compressImage(editCategoryImage));
+    const res = await fetch(`/api/admin/product-categories/${id}`, { method: "PATCH", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setCategoryBusyId(null);
+    if (!res.ok) { setCategoryMsg(data.error ?? "Update failed."); return; }
+    setShopCategories((cs) => cs.map((x) => x.id === id ? data.category : x).sort((a, b) => a.sort - b.sort));
+    setEditingCategoryId(null);
+    setCategoryMsg("Category updated.");
+  }
+
+  async function handleDeleteCategory(c: ShopProductCategory) {
+    if (!confirm(`Delete the "${c.name}" category? Products keep their label but this tile disappears from the shop.`)) return;
+    setCategoryBusyId(c.id); setCategoryMsg("");
+    const res = await fetch(`/api/admin/product-categories/${c.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setCategoryBusyId(null);
+    if (!res.ok) { setCategoryMsg(data.error ?? "Delete failed."); return; }
+    setShopCategories((cs) => cs.filter((x) => x.id !== c.id));
   }
 
   async function handleUploadShopHero(e: FormEvent<HTMLFormElement>) {
@@ -1287,6 +1357,11 @@ export default function AdminClient() {
     fulfilled: { bg: "#eff6ff", fg: "#1d4ed8" },
     cancelled: { bg: "#fef2f2", fg: "#b91c1c" },
   };
+  // Category options for the product form: admin-managed categories, or the
+  // built-in defaults before any have been created.
+  const categoryNames = shopCategories.length ? shopCategories.map((c) => c.name) : [...SHOP_CATEGORIES];
+  const tileFor = (name: string) =>
+    shopCategories.find((c) => c.name === name)?.bgColor ?? CATEGORY_TILE[name as ShopCategory] ?? "#f7daff";
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -1984,6 +2059,72 @@ export default function AdminClient() {
               </div>
             </div>
 
+            {/* Categories */}
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, color: BRAND.text }}>Categories</div>
+              <p style={{ color: BRAND.textLight, fontSize: 13, marginTop: 0, marginBottom: 14 }}>The category tiles shown on the shop. Add, edit or remove them, and set each one’s icon (emoji or picture) and tile colour.</p>
+
+              <form onSubmit={handleCreateCategory} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
+                <label style={{ flex: "1 1 160px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>New category</div>
+                  <input className="mk-input" value={newCategory.name} onChange={(e) => setNewCategory((v) => ({ ...v, name: e.target.value }))} placeholder="e.g. Catnip" required />
+                </label>
+                <label style={{ width: 80 }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Emoji</div>
+                  <input className="mk-input" value={newCategory.emoji} onChange={(e) => setNewCategory((v) => ({ ...v, emoji: e.target.value }))} placeholder="🌿" />
+                </label>
+                <label style={{ width: 70 }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Colour</div>
+                  <input type="color" value={newCategory.bgColor} onChange={(e) => setNewCategory((v) => ({ ...v, bgColor: e.target.value }))} style={{ width: "100%", height: 42, border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 10, background: BRAND.white, cursor: "pointer" }} />
+                </label>
+                <label style={{ flex: "1 1 160px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Picture (optional)</div>
+                  <input className="mk-input" type="file" accept="image/*" onChange={(e) => setNewCategoryImage(e.target.files?.[0] ?? null)} />
+                </label>
+                <button className="mk-primary" type="submit" disabled={categorySaving} style={{ width: "auto", padding: "11px 18px" }}>{categorySaving ? "Adding…" : "Add"}</button>
+              </form>
+              {categoryMsg && (
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: categoryMsg.includes("added") || categoryMsg.includes("updated") ? "#16a34a" : "#b42318" }}>{categoryMsg}</div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {shopCategories.length === 0 ? (
+                  <div style={{ color: BRAND.textLight, fontSize: 14 }}>No categories yet.</div>
+                ) : shopCategories.map((c) => {
+                  if (editingCategoryId === c.id) {
+                    return (
+                      <form key={c.id} onSubmit={(e) => handleSaveEditCategory(e, c.id)} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", border: `1.5px solid ${BRAND.purple}`, borderRadius: 12, padding: 12 }}>
+                        <input className="mk-input" value={editCategory.name} onChange={(e) => setEditCategory((v) => ({ ...v, name: e.target.value }))} placeholder="Name" style={{ flex: "1 1 140px" }} required />
+                        <input className="mk-input" value={editCategory.emoji} onChange={(e) => setEditCategory((v) => ({ ...v, emoji: e.target.value }))} placeholder="Emoji" style={{ width: 80 }} />
+                        <input type="color" value={editCategory.bgColor} onChange={(e) => setEditCategory((v) => ({ ...v, bgColor: e.target.value }))} style={{ width: 60, height: 42, border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 10, cursor: "pointer" }} />
+                        <label style={{ flex: "1 1 140px" }}>
+                          <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Replace picture</div>
+                          <input className="mk-input" type="file" accept="image/*" onChange={(e) => setEditCategoryImage(e.target.files?.[0] ?? null)} />
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: BRAND.text }}>
+                          <input type="checkbox" checked={editCategory.active} onChange={(e) => setEditCategory((v) => ({ ...v, active: e.target.checked }))} /> Shown
+                        </label>
+                        <button className="mk-primary" type="submit" disabled={categoryBusyId === c.id} style={{ width: "auto", padding: "9px 14px" }}>{categoryBusyId === c.id ? "…" : "Save"}</button>
+                        <button className="mk-outline" type="button" onClick={() => setEditingCategoryId(null)} style={{ padding: "9px 14px" }}>Cancel</button>
+                      </form>
+                    );
+                  }
+                  return (
+                    <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, padding: "10px 14px", opacity: c.active ? 1 : 0.6 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 10, background: c.bgColor, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontSize: 22 }}>
+                        {c.imageUrl ? <img src={c.imageUrl} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span>{c.emoji}</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{c.name}{!c.active && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#f0f0f0", color: "#999", marginLeft: 8 }}>Hidden</span>}</div>
+                      </div>
+                      <button className="mk-outline" onClick={() => handleStartEditCategory(c)} style={{ padding: "6px 12px", fontSize: 12 }}>Edit</button>
+                      <button className="mk-danger" onClick={() => handleDeleteCategory(c)} disabled={categoryBusyId === c.id}>{categoryBusyId === c.id ? "…" : "Delete"}</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
               {/* Create form */}
               <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
@@ -1995,8 +2136,8 @@ export default function AdminClient() {
                   </label>
                   <label>
                     <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Category</div>
-                    <select className="mk-input" value={newProduct.category} onChange={(e) => setNewProduct((v) => ({ ...v, category: e.target.value as ShopCategory }))}>
-                      {SHOP_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <select className="mk-input" value={newProduct.category} onChange={(e) => setNewProduct((v) => ({ ...v, category: e.target.value }))}>
+                      {categoryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </label>
                   <div style={{ display: "flex", gap: 10 }}>
@@ -2050,8 +2191,8 @@ export default function AdminClient() {
                             <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text }}>Edit product</div>
                             <input className="mk-input" value={editProduct.name} onChange={(e) => setEditProduct((v) => ({ ...v, name: e.target.value }))} placeholder="Product name" required />
                             <div style={{ display: "flex", gap: 8 }}>
-                              <select className="mk-input" value={editProduct.category} onChange={(e) => setEditProduct((v) => ({ ...v, category: e.target.value as ShopCategory }))} style={{ flex: 1 }}>
-                                {SHOP_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                              <select className="mk-input" value={editProduct.category} onChange={(e) => setEditProduct((v) => ({ ...v, category: e.target.value }))} style={{ flex: 1 }}>
+                                {categoryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                               </select>
                               <input className="mk-input" type="number" min="0" step="0.01" value={editProduct.priceRands} onChange={(e) => setEditProduct((v) => ({ ...v, priceRands: e.target.value }))} placeholder="Price" style={{ width: 100 }} required />
                               <input className="mk-input" value={editProduct.emoji} onChange={(e) => setEditProduct((v) => ({ ...v, emoji: e.target.value }))} placeholder="🐟" style={{ width: 70 }} />
