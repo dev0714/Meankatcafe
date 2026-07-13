@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getEmailSettings, notifyEnabled, adminRecipient, sendMail } from "@/lib/email";
 import { slotsForDate, todayInCafeTZ, toMinutes } from "@/lib/hours";
 import { getOpeningWeek } from "@/lib/hours-server";
 import { DEFAULT_BOOKINGS_PER_SLOT } from "@/lib/bookings";
@@ -97,6 +98,36 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: "Could not complete your booking. Please try again." }, { status: 500 });
+  }
+
+  // Notifications (best-effort — never block the booking response).
+  try {
+    const s = await getEmailSettings();
+    if (notifyEnabled(s, "bookings")) {
+      const when = `${date} at ${slot}`;
+      await sendMail(
+        {
+          to: email,
+          subject: "Your MeanKat Café booking is confirmed 🐾",
+          html: `<p>Hi ${name},</p><p>Your visit is booked for <strong>${when}</strong> for a party of ${partySize}.</p><p>See you soon at MeanKat Café!</p>`,
+        },
+        s,
+      );
+      const admin = adminRecipient(s);
+      if (admin) {
+        await sendMail(
+          {
+            to: admin,
+            subject: `New booking — ${name} (${when})`,
+            html: `<p>New booking received:</p><ul><li>Name: ${name}</li><li>Email: ${email}</li><li>Phone: ${phone || "—"}</li><li>When: ${when}</li><li>Party size: ${partySize}</li></ul>`,
+            replyTo: email,
+          },
+          s,
+        );
+      }
+    }
+  } catch {
+    /* ignore email failures */
   }
 
   return NextResponse.json({ ok: true, booking: data });
