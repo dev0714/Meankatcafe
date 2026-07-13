@@ -242,6 +242,12 @@ export default function AdminClient() {
   const [editProductSaving, setEditProductSaving] = useState(false);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
 
+  // --- shop storefront hero image ---
+  const [shopHeroUrl, setShopHeroUrl] = useState<string | null>(null);
+  const [shopHeroFile, setShopHeroFile] = useState<File | null>(null);
+  const [shopHeroSaving, setShopHeroSaving] = useState(false);
+  const [shopHeroMsg, setShopHeroMsg] = useState("");
+
   // --- shop orders ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderFilter, setOrderFilter] = useState<"all" | OrderStatus>("all");
@@ -424,6 +430,10 @@ export default function AdminClient() {
     fetch("/api/admin/orders")
       .then((r) => r.ok ? r.json() : [])
       .then((data: Order[]) => Array.isArray(data) && setOrders(data))
+      .catch(() => {});
+    fetch("/api/shop-hero")
+      .then((r) => r.ok ? r.json() : { imageUrl: null })
+      .then((data: { imageUrl: string | null }) => setShopHeroUrl(data.imageUrl))
       .catch(() => {});
   }, [auth.user]);
 
@@ -950,6 +960,32 @@ export default function AdminClient() {
     setDeletingProductId(null);
     if (!res.ok) { setProductMsg(data.error ?? "Delete failed."); return; }
     setProducts((ps) => ps.filter((x) => x.id !== p.id));
+  }
+
+  async function handleUploadShopHero(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!shopHeroFile) { setShopHeroMsg("Choose an image first."); return; }
+    setShopHeroSaving(true); setShopHeroMsg("");
+    const fd = new FormData();
+    fd.append("image", await compressImage(shopHeroFile));
+    const res = await fetch("/api/admin/shop-hero", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setShopHeroSaving(false);
+    if (!res.ok) { setShopHeroMsg(data.error ?? "Upload failed."); return; }
+    setShopHeroUrl(data.imageUrl);
+    setShopHeroFile(null);
+    setShopHeroMsg("Storefront hero image updated.");
+  }
+
+  async function handleRemoveShopHero() {
+    if (!confirm("Remove the storefront hero image? The shop will show the default illustration.")) return;
+    setShopHeroSaving(true); setShopHeroMsg("");
+    const res = await fetch("/api/admin/shop-hero", { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setShopHeroSaving(false);
+    if (!res.ok) { setShopHeroMsg(data.error ?? "Remove failed."); return; }
+    setShopHeroUrl(null);
+    setShopHeroMsg("Reverted to the default illustration.");
   }
 
   // ── shop orders ────────────────────────────────────────────────────────────
@@ -1922,6 +1958,30 @@ export default function AdminClient() {
               <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Shop</div>
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Shop Products</h1>
               <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Add and manage the products sold in the MeanKat Café online shop.</p>
+            </div>
+
+            {/* Storefront hero image ("Café Approved" card on the shop home page) */}
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, color: BRAND.text }}>Storefront hero image</div>
+              <p style={{ color: BRAND.textLight, fontSize: 13, marginTop: 0, marginBottom: 14 }}>The “Café Approved” picture on the shop home page. Leave empty to show the default cat illustration.</p>
+              <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ width: 130, height: 162, borderRadius: 16, border: `2px solid ${BRAND.purpleLight}`, background: "#efe2f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontSize: 60 }}>
+                  {shopHeroUrl ? <img src={shopHeroUrl} alt="Storefront hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span>🐈</span>}
+                </div>
+                <form onSubmit={handleUploadShopHero} style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minWidth: 240 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>{shopHeroUrl ? "Replace image" : "Upload image"}</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setShopHeroFile(e.target.files?.[0] ?? null)} />
+                  </label>
+                  {shopHeroMsg && (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: shopHeroMsg.includes("updated") || shopHeroMsg.includes("default") ? "#16a34a" : "#b42318" }}>{shopHeroMsg}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button className="mk-primary" type="submit" disabled={shopHeroSaving} style={{ width: "auto", padding: "10px 18px" }}>{shopHeroSaving ? "Saving…" : "Save image"}</button>
+                    {shopHeroUrl && <button className="mk-danger" type="button" onClick={handleRemoveShopHero} disabled={shopHeroSaving}>Remove</button>}
+                  </div>
+                </form>
+              </div>
             </div>
 
             <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
