@@ -30,7 +30,27 @@ type UserRole = "admin" | "volunteer";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "products" | "orders";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "products" | "orders" | "email";
+
+type EmailSettingsForm = {
+  email_smtp_host: string;
+  email_smtp_port: string;
+  email_smtp_secure: boolean;
+  email_smtp_user: string;
+  email_smtp_pass: string;
+  email_from: string;
+  email_admin_to: string;
+  email_notify_orders: boolean;
+  email_notify_bookings: boolean;
+  email_notify_contact: boolean;
+  email_notify_volunteer: boolean;
+};
+
+const emptyEmailForm: EmailSettingsForm = {
+  email_smtp_host: "", email_smtp_port: "587", email_smtp_secure: false,
+  email_smtp_user: "", email_smtp_pass: "", email_from: "", email_admin_to: "",
+  email_notify_orders: true, email_notify_bookings: true, email_notify_contact: true, email_notify_volunteer: true,
+};
 
 type ProductForm = {
   name: string;
@@ -253,6 +273,14 @@ export default function AdminClient() {
   const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
   const [categoryBusyId, setCategoryBusyId] = useState<string | null>(null);
 
+  // --- email settings ---
+  const [emailForm, setEmailForm] = useState<EmailSettingsForm>(emptyEmailForm);
+  const [emailHasPassword, setEmailHasPassword] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState("");
+  const [emailTesting, setEmailTesting] = useState(false);
+  const [emailTestMsg, setEmailTestMsg] = useState("");
+
   // --- shop storefront hero image ---
   const [shopHeroUrl, setShopHeroUrl] = useState<string | null>(null);
   const [shopHeroFile, setShopHeroFile] = useState<File | null>(null);
@@ -324,7 +352,7 @@ export default function AdminClient() {
     const tabArea: Record<AdminTab, string | null> = {
       cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members",
       products: "products", orders: "orders",
-      "menu-images": null, settings: null, users: null,
+      "menu-images": null, settings: null, users: null, email: null,
     };
     const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
       const a = tabArea[t];
@@ -449,6 +477,26 @@ export default function AdminClient() {
     fetch("/api/admin/product-categories")
       .then((r) => r.ok ? r.json() : [])
       .then((data: ShopProductCategory[]) => Array.isArray(data) && setShopCategories(data))
+      .catch(() => {});
+    fetch("/api/admin/email-settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (!d) return;
+        setEmailHasPassword(Boolean(d.hasPassword));
+        setEmailForm({
+          email_smtp_host: d.email_smtp_host ?? "",
+          email_smtp_port: d.email_smtp_port ?? "587",
+          email_smtp_secure: d.email_smtp_secure === "true",
+          email_smtp_user: d.email_smtp_user ?? "",
+          email_smtp_pass: "",
+          email_from: d.email_from ?? "",
+          email_admin_to: d.email_admin_to ?? "",
+          email_notify_orders: d.email_notify_orders !== "false",
+          email_notify_bookings: d.email_notify_bookings !== "false",
+          email_notify_contact: d.email_notify_contact !== "false",
+          email_notify_volunteer: d.email_notify_volunteer !== "false",
+        });
+      })
       .catch(() => {});
   }, [auth.user]);
 
@@ -977,6 +1025,35 @@ export default function AdminClient() {
     setProducts((ps) => ps.filter((x) => x.id !== p.id));
   }
 
+  // ── email settings ─────────────────────────────────────────────────────────
+  async function handleSaveEmail(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setEmailSaving(true); setEmailMsg(""); setEmailTestMsg("");
+    const res = await fetch("/api/admin/email-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(emailForm),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEmailSaving(false);
+    if (!res.ok) { setEmailMsg(data.error ?? "Save failed."); return; }
+    if (emailForm.email_smtp_pass) setEmailHasPassword(true);
+    setEmailForm((f) => ({ ...f, email_smtp_pass: "" }));
+    setEmailMsg("Email settings saved.");
+  }
+
+  async function handleSendTestEmail() {
+    setEmailTesting(true); setEmailTestMsg("");
+    const res = await fetch("/api/admin/email-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: emailForm.email_admin_to || undefined }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEmailTesting(false);
+    setEmailTestMsg(res.ok ? `Test email sent to ${data.to}. Check the inbox.` : (data.error ?? "Test failed."));
+  }
+
   // ── shop categories ────────────────────────────────────────────────────────
   async function handleCreateCategory(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1338,6 +1415,7 @@ export default function AdminClient() {
     { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
     { id: "members", label: "Members", icon: "🎟️", area: "members" },
     { id: "volunteers", label: "Volunteers", icon: "🙌", area: "volunteers" },
+    { id: "email", label: "Email", icon: "✉️", area: null },
     { id: "settings", label: "Site Settings", icon: "⚙️", area: null },
     { id: "users", label: "Users", icon: "👤", area: null },
   ];
@@ -2759,6 +2837,78 @@ export default function AdminClient() {
                 </div>
               )}
             </div>
+          </>
+        )}
+
+        {/* ── Email Tab ── */}
+        {activeTab === "email" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Notifications</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Email</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Connect your mail server (SMTP) so both the café site and the shop can send notification emails. Get these from your email host (e.g. cPanel → Email Accounts → Connect Devices).</p>
+            </div>
+
+            <form onSubmit={handleSaveEmail} className="panel" style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: BRAND.text }}>SMTP (outgoing mail)</div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <label style={{ flex: "1 1 260px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>SMTP host</div>
+                  <input className="mk-input" value={emailForm.email_smtp_host} onChange={(e) => setEmailForm((f) => ({ ...f, email_smtp_host: e.target.value }))} placeholder="mail.yourdomain.co.za" />
+                </label>
+                <label style={{ width: 110 }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Port</div>
+                  <input className="mk-input" value={emailForm.email_smtp_port} onChange={(e) => setEmailForm((f) => ({ ...f, email_smtp_port: e.target.value }))} placeholder="587" />
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: BRAND.text, alignSelf: "flex-end", paddingBottom: 10 }}>
+                  <input type="checkbox" checked={emailForm.email_smtp_secure} onChange={(e) => setEmailForm((f) => ({ ...f, email_smtp_secure: e.target.checked }))} /> SSL (port 465)
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <label style={{ flex: "1 1 260px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Username (full email)</div>
+                  <input className="mk-input" value={emailForm.email_smtp_user} onChange={(e) => setEmailForm((f) => ({ ...f, email_smtp_user: e.target.value }))} placeholder="no-reply@yourdomain.co.za" autoComplete="off" />
+                </label>
+                <label style={{ flex: "1 1 260px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Password {emailHasPassword && <span style={{ color: "#16a34a" }}>(saved — leave blank to keep)</span>}</div>
+                  <input className="mk-input" type="password" value={emailForm.email_smtp_pass} onChange={(e) => setEmailForm((f) => ({ ...f, email_smtp_pass: e.target.value }))} placeholder={emailHasPassword ? "••••••••" : "mailbox password"} autoComplete="new-password" />
+                </label>
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <label style={{ flex: "1 1 260px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>From address</div>
+                  <input className="mk-input" value={emailForm.email_from} onChange={(e) => setEmailForm((f) => ({ ...f, email_from: e.target.value }))} placeholder="MeanKat Café <no-reply@yourdomain.co.za>" />
+                </label>
+                <label style={{ flex: "1 1 260px" }}>
+                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Send admin alerts to</div>
+                  <input className="mk-input" value={emailForm.email_admin_to} onChange={(e) => setEmailForm((f) => ({ ...f, email_admin_to: e.target.value }))} placeholder="hello@yourdomain.co.za" />
+                </label>
+              </div>
+
+              <div style={{ fontWeight: 800, fontSize: 16, color: BRAND.text, marginTop: 6 }}>Notifications</div>
+              <p style={{ color: BRAND.textLight, fontSize: 13, margin: 0 }}>Which events send an email. Customer confirmations go to the customer; alerts go to the admin address above.</p>
+              {([
+                ["email_notify_orders", "Shop orders — customer confirmation + admin alert"],
+                ["email_notify_bookings", "Café bookings — guest confirmation + admin alert"],
+                ["email_notify_contact", "Contact form — to admin"],
+                ["email_notify_volunteer", "Volunteer applications — to admin"],
+              ] as [keyof EmailSettingsForm, string][]).map(([key, label]) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600, color: BRAND.text }}>
+                  <input type="checkbox" checked={emailForm[key] as boolean} onChange={(e) => setEmailForm((f) => ({ ...f, [key]: e.target.checked }))} />
+                  {label}
+                </label>
+              ))}
+
+              {emailMsg && (
+                <div style={{ fontSize: 13, fontWeight: 700, color: emailMsg.includes("saved") ? "#16a34a" : "#b42318" }}>{emailMsg}</div>
+              )}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <button className="mk-primary" type="submit" disabled={emailSaving} style={{ width: "auto", padding: "12px 22px" }}>{emailSaving ? "Saving…" : "Save email settings"}</button>
+                <button className="mk-outline" type="button" onClick={handleSendTestEmail} disabled={emailTesting}>{emailTesting ? "Sending…" : "Send test email"}</button>
+                {emailTestMsg && <span style={{ fontSize: 13, fontWeight: 700, color: emailTestMsg.includes("sent") ? "#16a34a" : "#b42318" }}>{emailTestMsg}</span>}
+              </div>
+              <p style={{ color: BRAND.textLight, fontSize: 12, margin: 0 }}>Your password is stored securely server-side and is never shown again after saving. Save first, then send a test email to confirm it works.</p>
+            </form>
           </>
         )}
 

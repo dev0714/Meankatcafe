@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getEmailSettings, notifyEnabled, adminRecipient, sendMail } from "@/lib/email";
 
 type ContactPayload = {
   name?: unknown;
@@ -49,6 +50,25 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error("Contact message error:", err);
     }
+  }
+
+  // Notify the admin (best-effort).
+  try {
+    const s = await getEmailSettings();
+    const admin = adminRecipient(s);
+    if (notifyEnabled(s, "contact") && admin) {
+      await sendMail(
+        {
+          to: admin,
+          subject: `Contact form — ${name}`,
+          html: `<p>New contact message:</p><ul><li>Name: ${name}</li><li>Email: ${email}</li></ul><p>${message.replace(/\n/g, "<br>")}</p>`,
+          replyTo: email,
+        },
+        s,
+      );
+    }
+  } catch {
+    /* ignore email failures */
   }
 
   return NextResponse.json({ ok: true });
