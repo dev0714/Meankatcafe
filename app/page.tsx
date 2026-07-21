@@ -34,6 +34,17 @@ type SiteEvent = {
 
 type Page = "Home" | "About" | "Cats" | "Cafe" | "Events" | "How to Help" | "Contact" | "Volunteer" | "Book" | "Membership";
 
+// Deep-linkable sections — each page maps to a URL hash (e.g. #cats, #book).
+const PAGE_TO_SLUG: Record<Page, string> = {
+  Home: "home", About: "about", Cats: "cats", Cafe: "cafe", Events: "events",
+  "How to Help": "how-to-help", Contact: "contact", Volunteer: "volunteer",
+  Book: "book", Membership: "membership",
+};
+const SLUG_TO_PAGE: Record<string, Page> = Object.entries(PAGE_TO_SLUG).reduce(
+  (acc, [p, s]) => { acc[s] = p as Page; return acc; },
+  {} as Record<string, Page>,
+);
+
 const NAV_LINKS: Page[] = [
   "Home",
   "About",
@@ -225,6 +236,30 @@ export default function MeanKatCafe() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [page]);
+
+  // Open the section named in the URL hash (#cats, #book…) on load, and when it
+  // changes (bookmarks, shared links, back/forward).
+  useEffect(() => {
+    const applyHash = () => {
+      const slug = window.location.hash.replace(/^#/, "").toLowerCase();
+      const target = SLUG_TO_PAGE[slug];
+      if (target) setPage(target);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
+
+  // Keep the URL hash in sync with the current section, so it's shareable.
+  useEffect(() => {
+    const slug = PAGE_TO_SLUG[page];
+    const current = window.location.hash.replace(/^#/, "").toLowerCase();
+    if (page === "Home") {
+      if (current) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    } else if (current !== slug) {
+      window.history.replaceState(null, "", `#${slug}`);
+    }
   }, [page]);
 
   const goToAdoptable = () => { setCatFilter("adoptable"); setPage("Cats"); };
