@@ -45,6 +45,22 @@ const SLUG_TO_PAGE: Record<string, Page> = Object.entries(PAGE_TO_SLUG).reduce(
   {} as Record<string, Page>,
 );
 
+// The online shop lives on its own site (see the Meankatcafeshop repo).
+const SHOP_URL = "https://meankatcafeshop.vercel.app";
+
+// "Purr-chase With Purpose" — what the shop stocks.
+const SHOP_ITEMS: Array<[string, string]> = [
+  ["🧶", "Handmade crafts"],
+  ["🖼️", "Art prints"],
+  ["☕", "Mugs"],
+  ["✨", "Stickers & badges"],
+  ["👕", "Merch"],
+  ["💊", "Cat nutrition supplements"],
+  ["🧸", "Cat toys"],
+  ["🥩", "Raw cat food"],
+  ["💍", "Jewelry"],
+];
+
 const NAV_LINKS: Page[] = [
   "Home",
   "About",
@@ -322,6 +338,16 @@ function Nav({
               {l}
             </a>
           ))}
+          {/* The shop is a separate site — always an external link. */}
+          <a
+            className="nav-link nav-shop"
+            href={SHOP_URL}
+            target="_blank"
+            rel="noopener"
+            onClick={() => setMobileOpen(false)}
+          >
+            Shop ↗
+          </a>
         </div>
       </div>
     </nav>
@@ -1317,6 +1343,30 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
               )}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Purr-chase With Purpose — the online shop */}
+      <section className="give-section" id="purr-chase">
+        <div className="give-inner">
+          <div className="give-head">
+            <div className="help-script-tag">Purr-chase With</div>
+            <h2 className="help-h2">Purpose 🛍️</h2>
+            <p className="help-text">
+              Support our shop, where proceeds go directly towards giving rescue cats the love, care and second chance they deserve.
+            </p>
+          </div>
+          <div className="shop-items">
+            {SHOP_ITEMS.map(([emoji, label]) => (
+              <div className="shop-item" key={label}>
+                <span className="shop-item-emoji">{emoji}</span>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="shop-cta">
+            <a className="btn btn-purple" href={SHOP_URL} target="_blank" rel="noopener">Visit the Shop ↗</a>
+          </div>
         </div>
       </section>
 
