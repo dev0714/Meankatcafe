@@ -434,6 +434,16 @@
   .give-square { cursor: pointer; background: var(--white) !important; border: 1.5px solid var(--purple-dark) !important; }
   .give-square:hover { transform: translateY(-4px); }
   .give-square-sub { font-size: 12px; color: var(--ink-soft); font-weight: 700; margin-top: 4px; }
+  /* Purr-chase With Purpose — shop item pills + CTA */
+  .shop-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 820px; margin: 0 auto; }
+  .shop-item { display: inline-flex; align-items: center; gap: 8px; background: var(--white); border: 1.5px solid var(--lilac); border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 14px; color: var(--purple-deep); box-shadow: 0 4px 14px rgba(58,48,96,0.06); }
+  .shop-item-emoji { font-size: 18px; line-height: 1; }
+  .shop-cta { text-align: center; margin-top: clamp(22px, 3vw, 32px); }
+  .nav-shop { font-weight: 800; }
+  @media (max-width: 640px) {
+    .shop-item { padding: 8px 14px; font-size: 13px; }
+  }
+
   .give-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: clamp(18px, 2.5vw, 28px); align-items: start; }
   .give-card { background: var(--white); border-radius: 22px; padding: clamp(24px, 3vw, 32px); box-shadow: 0 8px 26px rgba(135,76,158,0.12); border: 2px solid var(--lilac-pale); }
   .give-h { font-family: 'Slopes', 'Permanent Marker', cursive; color: var(--purple-dark); font-size: clamp(18px, 2.2vw, 23px); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 16px; }
