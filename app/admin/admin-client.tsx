@@ -2680,7 +2680,7 @@ export default function AdminClient() {
                   <div className="panel">
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16, color: BRAND.text }}>Add Member</div>
                     <form onSubmit={handleCreateMember} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      <input className="mk-input" value={newMember.name} onChange={(e) => setNewMember((v) => ({ ...v, name: e.target.value }))} placeholder="Full name" required />
+                      <input className="mk-input" value={newMember.name} onChange={(e) => setNewMember((v) => ({ ...v, name: e.target.value }))} placeholder="Name and surname" required />
                       <input className="mk-input" type="email" value={newMember.email} onChange={(e) => setNewMember((v) => ({ ...v, email: e.target.value }))} placeholder="Email" required />
                       <input className="mk-input" value={newMember.phone} onChange={(e) => setNewMember((v) => ({ ...v, phone: e.target.value }))} placeholder="Phone (optional)" />
                       <select className="mk-input" value={newMember.planId} onChange={(e) => setNewMember((v) => ({ ...v, planId: e.target.value }))}>
