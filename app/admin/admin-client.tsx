@@ -245,6 +245,8 @@ export default function AdminClient() {
   const [memberSaving, setMemberSaving] = useState(false);
   const [memberMsg, setMemberMsg] = useState("");
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editMember, setEditMember] = useState({ name: "", email: "", phone: "", planId: "", validUntil: "", memberNames: "", notes: "" });
   const [payDates, setPayDates] = useState<Record<string, string>>({});
   const [newPlan, setNewPlan] = useState({ name: "", price: "", periodMonths: "1", description: "" });
   const [planSaving, setPlanSaving] = useState(false);
@@ -1275,6 +1277,44 @@ export default function AdminClient() {
     if (res.ok) { setMembers((ms) => ms.map((x) => x.id === m.id ? data.member : x)); setPayDates((p) => { const n = { ...p }; delete n[m.id]; return n; }); }
     else setMemberMsg(data.error ?? "Update failed.");
     setBusyMemberId(null);
+  }
+
+  function handleStartEditMember(m: AdminMember) {
+    setEditingMemberId(m.id);
+    setEditMember({
+      name: m.name,
+      email: m.email,
+      phone: m.phone ?? "",
+      planId: m.planId ?? "",
+      validUntil: m.validUntil ?? "",
+      memberNames: (m.memberNames ?? []).join(", "),
+      notes: m.notes ?? "",
+    });
+    setMemberMsg("");
+  }
+
+  async function handleSaveEditMember(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    setBusyMemberId(id); setMemberMsg("");
+    const res = await fetch(`/api/admin/members/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editMember.name,
+        email: editMember.email,
+        phone: editMember.phone,
+        planId: editMember.planId,
+        validUntil: editMember.validUntil,
+        notes: editMember.notes,
+        memberNames: editMember.memberNames.split(",").map((s) => s.trim()).filter(Boolean),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusyMemberId(null);
+    if (!res.ok) { setMemberMsg(data.error ?? "Update failed."); return; }
+    setMembers((ms) => ms.map((x) => x.id === id ? data.member : x));
+    setEditingMemberId(null);
+    setMemberMsg("Member updated.");
   }
 
   async function handleDeleteMember(m: AdminMember) {
@@ -2729,6 +2769,52 @@ export default function AdminClient() {
                       {filtered.map((m) => {
                         const act = isActive(m);
                         const expired = m.status === "active" && !!m.validUntil && m.validUntil < today;
+                        if (editingMemberId === m.id) {
+                          return (
+                            <form key={m.id} onSubmit={(e) => handleSaveEditMember(e, m.id)} style={{ border: `1.5px solid ${BRAND.purple}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                              <div style={{ fontWeight: 800, fontSize: 13, color: BRAND.text }}>Edit member <span style={{ fontFamily: "monospace", fontSize: 12, color: BRAND.purple }}>{m.memberCode}</span></div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <label style={{ flex: "1 1 200px" }}>
+                                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Name and surname</div>
+                                  <input className="mk-input" value={editMember.name} onChange={(e) => setEditMember((v) => ({ ...v, name: e.target.value }))} required />
+                                </label>
+                                <label style={{ flex: "1 1 200px" }}>
+                                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Email</div>
+                                  <input className="mk-input" type="email" value={editMember.email} onChange={(e) => setEditMember((v) => ({ ...v, email: e.target.value }))} required />
+                                </label>
+                              </div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <label style={{ flex: "1 1 160px" }}>
+                                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Phone</div>
+                                  <input className="mk-input" value={editMember.phone} onChange={(e) => setEditMember((v) => ({ ...v, phone: e.target.value }))} placeholder="+27 …" />
+                                </label>
+                                <label style={{ flex: "1 1 180px" }}>
+                                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Plan</div>
+                                  <select className="mk-input" value={editMember.planId} onChange={(e) => setEditMember((v) => ({ ...v, planId: e.target.value }))}>
+                                    <option value="">No plan</option>
+                                    {memberPlans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price}</option>)}
+                                  </select>
+                                </label>
+                                <label style={{ flex: "1 1 150px" }}>
+                                  <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Expires</div>
+                                  <input className="mk-input" type="date" value={editMember.validUntil} onChange={(e) => setEditMember((v) => ({ ...v, validUntil: e.target.value }))} />
+                                </label>
+                              </div>
+                              <label>
+                                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Family / extra member names (comma separated)</div>
+                                <input className="mk-input" value={editMember.memberNames} onChange={(e) => setEditMember((v) => ({ ...v, memberNames: e.target.value }))} placeholder="Jane Doe, John Doe" />
+                              </label>
+                              <label>
+                                <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Notes</div>
+                                <textarea className="mk-input" value={editMember.notes} onChange={(e) => setEditMember((v) => ({ ...v, notes: e.target.value }))} placeholder="Anything worth remembering…" />
+                              </label>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button className="mk-primary" type="submit" disabled={busyMemberId === m.id} style={{ width: "auto", padding: "8px 16px" }}>{busyMemberId === m.id ? "Saving…" : "Save changes"}</button>
+                                <button className="mk-outline" type="button" onClick={() => setEditingMemberId(null)} style={{ padding: "8px 16px" }}>Cancel</button>
+                              </div>
+                            </form>
+                          );
+                        }
                         return (
                           <div key={m.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, padding: "12px 14px" }}>
                             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -2762,6 +2848,7 @@ export default function AdminClient() {
                               {act
                                 ? <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "renew", payDates[m.id] ?? today)} disabled={busyMemberId === m.id}>Renew +period</button>
                                 : <button className="mk-primary" style={{ width: "auto", padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "activate", payDates[m.id] ?? today)} disabled={busyMemberId === m.id}>Mark paid / Activate</button>}
+                              <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleStartEditMember(m)} disabled={busyMemberId === m.id}>Edit</button>
                               {m.status !== "cancelled" && <button className="mk-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleMemberAction(m, "cancel")} disabled={busyMemberId === m.id}>Cancel</button>}
                               <button className="mk-danger" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleDeleteMember(m)} disabled={busyMemberId === m.id}>Delete</button>
                             </div>

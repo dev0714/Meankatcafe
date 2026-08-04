@@ -6,12 +6,17 @@ import { todayInCafeTZ } from "@/lib/hours";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+const COLS = "id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, member_names, extra_members, created_at";
+
 function mapMember(r: Record<string, unknown>) {
   return {
     id: r.id, name: r.name, email: r.email, phone: r.phone, planId: r.plan_id, planName: r.plan_name,
-    price: r.price, status: r.status, paidDate: r.paid_date, validUntil: r.valid_until, memberCode: r.member_code, notes: r.notes, createdAt: r.created_at,
+    price: r.price, status: r.status, paidDate: r.paid_date, validUntil: r.valid_until, memberCode: r.member_code,
+    notes: r.notes, memberNames: r.member_names, extraMembers: r.extra_members, createdAt: r.created_at,
   };
 }
+
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 const isDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
@@ -52,6 +57,41 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (isDate(body.paidDate) || body.paidDate === "") updates.paid_date = body.paidDate || null;
     if (typeof body.validUntil === "string") updates.valid_until = body.validUntil || null;
     if (typeof body.notes === "string") updates.notes = body.notes;
+
+    // Editable member details.
+    if (typeof body.name === "string") {
+      if (!str(body.name)) return NextResponse.json({ error: "Name is required." }, { status: 400 });
+      updates.name = str(body.name);
+    }
+    if (typeof body.email === "string") {
+      if (!str(body.email)) return NextResponse.json({ error: "Email is required." }, { status: 400 });
+      updates.email = str(body.email);
+    }
+    if (typeof body.phone === "string") updates.phone = str(body.phone) || null;
+    // Family/extra member names — stored as a text array.
+    if (Array.isArray(body.memberNames)) {
+      const names = body.memberNames.map(str).filter(Boolean);
+      updates.member_names = names.length ? names : null;
+    }
+    if (typeof body.extraMembers === "number" && Number.isFinite(body.extraMembers)) {
+      updates.extra_members = Math.max(0, Math.floor(body.extraMembers));
+    }
+
+    // Changing the plan also refreshes the stored plan name and price.
+    if (typeof body.planId === "string") {
+      const planId = str(body.planId);
+      if (planId) {
+        const { data: plan } = await supabase
+          .schema("meankatcafe").from("membership_plans").select("name, price").eq("id", planId).maybeSingle();
+        updates.plan_id = planId;
+        updates.plan_name = (plan?.name as string) ?? null;
+        updates.price = (plan?.price as string) ?? null;
+      } else {
+        updates.plan_id = null;
+        updates.plan_name = null;
+        updates.price = null;
+      }
+    }
   }
 
   const { data, error } = await supabase
@@ -59,7 +99,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("members")
     .update(updates)
     .eq("id", id)
-    .select("id, name, email, phone, plan_id, plan_name, price, status, paid_date, valid_until, member_code, notes, created_at")
+    .select(COLS)
     .single();
 
   if (error || !data) return NextResponse.json({ error: error?.message ?? "Update failed." }, { status: 500 });
