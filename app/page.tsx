@@ -1586,7 +1586,7 @@ function MembershipPage({ setPage }: { setPage: (p: Page) => void }) {
               ) : (
                 <form onSubmit={apply}>
                   {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
-                  <label className="field-label" htmlFor="m-name">Full name</label>
+                  <label className="field-label" htmlFor="m-name">Name and surname</label>
                   <input id="m-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your name" />
                   <label className="field-label" htmlFor="m-email">Email</label>
                   <input id="m-email" className="input-field" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" />
@@ -1837,7 +1837,7 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
                 <div className="contact-h">Your details</div>
                 {error && <div className="vol-error" style={{ marginBottom: 14 }}>{error}</div>}
                 <form onSubmit={submit}>
-                  <label className="field-label" htmlFor="bk-name">Full name</label>
+                  <label className="field-label" htmlFor="bk-name">Name and surname</label>
                   <input id="bk-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name and surname" />
 
                   <label className="field-label" htmlFor="bk-email">Email</label>
@@ -2180,7 +2180,7 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
               </div>
             )}
             <form onSubmit={submit}>
-              <label className="field-label" htmlFor="cf-name">Your name</label>
+              <label className="field-label" htmlFor="cf-name">Name and surname</label>
               <input id="cf-name" className="input-field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your name" />
 
               <label className="field-label" htmlFor="cf-email">Email</label>
