@@ -551,3 +551,14 @@
   @media (max-width: 600px) {
     .check-grid { grid-template-columns: 1fr; }
   }
+
+  /* Mobile input sizing: iOS Safari auto-zooms the page when a focused field
+     is under 16px, which knocks the layout sideways mid-form. */
+  @media (max-width: 768px) {
+    .mk-site .input-field,
+    .mk-site select.input-field,
+    .mk-site textarea.input-field { font-size: 16px; }
+    /* Comfortable tap targets (44px is the accessible minimum). */
+    .mk-site .filter-pill { min-height: 40px; }
+    .mk-site .social { width: 44px; height: 44px; }
+  }

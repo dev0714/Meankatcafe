@@ -1617,6 +1617,8 @@ export default function AdminClient() {
           .tab-grid { grid-template-columns: 1fr !important; }
           .settings-grid { grid-template-columns: 1fr !important; }
           .sticky-form { position: static !important; }
+          /* iOS zooms the page when a focused field is under 16px. */
+          .mk-input, select.mk-input, textarea.mk-input { font-size: 16px; }
         }
       `}</style>
 
