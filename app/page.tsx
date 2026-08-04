@@ -614,7 +614,10 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
               <span className="accent">sat on your lap</span> &amp; now <br />
               you legally cant leave.
             </div>
-            <button className="btn btn-purple" onClick={() => setPage("Book")}>Book a Visit</button>
+            <div className="help-cta-row">
+              <button className="btn btn-purple" onClick={() => setPage("Book")}>Book a Visit</button>
+              <button className="btn btn-outline-dark" onClick={() => setPage("Membership")}>Become a Member</button>
+            </div>
           </div>
         </div>
       </section>
