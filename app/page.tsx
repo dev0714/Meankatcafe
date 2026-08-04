@@ -557,8 +557,8 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
         <div className="paws-layer paws-white" />
         <div className="hero-inner">
           <div className="hero-text">
-            <div className="hero-script">Welcome,</div>
-            <h1 className="hero-title">Cat Lovers.</h1>
+            <div className="hero-script">Welcome</div>
+            <h1 className="hero-title">Cat Lovers</h1>
             <div className="hero-eyebrow">Meet your new favourite spot! 🐾</div>
             <p className="hero-body">
               Every coffee, croissant, and sweet treat helps support rescue cats through fostering, rehabilitation, care, and adoption while they wait for their forever humans.
@@ -1115,7 +1115,7 @@ function EventsPage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
           <div className="page-script">Upcoming</div>
-          <h1 className="page-title">Events.</h1>
+          <h1 className="page-title">Events</h1>
           <p className="page-sub">From cat yoga mornings to themed movie nights — there&apos;s always something brewing at MeanKat. Grab a spot before the cats do.</p>
         </div>
       </section>
@@ -1746,7 +1746,7 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
           <div className="page-script">Book a</div>
-          <h1 className="page-title">Visit.</h1>
+          <h1 className="page-title">Visit</h1>
           <p className="page-sub">Reserve your spot with the cats. Pick a day and an available time below — slots are limited, so the cats don&apos;t get overwhelmed.</p>
         </div>
       </section>
@@ -1985,7 +1985,7 @@ function VolunteerPage({ setPage }: { setPage: (p: Page) => void }) {
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
           <div className="page-script">Lend us a</div>
-          <h1 className="page-title">Helping Paw.</h1>
+          <h1 className="page-title">Helping Paw</h1>
           <p className="page-sub">Fill in the volunteer application below and our team will be in touch. Every paw on deck helps the cats.</p>
         </div>
       </section>
@@ -2098,8 +2098,8 @@ function ContactPage({ setPage }: { setPage: (p: Page) => void }) {
       <section className="page-header">
         <div className="paws-layer paws-white" />
         <div className="page-header-inner">
-          <div className="page-script">Drop us</div>
-          <h1 className="page-title">A Line.</h1>
+          <div className="page-script">Paws for a</div>
+          <h1 className="page-title">Chat</h1>
           <p className="page-sub">Booking a visit, asking about adoption, organising an event, or just want to say hi — we&apos;d love to hear from you.</p>
         </div>
       </section>
