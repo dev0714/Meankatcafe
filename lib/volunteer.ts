@@ -25,7 +25,7 @@ export const VOLUNTEER_SECTIONS: VolunteerSection[] = [
   {
     heading: "Your details 🐾",
     fields: [
-      { key: "full_name", label: "Full name", kind: "text", required: true, placeholder: "Maahira Essack" },
+      { key: "full_name", label: "Name and surname", kind: "text", required: true, placeholder: "Maahira Essack" },
       { key: "email", label: "Email", kind: "email", required: true, placeholder: "you@example.com" },
       { key: "age", label: "Age", kind: "text", required: true, placeholder: "e.g. 24" },
       { key: "whatsapp_number", label: "WhatsApp number", kind: "text", required: true, placeholder: "+27 ..." },
