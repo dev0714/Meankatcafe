@@ -324,30 +324,37 @@ function Nav({
           {mobileOpen ? "✕" : "☰"}
         </button>
         <div className={`nav-links ${mobileOpen ? "open" : ""}`}>
-          {NAV_LINKS.map((l) => (
-            <a
-              key={l}
-              href="#"
-              className={`nav-link ${page === l ? "on" : ""}`}
-              onClick={(e) => {
-                e.preventDefault();
-                setPage(l);
-                setMobileOpen(false);
-              }}
-            >
-              {l}
-            </a>
-          ))}
-          {/* The shop is a separate site — always an external link. */}
-          <a
-            className="nav-link nav-shop"
-            href={SHOP_URL}
-            target="_blank"
-            rel="noopener"
-            onClick={() => setMobileOpen(false)}
-          >
-            Shop ↗
-          </a>
+          {NAV_LINKS.flatMap((l) => {
+            const link = (
+              <a
+                key={l}
+                href="#"
+                className={`nav-link ${page === l ? "on" : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage(l);
+                  setMobileOpen(false);
+                }}
+              >
+                {l}
+              </a>
+            );
+            // The shop is a separate site — always an external link, sits after Cafe.
+            if (l !== "Cafe") return [link];
+            return [
+              link,
+              <a
+                key="Shop"
+                className="nav-link nav-shop"
+                href={SHOP_URL}
+                target="_blank"
+                rel="noopener"
+                onClick={() => setMobileOpen(false)}
+              >
+                Shop ↗
+              </a>,
+            ];
+          })}
         </div>
       </div>
     </nav>
@@ -447,6 +454,15 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
             <br />
             NPC 2025/784731/08
           </p>
+        </div>
+        <div>
+          <div className="footer-h">Shop</div>
+          <ul className="footer-links">
+            <li><a href={SHOP_URL} target="_blank" rel="noopener">Visit the Shop ↗</a></li>
+            <li><a href={`${SHOP_URL}/shop`} target="_blank" rel="noopener">All Products</a></li>
+            <li><a href={`${SHOP_URL}/shop?category=Bestsellers`} target="_blank" rel="noopener">Bestsellers</a></li>
+            <li><a href={`${SHOP_URL}/cart`} target="_blank" rel="noopener">Cart</a></li>
+          </ul>
         </div>
         <div>
           <div className="footer-h">Connect With Us</div>
@@ -554,6 +570,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
               <button className="btn btn-light" onClick={() => setPage("Book")}>Book a Visit</button>
               <button className="btn btn-outline" onClick={() => setPage("Cats")}>Meet the Cats</button>
               <button className="btn btn-outline" onClick={() => setPage("How to Help")}>Donate</button>
+              <a className="btn btn-outline" href={SHOP_URL} target="_blank" rel="noopener">Shop</a>
             </div>
           </div>
           <div className="hero-img-wrap">
