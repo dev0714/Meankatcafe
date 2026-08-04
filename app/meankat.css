@@ -175,7 +175,11 @@
 
   /* ====== FOOTER ====== */
   .footer { background: var(--footer); color: var(--white); padding: 48px clamp(20px, 5vw, 56px) 36px; }
-  .footer-inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 40px; align-items: start; }
+  .footer-inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr; gap: 40px; align-items: start; }
+  .footer-links { list-style: none; padding: 0; margin: 0; }
+  .footer-links li { margin-bottom: 8px; }
+  .footer-links a { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.8; text-decoration: none; transition: color .2s; }
+  .footer-links a:hover { color: var(--yellow); }
   .footer-brand img { height: 110px; margin-bottom: 10px; }
   .footer-h { font-weight: 900; color: var(--yellow); font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 14px; }
   .footer-p { color: rgba(255,255,255,0.85); font-size: 13.5px; line-height: 1.8; }
