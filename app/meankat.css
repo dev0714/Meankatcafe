@@ -556,6 +556,52 @@
     .check-grid { grid-template-columns: 1fr; }
   }
 
+  /* ── Blog / guides ── */
+  .mk-site a.back-link { display: inline-block; font-weight: 800; font-size: 12.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--purple-dark); margin-bottom: 8px; }
+  .mk-site a.back-link:hover { color: var(--purple-deep); }
+  .blog-list { background: var(--cream); padding: clamp(40px, 6vw, 72px) clamp(20px, 5vw, 56px); }
+  .blog-list-inner { max-width: 960px; margin: 0 auto; display: grid; gap: clamp(18px, 2.5vw, 26px); }
+  .blog-empty { color: var(--ink-soft); text-align: center; font-size: 15px; }
+  .mk-site a.blog-card { display: grid; grid-template-columns: 220px 1fr; gap: 20px; background: var(--white); border: 2px solid var(--lilac-pale); border-radius: 22px; overflow: hidden; box-shadow: 0 8px 26px rgba(135,76,158,0.10); transition: transform .22s, box-shadow .22s; }
+  .mk-site a.blog-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(135,76,158,0.18); }
+  .blog-card-img { width: 100%; height: 100%; object-fit: cover; }
+  .blog-card-body { padding: clamp(18px, 2.4vw, 26px); }
+  .blog-card-meta { font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--purple); margin-bottom: 8px; }
+  .blog-card-title { font-family: 'Slopes', 'Permanent Marker', cursive !important; color: var(--purple-deep); font-size: clamp(20px, 2.6vw, 27px); letter-spacing: .5px; line-height: 1.15; margin-bottom: 8px; }
+  .blog-card-excerpt { color: var(--ink-soft); font-size: 14.5px; line-height: 1.75; margin-bottom: 10px; }
+  .blog-card-more { font-weight: 800; font-size: 13px; color: var(--purple-dark); letter-spacing: .5px; }
+
+  .post { background: var(--cream); padding: clamp(34px, 5vw, 64px) clamp(20px, 5vw, 56px) clamp(48px, 6vw, 80px); }
+  .post-inner { max-width: 760px; margin: 0 auto; }
+  .post-title { font-family: 'Slopes', 'Permanent Marker', cursive !important; color: var(--purple-deep); font-size: clamp(30px, 5vw, 46px); line-height: 1.1; letter-spacing: .5px; margin: 10px 0 10px; }
+  .post-meta { font-size: 12.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--purple); margin-bottom: 20px; }
+  .post-cover { width: 100%; border-radius: 20px; margin-bottom: 26px; box-shadow: 0 12px 32px rgba(135,76,158,0.18); }
+  .post-body { color: var(--ink); font-size: 16.5px; line-height: 1.85; }
+  .post-body h2 { font-family: 'Slopes', 'Permanent Marker', cursive !important; color: var(--purple-deep); font-size: clamp(21px, 2.8vw, 28px); letter-spacing: .5px; margin: 32px 0 12px; }
+  .post-body h3 { font-weight: 900; color: var(--purple-dark); font-size: 18px; margin: 24px 0 8px; }
+  .post-body p { margin-bottom: 18px; }
+  .post-body ul, .post-body ol { margin: 0 0 18px 22px; }
+  .post-body li { margin-bottom: 9px; }
+  .post-body strong { color: var(--purple-deep); font-weight: 800; }
+  .mk-site .post-body a { color: var(--purple-dark); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .post-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .post-tag { background: var(--lilac-pale); color: var(--purple-deep); border-radius: 999px; padding: 5px 14px; font-size: 12px; font-weight: 800; letter-spacing: .5px; }
+  .post-cta { margin-top: 36px; background: var(--lilac-pale); border-radius: 22px; padding: clamp(24px, 3vw, 34px); text-align: center; }
+  .post-cta-h { font-family: 'Slopes', 'Permanent Marker', cursive !important; color: var(--purple-deep); font-size: clamp(20px, 2.6vw, 26px); letter-spacing: .5px; margin-bottom: 8px; }
+  .post-cta-p { color: var(--ink-soft); font-size: 14.5px; line-height: 1.7; margin-bottom: 16px; }
+  .post-more { margin-top: 40px; }
+  .post-more-h { font-family: 'Slopes', 'Permanent Marker', cursive !important; color: var(--purple-deep); font-size: 22px; letter-spacing: .5px; margin-bottom: 14px; }
+  .post-more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mk-site a.post-more-card { background: var(--white); border: 2px solid var(--lilac-pale); border-radius: 18px; padding: 18px; transition: transform .2s; }
+  .mk-site a.post-more-card:hover { transform: translateY(-3px); }
+  .post-more-title { font-weight: 900; color: var(--purple-deep); font-size: 15px; line-height: 1.35; margin-bottom: 6px; }
+  .post-more-excerpt { color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
+  @media (max-width: 700px) {
+    .mk-site a.blog-card { grid-template-columns: 1fr; }
+    .blog-card-img { height: 190px; }
+    .post-more-grid { grid-template-columns: 1fr; }
+  }
+
   /* Hero H1 sub-line: keeps the location keyword visible (and in the H1) without
      shouting it in the display face. */
   .mk-site .hero-title-sub {

@@ -4,7 +4,7 @@
 
 export type Page =
   | "Home" | "About" | "Cats" | "Cafe" | "Events"
-  | "How to Help" | "Contact" | "Volunteer" | "Book" | "Membership";
+  | "How to Help" | "Contact" | "Volunteer" | "Book" | "Membership" | "Guides";
 
 export const PAGE_PATHS: Record<Page, string> = {
   Home: "/",
@@ -17,11 +17,12 @@ export const PAGE_PATHS: Record<Page, string> = {
   Membership: "/membership",
   Contact: "/contact",
   Volunteer: "/volunteer",
+  Guides: "/blog",
 };
 
 /** Order the sections appear in the nav. Book sits high — it is the primary action. */
 export const NAV_LINKS: Page[] = [
-  "Home", "Book", "Cats", "About", "How to Help", "Cafe", "Events", "Membership", "Contact",
+  "Home", "Book", "Cats", "About", "How to Help", "Cafe", "Events", "Guides", "Membership", "Contact",
 ];
 
 export function pathForPage(page: Page): string {
