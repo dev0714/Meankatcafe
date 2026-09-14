@@ -51,3 +51,8 @@ export function readingMinutes(content: string): number {
   const words = content.trim().split(/\s+/).length;
   return Math.max(1, Math.round(words / 200));
 }
+
+/** "durban, guide" -> ["durban","guide"] */
+export function parseTags(raw: string): string[] {
+  return raw.split(",").map((t) => t.trim()).filter(Boolean);
+}
