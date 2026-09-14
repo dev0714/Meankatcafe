@@ -290,7 +290,7 @@ export function SiteShell({ page }: { page: Page }) {
 // NAV / ANNOUNCEMENT / HOURS / FOOTER
 // ─────────────────────────────────────────────────────────────
 
-function Nav({
+export function Nav({
   page,
   setPage,
   mobileOpen,
@@ -348,7 +348,7 @@ function Nav({
 
 const DEFAULT_ANNOUNCEMENT = "🎉 Banner for Updates / Events / Important Notices";
 
-function Announcement() {
+export function Announcement() {
   const [text, setText] = useState(DEFAULT_ANNOUNCEMENT);
   const [enabled, setEnabled] = useState(true);
   const [speed, setSpeed] = useState(30);
@@ -412,7 +412,7 @@ function HoursBar() {
   );
 }
 
-function Footer({ setPage }: { setPage: (p: Page) => void }) {
+export function Footer({ setPage }: { setPage: (p: Page) => void }) {
   const [social, setSocial] = useState<Record<string, string>>({});
   useEffect(() => {
     fetch("/api/settings")
