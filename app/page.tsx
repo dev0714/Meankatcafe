@@ -5,7 +5,7 @@ import { type CatCard } from "@/lib/cats";
 import { emojify } from "@/lib/emojify";
 import { transformToStyle } from "@/lib/image-transform";
 import { todayInCafeTZ, parseWeek, groupWeek, DEFAULT_WEEK, type WeekHours } from "@/lib/hours";
-import { slotForCta, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
+import { slotForCta, helpImagesFor } from "@/lib/help-posters";
 import { isMemberActive, type MembershipPlan } from "@/lib/membership";
 import type { DayAvailability } from "@/lib/bookings";
 import {
@@ -1223,7 +1223,10 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
   const wishlist = (give.donate_wishlist ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
 
   const securePayUrl = (give.secure_pay_url ?? "").trim();
-  const [poster, setPoster] = useState<string | null>(null);
+  // A poster slot can hold several pages — the modal pages through them.
+  const [poster, setPoster] = useState<string[] | null>(null);
+  const [posterIdx, setPosterIdx] = useState(0);
+  const openPoster = (urls: string[]) => { setPosterIdx(0); setPoster(urls); };
   const [giveModal, setGiveModal] = useState<null | "bank" | "items" | "backabuddy">(null);
 
   const downloadPoster = async (url: string) => {
@@ -1244,14 +1247,14 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
     }
   };
 
-  const volunteerPoster = (give[posterUrlKey("volunteer")] ?? "").trim();
-  const adoptPoster = (give[posterUrlKey("adopt")] ?? "").trim();
+  const volunteerPoster = helpImagesFor(give, "volunteer", "poster").map((im) => im.url);
+  const adoptPoster = helpImagesFor(give, "adopt", "poster").map((im) => im.url);
 
   const helpVisual = (h: (typeof HELP_DETAIL)[number]) => {
     const slot = slotForCta(h.cta);
-    const img = slot ? (give[imageUrlKey(slot)] ?? "").trim() : "";
-    return img
-      ? <div className="help-icon-big help-img-frame"><img src={img} alt={h.title} /></div>
+    const imgs = slot ? helpImagesFor(give, slot, "image").map((im) => im.url) : [];
+    return imgs.length
+      ? <HelpBlockImages images={imgs} alt={h.title} />
       : <div className="help-icon-big">{h.icon}</div>;
   };
 
@@ -1261,10 +1264,10 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
       document.getElementById("ways-to-give")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    // If a poster has been uploaded for this section, pop it up.
+    // If posters have been uploaded for this section, pop them up.
     const slot = slotForCta(cta);
-    const posterUrl = slot ? (give[posterUrlKey(slot)] ?? "").trim() : "";
-    if (posterUrl) return setPoster(posterUrl);
+    const posterUrls = slot ? helpImagesFor(give, slot, "poster").map((im) => im.url) : [];
+    if (posterUrls.length) return openPoster(posterUrls);
 
     // Otherwise fall back to the section's normal action.
     if (cta === "Apply to Volunteer") return setPage("Volunteer");
@@ -1325,12 +1328,12 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
                     {h.cta === "Apply to Volunteer" ? (
                       <div className="help-cta-row">
                         <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
-                        {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
+                        {volunteerPoster.length > 0 && <button className="btn btn-outline-dark" onClick={() => openPoster(volunteerPoster)}>Volunteer Process</button>}
                       </div>
                     ) : h.cta === "Start the Adoption Process" ? (
                       <div className="help-cta-row">
                         <button className="btn btn-purple" onClick={goToAdoptable}>Adopt a Cat</button>
-                        {adoptPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(adoptPoster)}>Adoption Process</button>}
+                        {adoptPoster.length > 0 && <button className="btn btn-outline-dark" onClick={() => openPoster(adoptPoster)}>Adoption Process</button>}
                       </div>
                     ) : (
                       <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
@@ -1347,12 +1350,12 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
                     {h.cta === "Apply to Volunteer" ? (
                       <div className="help-cta-row">
                         <button className="btn btn-purple" onClick={() => setPage("Volunteer")}>Apply to Volunteer</button>
-                        {volunteerPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(volunteerPoster)}>Volunteer Process</button>}
+                        {volunteerPoster.length > 0 && <button className="btn btn-outline-dark" onClick={() => openPoster(volunteerPoster)}>Volunteer Process</button>}
                       </div>
                     ) : h.cta === "Start the Adoption Process" ? (
                       <div className="help-cta-row">
                         <button className="btn btn-purple" onClick={goToAdoptable}>Adopt a Cat</button>
-                        {adoptPoster && <button className="btn btn-outline-dark" onClick={() => setPoster(adoptPoster)}>Adoption Process</button>}
+                        {adoptPoster.length > 0 && <button className="btn btn-outline-dark" onClick={() => openPoster(adoptPoster)}>Adoption Process</button>}
                       </div>
                     ) : (
                       <button className="btn btn-purple" onClick={() => handleCta(h.cta)}>{h.cta}</button>
@@ -1449,19 +1452,51 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
         </div>
       )}
 
-      {poster && (
+      {poster && poster.length > 0 && (
         <div className="modal-backdrop" onClick={() => setPoster(null)}>
           <div className="modal-box menu-modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setPoster(null)}>✕</button>
-            <img src={poster} alt="More info" className="menu-modal-img" />
-            <div style={{ textAlign: "center", marginTop: 14 }}>
-              <button className="btn btn-purple" onClick={() => downloadPoster(poster)}>⬇ Download</button>
+            <div style={{ position: "relative" }}>
+              <img src={poster[Math.min(posterIdx, poster.length - 1)]} alt="More info" className="menu-modal-img" />
+              {poster.length > 1 && (
+                <>
+                  <button className="carousel-arrow left" aria-label="Previous" onClick={() => setPosterIdx((p) => (p - 1 + poster.length) % poster.length)}>‹</button>
+                  <button className="carousel-arrow right" aria-label="Next" onClick={() => setPosterIdx((p) => (p + 1) % poster.length)}>›</button>
+                </>
+              )}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 14, display: "flex", gap: 10, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+              {poster.length > 1 && (
+                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--purple-dark)" }}>
+                  {Math.min(posterIdx, poster.length - 1) + 1} / {poster.length}
+                </span>
+              )}
+              <button className="btn btn-purple" onClick={() => downloadPoster(poster[Math.min(posterIdx, poster.length - 1)])}>⬇ Download</button>
             </div>
           </div>
         </div>
       )}
 
       <Footer setPage={setPage} />
+    </div>
+  );
+}
+
+// A How-to-Help block image. Pages through several images when more than one
+// has been uploaded for that section.
+function HelpBlockImages({ images, alt }: { images: string[]; alt: string }) {
+  const [i, setI] = useState(0);
+  const count = images.length;
+  const pos = count ? ((i % count) + count) % count : 0;
+  return (
+    <div className="help-icon-big help-img-frame" style={{ position: "relative" }}>
+      <img src={images[pos]} alt={alt} />
+      {count > 1 && (
+        <>
+          <button className="carousel-arrow left" aria-label="Previous" onClick={() => setI((p) => p - 1)}>‹</button>
+          <button className="carousel-arrow right" aria-label="Next" onClick={() => setI((p) => p + 1)}>›</button>
+        </>
+      )}
     </div>
   );
 }
