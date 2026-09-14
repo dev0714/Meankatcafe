@@ -142,6 +142,9 @@
   .pricing-title { font-family: 'Rubik', sans-serif; font-weight: 900; color: var(--white); font-size: clamp(20px, 2.6vw, 26px); margin-bottom: 22px; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
   .pricing-row { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-bottom: 1.5px dotted rgba(255,255,255,0.5); }
   .pricing-row:last-of-type { border-bottom: none; }
+  .pricing-rows .pricing-row:last-child { border-bottom: none; }
+  .pricing-note { margin-top: 18px; color: var(--white); font-size: 13.5px; line-height: 1.7; opacity: 0.95; }
+  .menu-fee-note { margin-top: 12px; font-size: 13px; line-height: 1.7; opacity: 0.9; }
   .pricing-price { font-family: 'Rubik', sans-serif; font-weight: 900; color: var(--white); font-size: 18px; letter-spacing: 0.5px; }
   .pricing-label { color: var(--white); font-weight: 600; font-size: 15px; }
   .tagline-eyebrow { color: var(--purple-dark); font-weight: 900; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
