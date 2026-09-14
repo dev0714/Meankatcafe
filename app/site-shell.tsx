@@ -413,6 +413,26 @@ function HoursBar() {
 }
 
 function Footer({ setPage }: { setPage: (p: Page) => void }) {
+  const [social, setSocial] = useState<Record<string, string>>({});
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => { if (d) setSocial(d); })
+      .catch(() => {});
+  }, []);
+
+  // A link only counts when it points somewhere real — the bare domains are the
+  // shipped placeholders and should not render an icon.
+  const link = (value: string | undefined, placeholder: string) => {
+    const v = (value ?? "").trim();
+    if (!v || v === placeholder) return "";
+    return /^https?:\/\//.test(v) ? v : "";
+  };
+  const instagram = link(social.social_instagram_url, "");
+  const facebook = link(social.social_facebook_url, "https://facebook.com/");
+  const tiktok = link(social.social_tiktok_url, "");
+  const whatsapp = link(social.contact_whatsapp_url, "https://wa.me/");
+
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -452,18 +472,18 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
         <div>
           <div className="footer-h">Connect With Us</div>
           <div className="socials">
-            <a className="social" href="https://instagram.com/meankatcafe_durban" aria-label="Instagram" target="_blank" rel="noopener">
+            {instagram && (<a className="social" href={instagram} aria-label="Instagram" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
-            </a>
-            <a className="social" href="https://facebook.com/" aria-label="Facebook" target="_blank" rel="noopener">
+            </a>)}
+            {facebook && (<a className="social" href={facebook} aria-label="Facebook" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22 12.07C22 6.5 17.52 2 12 2S2 6.5 2 12.07c0 5 3.66 9.15 8.44 9.93v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.77l-.44 2.9h-2.33V22c4.78-.78 8.43-4.92 8.43-9.93z"/></svg>
-            </a>
-            <a className="social" href="https://wa.me/" aria-label="WhatsApp" target="_blank" rel="noopener">
+            </a>)}
+            {whatsapp && (<a className="social" href={whatsapp} aria-label="WhatsApp" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.5 14.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.89-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.87 1.22 3.07.15.2 2.1 3.21 5.09 4.5.71.31 1.27.5 1.7.64.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35zM12 2C6.48 2 2 6.48 2 12c0 1.76.46 3.42 1.27 4.85L2 22l5.27-1.38A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18.27a8.27 8.27 0 0 1-4.21-1.15l-.3-.18-3.13.82.83-3.05-.2-.31A8.27 8.27 0 1 1 12 20.27z"/></svg>
-            </a>
-            <a className="social" href="https://tiktok.com/@meankatcafe_durban" aria-label="TikTok" target="_blank" rel="noopener">
+            </a>)}
+            {tiktok && (<a className="social" href={tiktok} aria-label="TikTok" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.9 20.1a6.34 6.34 0 0 0 10.86-4.43V8.79a8.16 8.16 0 0 0 4.77 1.52V6.87a4.85 4.85 0 0 1-1.94-.18z"/></svg>
-            </a>
+            </a>)}
           </div>
         </div>
       </div>

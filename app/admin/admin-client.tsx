@@ -107,6 +107,9 @@ const SETTINGS_DEFAULTS = {
   contact_whatsapp_url: "https://wa.me/",
   contact_email: "hello@meankatcafe.co.za",
   contact_socials: "@meankatcafe_durban on Instagram, TikTok & Facebook",
+  social_instagram_url: "https://instagram.com/meankatcafe_durban",
+  social_facebook_url: "",
+  social_tiktok_url: "https://tiktok.com/@meankatcafe_durban",
   bookings_per_slot: "6",
   announcement_text: "🎉 Banner for Updates / Events / Important Notices",
   announcement_enabled: "true",
@@ -3182,6 +3185,24 @@ export default function AdminClient() {
                         <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Socials line</div>
                         <input className="mk-input" value={settings.contact_socials} onChange={(e) => setSettings((s) => ({ ...s, contact_socials: e.target.value }))} placeholder="@meankatcafe_durban on Instagram, TikTok & Facebook" />
                       </label>
+                      <div style={{ borderTop: `1px solid ${BRAND.purpleLight}`, paddingTop: 14, marginTop: 4 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text, marginBottom: 4 }}>Social links (footer icons)</div>
+                        <p style={{ fontSize: 12, color: BRAND.textLight, margin: "0 0 12px" }}>Each icon only appears on the site once its link is filled in. Leave one empty to hide it.</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <label>
+                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Instagram URL</div>
+                            <input className="mk-input" value={settings.social_instagram_url} onChange={(e) => setSettings((s) => ({ ...s, social_instagram_url: e.target.value }))} placeholder="https://instagram.com/meankatcafe_durban" />
+                          </label>
+                          <label>
+                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Facebook URL</div>
+                            <input className="mk-input" value={settings.social_facebook_url} onChange={(e) => setSettings((s) => ({ ...s, social_facebook_url: e.target.value }))} placeholder="https://facebook.com/yourpage" />
+                          </label>
+                          <label>
+                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>TikTok URL</div>
+                            <input className="mk-input" value={settings.social_tiktok_url} onChange={(e) => setSettings((s) => ({ ...s, social_tiktok_url: e.target.value }))} placeholder="https://tiktok.com/@meankatcafe_durban" />
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </>)}
