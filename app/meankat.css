@@ -556,6 +556,34 @@
     .check-grid { grid-template-columns: 1fr; }
   }
 
+  /* Hero H1 sub-line: keeps the location keyword visible (and in the H1) without
+     shouting it in the display face. */
+  .mk-site .hero-title-sub {
+    display: block; margin-top: 6px;
+    font-family: 'Rubik', sans-serif !important;
+    font-weight: 700; font-size: clamp(14px, 1.8vw, 19px);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: rgba(255,255,255,0.95); text-shadow: none;
+  }
+
+  /* Sticky mobile booking CTA — hidden on desktop, where the nav is always
+     visible and the hero already carries a Book button. */
+  .sticky-book { display: none; }
+  @media (max-width: 768px) {
+    .sticky-book {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 60;
+      padding: 15px 22px; border-radius: 999px;
+      background: var(--purple-dark) !important; color: var(--white) !important;
+      border: 1.5px solid var(--purple-dark) !important;
+      font-family: 'Rubik', sans-serif !important; font-weight: 900; font-size: 13px;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      box-shadow: 0 8px 24px rgba(58,48,96,0.35); cursor: pointer;
+    }
+    /* Keep the sticky bar from covering the end of the page. */
+    .mk-site .footer { padding-bottom: 88px; }
+  }
+
   /* Mobile input sizing: iOS Safari auto-zooms the page when a focused field
      is under 16px, which knocks the layout sideways mid-form. */
   @media (max-width: 768px) {

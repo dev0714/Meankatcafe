@@ -61,14 +61,15 @@ const SHOP_ITEMS: Array<[string, string]> = [
   ["💍", "Jewelry"],
 ];
 
+// "Book" sits high on purpose — booking a visit is the primary conversion.
 const NAV_LINKS: Page[] = [
   "Home",
+  "Book",
+  "Cats",
   "About",
   "How to Help",
-  "Cats",
   "Cafe",
   "Events",
-  "Book",
   "Membership",
   "Contact",
 ];
@@ -295,6 +296,14 @@ export default function MeanKatCafe() {
       {page === "Book" && <BookPage setPage={setPage} />}
       {page === "Membership" && <MembershipPage setPage={setPage} />}
       {page === "Contact" && <ContactPage setPage={setPage} />}
+
+      {/* Mobile-only sticky CTA — booking is the primary action, so it stays
+          reachable no matter how far down the page you are. */}
+      {page !== "Book" && (
+        <button className="sticky-book" onClick={() => setPage("Book")}>
+          📅 Book a Visit
+        </button>
+      )}
     </div>
   );
 }
@@ -557,8 +566,11 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
         <div className="paws-layer paws-white" />
         <div className="hero-inner">
           <div className="hero-text">
-            <div className="hero-script">Welcome</div>
-            <h1 className="hero-title">Cat Lovers</h1>
+            <div className="hero-script">Welcome to</div>
+            <h1 className="hero-title">
+              MeanKat Cafe
+              <span className="hero-title-sub">Durban&apos;s Premier Cat Café</span>
+            </h1>
             <div className="hero-eyebrow">Meet your new favourite spot! 🐾</div>
             <p className="hero-body">
               Every coffee, croissant, and sweet treat helps support rescue cats through fostering, rehabilitation, care, and adoption while they wait for their forever humans.
