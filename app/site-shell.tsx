@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type Page, NAV_LINKS, pathForPage, LEGACY_HASH_TO_PATH } from "@/lib/site-routes";
@@ -385,6 +385,70 @@ export function Announcement() {
   );
 }
 
+const ENTRANCE_FEE_NOTE =
+  "Please note: your entrance fee is a donation to our rescue efforts — it goes straight to food, vet care and finding our cats their forever homes.";
+
+/**
+ * Entrance fees and the donation note, read from Site Settings so the admin can
+ * change them. The constants above are the fallback while settings load (and if
+ * the fetch fails), so the card is never blank.
+ */
+function useEntranceFees(): { fees: Array<[string, string]>; note: string } {
+  const [fees, setFees] = useState<Array<[string, string]>>(ENTRANCE_FEES);
+  const [note, setNote] = useState(ENTRANCE_FEE_NOTE);
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Record<string, string> | null) => {
+        if (!d) return;
+        const rows = ENTRANCE_FEES.map(([price, label], i) => {
+          const n = i + 1;
+          const p = d[`entrance_fee_${n}_price`];
+          const l = d[`entrance_fee_${n}_label`];
+          return [p?.trim() || price, l?.trim() || label] as [string, string];
+        });
+        setFees(rows);
+        // An explicitly empty setting hides the note, so only the missing key
+        // falls back to the default copy.
+        if (typeof d.entrance_fee_note === "string") setNote(d.entrance_fee_note.trim());
+      })
+      .catch(() => {});
+  }, []);
+  return { fees, note };
+}
+
+function PricingCard({ style }: { style?: CSSProperties }) {
+  const { fees, note } = useEntranceFees();
+  return (
+    <div className="pricing-card" style={style}>
+      <div className="pricing-title">Visit the Cats 🐱</div>
+      <div className="pricing-rows">
+        {fees.map(([price, label]) => (
+          <div className="pricing-row" key={label}>
+            <span className="pricing-price">{price}</span>
+            <span className="pricing-label">{label}</span>
+          </div>
+        ))}
+      </div>
+      {note && <p className="pricing-note">{note}</p>}
+    </div>
+  );
+}
+
+function MenuFeeCard({ onBook }: { onBook: () => void }) {
+  const { fees, note } = useEntranceFees();
+  return (
+    <div className="menu-fee-card">
+      <div className="menu-fee-h">Don&apos;t forget the entrance fee 🐾</div>
+      <div className="menu-fee-p">
+        {fees.map(([price, label]) => `${price} ${label.toLowerCase()}`).join(" · ")}
+      </div>
+      {note && <p className="menu-fee-note">{note}</p>}
+      <button className="btn btn-light" style={{ marginTop: 18 }} onClick={onBook}>Book Now</button>
+    </div>
+  );
+}
+
 function useOpeningHours(): WeekHours {
   const [week, setWeek] = useState<WeekHours>(DEFAULT_WEEK);
   useEffect(() => {
@@ -603,15 +667,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
 
       <section className="visit-section">
         <div className="visit-inner">
-          <div className="pricing-card">
-            <div className="pricing-title">Visit the Cats 🐱</div>
-            {ENTRANCE_FEES.map(([price, label]) => (
-              <div className="pricing-row" key={label}>
-                <span className="pricing-price">{price}</span>
-                <span className="pricing-label">{label}</span>
-              </div>
-            ))}
-          </div>
+          <PricingCard />
           <div>
             <div className="tagline-eyebrow">Come for the vibes... ☕</div>
             <div className="tagline">
@@ -1066,11 +1122,7 @@ function CafePage({ setPage }: { setPage: (p: Page) => void }) {
             <PhotoCarousel images={ruleImages} label="Cafe rules 🐾" emptyText="Cafe rules coming soon — check back shortly." onZoom={(imgs, index) => setZoom({ images: imgs, index })} />
           </div>
 
-          <div className="menu-fee-card">
-            <div className="menu-fee-h">Don&apos;t forget the entrance fee 🐾</div>
-            <div className="menu-fee-p">R50 per person · R40 students (weekdays, card req.) · R40 pensioners · Free for children under 1 year</div>
-            <button className="btn btn-light" style={{ marginTop: 18 }} onClick={() => setPage("Book")}>Book Now</button>
-          </div>
+          <MenuFeeCard onBook={() => setPage("Book")} />
         </div>
       </section>
 
@@ -1798,15 +1850,7 @@ function BookPage({ setPage }: { setPage: (p: Page) => void }) {
 
       <section className="book-section">
         <div className="book-inner">
-          <div className="pricing-card" style={{ gridColumn: "1 / -1", marginBottom: 4 }}>
-            <div className="pricing-title">Visit the Cats 🐱</div>
-            {ENTRANCE_FEES.map(([price, label]) => (
-              <div className="pricing-row" key={label}>
-                <span className="pricing-price">{price}</span>
-                <span className="pricing-label">{label}</span>
-              </div>
-            ))}
-          </div>
+          <PricingCard style={{ gridColumn: "1 / -1", marginBottom: 4 }} />
           {confirmed ? (
             <div className="vol-success" style={{ gridColumn: "1 / -1" }}>
               <div style={{ fontSize: 54, marginBottom: 12 }}>🎉</div>

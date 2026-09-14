@@ -99,6 +99,8 @@ const SETTINGS_DEFAULTS = {
   entrance_fee_3_label: "Pensioners",
   entrance_fee_4_price: "Free",
   entrance_fee_4_label: "Children under 1 year",
+  entrance_fee_note:
+    "Please note: your entrance fee is a donation to our rescue efforts — it goes straight to food, vet care and finding our cats their forever homes.",
   stat_drinks: "30+",
   stat_desserts: "8+",
   opening_hours: "", // JSON: WeekHours (see lib/hours.ts). Empty = DEFAULT_WEEK.
@@ -3295,6 +3297,19 @@ export default function AdminClient() {
                         </div>
                       ))}
                     </div>
+                    <label style={{ display: "block", marginTop: 16 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6, fontSize: 10 }}>Donation disclaimer</div>
+                      <textarea
+                        className="mk-input"
+                        rows={3}
+                        value={settings.entrance_fee_note}
+                        onChange={(e) => setSettings((s) => ({ ...s, entrance_fee_note: e.target.value }))}
+                        placeholder="Please note: your entrance fee is a donation to our rescue efforts…"
+                      />
+                      <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 6 }}>
+                        Shown under the fees on the home page, the Book page and the Cafe page. Leave empty to hide it.
+                      </div>
+                    </label>
                   </div>
 
                   {/* Hours */}
