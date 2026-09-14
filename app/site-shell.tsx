@@ -569,10 +569,7 @@ function HomePage({ setPage, goToHelp }: { setPage: (p: Page) => void; goToHelp:
             </h1>
             <div className="hero-eyebrow">Meet your new favourite spot! 🐾</div>
             <p className="hero-body">
-              Every coffee, croissant, and sweet treat helps support rescue cats through fostering, rehabilitation, care, and adoption while they wait for their forever humans.
-            </p>
-            <p className="hero-body">
-              Whether you&apos;re here for cat cuddles, iced lattes, or accidentally falling in love with your future furry roommate, every visit helps give rescue cats the second chance they deserve.
+              Come for the coffee. Stay for the cats. Every order gives our rescues the care they deserve. Whether you&apos;re here for the iced lattes, cat cuddles or the very real possibility of meeting your future furry roommate, your visit becomes part of their next chapter.
             </p>
             <div className="hero-cta">
               <button className="btn btn-light" onClick={() => setPage("Book")}>Book a Visit</button>
