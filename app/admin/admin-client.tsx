@@ -6,6 +6,7 @@ import { CAT_CATEGORY_OPTIONS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, type CatC
 import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
 import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey, listKeyFor, helpImagesFor, serializeHelpImages, type HelpImage } from "@/lib/help-posters";
+import { formatPostDate, type BlogPost } from "@/lib/blog";
 import { compressImage } from "@/lib/compress-image";
 import { DEFAULT_WEEK, parseWeek, slotsForDate, CAFE_TZ, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
 import { SHOP_CATEGORIES, CATEGORY_TILE, type Product, type Order, type OrderStatus, type ShopCategory, type ShopProductCategory } from "@/lib/shop";
@@ -30,7 +31,7 @@ type UserRole = "admin" | "volunteer";
 type SessionUser = { id: string; email: string; isAdmin: boolean; isApproved: boolean; role: UserRole };
 type AuthState = { loading: boolean; user: SessionUser | null; error: string };
 type MenuImage = { id: string; url: string };
-type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "products" | "orders" | "email";
+type AdminTab = "cats" | "menu-images" | "settings" | "users" | "events" | "volunteers" | "bookings" | "members" | "products" | "orders" | "email" | "blog";
 
 type EmailSettingsForm = {
   email_smtp_host: string;
@@ -267,6 +268,15 @@ export default function AdminClient() {
   const [editProductSaving, setEditProductSaving] = useState(false);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
 
+  // --- guides / blog ---
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [postForm, setPostForm] = useState({ title: "", slug: "", excerpt: "", content: "", tags: "", published: true, sort: "" });
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [postSaving, setPostSaving] = useState(false);
+  const [postMsg, setPostMsg] = useState("");
+  const [postBusyId, setPostBusyId] = useState<string | null>(null);
+
   // --- shop categories ---
   const [shopCategories, setShopCategories] = useState<ShopProductCategory[]>([]);
   const [newCategory, setNewCategory] = useState({ name: "", emoji: "", bgColor: "#f7daff" });
@@ -356,7 +366,7 @@ export default function AdminClient() {
     const perms = settings.volunteer_permissions.split(",").map((s) => s.trim()).filter(Boolean);
     const tabArea: Record<AdminTab, string | null> = {
       cats: "cats", events: "events", bookings: "bookings", volunteers: "volunteers", members: "members",
-      products: "products", orders: "orders",
+      products: "products", orders: "orders", blog: "blog",
       "menu-images": null, settings: null, users: null, email: null,
     };
     const allowed = (Object.keys(tabArea) as AdminTab[]).filter((t) => {
@@ -478,6 +488,10 @@ export default function AdminClient() {
     fetch("/api/shop-hero")
       .then((r) => r.ok ? r.json() : { imageUrl: null })
       .then((data: { imageUrl: string | null }) => setShopHeroUrl(data.imageUrl))
+      .catch(() => {});
+    fetch("/api/admin/blog")
+      .then((r) => r.ok ? r.json() : [])
+      .then((d: BlogPost[]) => Array.isArray(d) && setPosts(d))
       .catch(() => {});
     fetch("/api/admin/product-categories")
       .then((r) => r.ok ? r.json() : [])
@@ -846,6 +860,7 @@ export default function AdminClient() {
     { key: "volunteers", label: "Volunteer applications" },
     { key: "products", label: "Shop products" },
     { key: "orders", label: "Shop orders" },
+    { key: "blog", label: "Guides / blog" },
   ];
 
   function toggleVolPerm(key: string) {
@@ -1057,6 +1072,76 @@ export default function AdminClient() {
     const data = await res.json().catch(() => ({}));
     setEmailTesting(false);
     setEmailTestMsg(res.ok ? `Test email sent to ${data.to}. Check the inbox.` : (data.error ?? "Test failed."));
+  }
+
+  // ── guides / blog ──────────────────────────────────────────────────────────
+  const emptyPostForm = { title: "", slug: "", excerpt: "", content: "", tags: "", published: true, sort: "" };
+
+  function postFormData() {
+    const fd = new FormData();
+    fd.append("title", postForm.title);
+    fd.append("slug", postForm.slug);
+    fd.append("excerpt", postForm.excerpt);
+    fd.append("content", postForm.content);
+    fd.append("tags", postForm.tags);
+    fd.append("published", postForm.published ? "true" : "false");
+    fd.append("sort", postForm.sort);
+    return fd;
+  }
+
+  function handleStartEditPost(p: BlogPost) {
+    setEditingPostId(p.id);
+    setPostForm({
+      title: p.title, slug: p.slug, excerpt: p.excerpt, content: p.content,
+      tags: p.tags.join(", "), published: p.published, sort: String(p.sort ?? ""),
+    });
+    setPostImage(null);
+    setPostMsg("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleCancelEditPost() {
+    setEditingPostId(null);
+    setPostForm(emptyPostForm);
+    setPostImage(null);
+    setPostMsg("");
+  }
+
+  async function handleSavePost(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPostSaving(true); setPostMsg("");
+    const fd = postFormData();
+    if (postImage) fd.append("image", await compressImage(postImage));
+    const url = editingPostId ? `/api/admin/blog/${editingPostId}` : "/api/admin/blog";
+    const res = await fetch(url, { method: editingPostId ? "PATCH" : "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setPostSaving(false);
+    if (!res.ok) { setPostMsg(data.error ?? "Save failed."); return; }
+    setPosts((ps) => editingPostId ? ps.map((x) => x.id === editingPostId ? data.post : x) : [...ps, data.post]);
+    handleCancelEditPost();
+    setPostMsg(editingPostId ? "Post updated." : "Post created.");
+  }
+
+  async function handleTogglePostPublished(p: BlogPost) {
+    setPostBusyId(p.id);
+    const fd = new FormData();
+    fd.append("published", p.published ? "false" : "true");
+    const res = await fetch(`/api/admin/blog/${p.id}`, { method: "PATCH", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setPostBusyId(null);
+    if (!res.ok) { setPostMsg(data.error ?? "Update failed."); return; }
+    setPosts((ps) => ps.map((x) => x.id === p.id ? data.post : x));
+  }
+
+  async function handleDeletePost(p: BlogPost) {
+    if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
+    setPostBusyId(p.id);
+    const res = await fetch(`/api/admin/blog/${p.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setPostBusyId(null);
+    if (!res.ok) { setPostMsg(data.error ?? "Delete failed."); return; }
+    setPosts((ps) => ps.filter((x) => x.id !== p.id));
+    if (editingPostId === p.id) handleCancelEditPost();
   }
 
   // ── shop categories ────────────────────────────────────────────────────────
@@ -1475,6 +1560,7 @@ export default function AdminClient() {
     { id: "menu-images", label: "Hero & Menu Photos", icon: "📸", area: null },
     { id: "products", label: "Shop Products", icon: "🛍️", area: "products" },
     { id: "orders", label: "Shop Orders", icon: "🧾", area: "orders" },
+    { id: "blog", label: "Guides / Blog", icon: "📝", area: "blog" },
     { id: "events", label: "Events", icon: "🎉", area: "events" },
     { id: "bookings", label: "Bookings", icon: "📅", area: "bookings" },
     { id: "members", label: "Members", icon: "🎟️", area: "members" },
@@ -2985,6 +3071,99 @@ export default function AdminClient() {
                   })}
                 </div>
               )}
+            </div>
+          </>
+        )}
+
+        {/* ── Guides / Blog Tab ── */}
+        {activeTab === "blog" && (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div className="tag" style={{ color: BRAND.purple, marginBottom: 4 }}>Content</div>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: BRAND.text }}>Guides / Blog</h1>
+              <p style={{ color: BRAND.textLight, marginTop: 6, fontSize: 14 }}>Long-form posts shown at <strong>/blog</strong>. These are what help the cafe show up for searches like &ldquo;things to do in Durban&rdquo;.</p>
+            </div>
+
+            <div className="tab-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 420px) minmax(0, 1fr)", gap: 20, alignItems: "start" }}>
+              {/* Editor */}
+              <div className="panel sticky-form" style={{ position: "sticky", top: 20 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>{editingPostId ? "Edit post" : "New post"}</div>
+                <p style={{ fontSize: 12, color: BRAND.textLight, marginTop: 0, marginBottom: 16 }}>
+                  Formatting: <code>## Heading</code>, <code>- bullet</code>, <code>1. numbered</code>, <code>**bold**</code>, <code>[link](/book)</code>. Leave a blank line between paragraphs.
+                </p>
+                <form onSubmit={handleSavePost} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Title</div>
+                    <input className="mk-input" value={postForm.title} onChange={(e) => setPostForm((v) => ({ ...v, title: e.target.value }))} placeholder="10 Things to Do in Durban" required />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Web address (leave blank to auto-fill)</div>
+                    <input className="mk-input" value={postForm.slug} onChange={(e) => setPostForm((v) => ({ ...v, slug: e.target.value }))} placeholder="things-to-do-in-durban" />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Summary (shown in search results and on the list)</div>
+                    <textarea className="mk-input" value={postForm.excerpt} onChange={(e) => setPostForm((v) => ({ ...v, excerpt: e.target.value }))} placeholder="One or two sentences…" style={{ minHeight: 70 }} />
+                  </label>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Content</div>
+                    <textarea className="mk-input" value={postForm.content} onChange={(e) => setPostForm((v) => ({ ...v, content: e.target.value }))} placeholder="## A heading&#10;&#10;Your paragraph…" style={{ minHeight: 320, fontFamily: "ui-monospace, monospace", fontSize: 13, lineHeight: 1.6 }} />
+                  </label>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <label style={{ flex: "1 1 180px" }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Tags (comma separated)</div>
+                      <input className="mk-input" value={postForm.tags} onChange={(e) => setPostForm((v) => ({ ...v, tags: e.target.value }))} placeholder="durban, guide" />
+                    </label>
+                    <label style={{ width: 100 }}>
+                      <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Order</div>
+                      <input className="mk-input" type="number" value={postForm.sort} onChange={(e) => setPostForm((v) => ({ ...v, sort: e.target.value }))} placeholder="10" />
+                    </label>
+                  </div>
+                  <label>
+                    <div className="tag" style={{ color: BRAND.textLight, marginBottom: 6 }}>Cover image (optional)</div>
+                    <input className="mk-input" type="file" accept="image/*" onChange={(e) => setPostImage(e.target.files?.[0] ?? null)} />
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: BRAND.text }}>
+                    <input type="checkbox" checked={postForm.published} onChange={(e) => setPostForm((v) => ({ ...v, published: e.target.checked }))} />
+                    Published (visible on the site)
+                  </label>
+                  {postMsg && (
+                    <div style={{ fontSize: 13, fontWeight: 700, color: postMsg.includes("created") || postMsg.includes("updated") ? "#16a34a" : "#b42318", background: postMsg.includes("created") || postMsg.includes("updated") ? "#f0fdf4" : "#fff0ee", border: `1px solid ${postMsg.includes("created") || postMsg.includes("updated") ? "#bbf7d0" : "#f4c2be"}`, borderRadius: 8, padding: "10px 14px" }}>{postMsg}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="mk-primary" type="submit" disabled={postSaving} style={{ flex: 1 }}>{postSaving ? "Saving…" : editingPostId ? "Save changes" : "Create post"}</button>
+                    {editingPostId && <button className="mk-outline" type="button" onClick={handleCancelEditPost} style={{ flex: 1 }}>Cancel</button>}
+                  </div>
+                </form>
+              </div>
+
+              {/* Post list */}
+              <div className="panel">
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 18, color: BRAND.text }}>All Posts ({posts.length})</div>
+                {posts.length === 0 ? (
+                  <div style={{ color: BRAND.textLight, fontSize: 14 }}>No posts yet. Write one to get started.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {posts.map((p) => (
+                      <div key={p.id} style={{ border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, background: BRAND.white, padding: "12px 14px", display: "flex", gap: 12, alignItems: "flex-start", opacity: p.published ? 1 : 0.65 }}>
+                        {p.coverUrl && <img src={p.coverUrl} alt={p.title} style={{ width: 72, height: 72, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: BRAND.text }}>{p.title}</div>
+                            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 999, background: p.published ? "#f0fdf4" : "#f0f0f0", color: p.published ? "#15803d" : "#999", textTransform: "uppercase", letterSpacing: 0.5 }}>{p.published ? "Live" : "Draft"}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 2 }}>/blog/{p.slug} · {formatPostDate(p.publishedAt)}</div>
+                          {p.excerpt && <div style={{ fontSize: 12, color: BRAND.textLight, marginTop: 4, lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.excerpt}</div>}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                          <button className="mk-outline" onClick={() => handleStartEditPost(p)} style={{ padding: "6px 12px", fontSize: 12 }}>Edit</button>
+                          <button className="mk-outline" onClick={() => handleTogglePostPublished(p)} disabled={postBusyId === p.id} style={{ padding: "6px 12px", fontSize: 12 }}>{postBusyId === p.id ? "…" : p.published ? "Unpublish" : "Publish"}</button>
+                          <button className="mk-danger" onClick={() => handleDeletePost(p)} disabled={postBusyId === p.id}>Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
