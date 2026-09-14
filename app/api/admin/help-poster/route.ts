@@ -2,7 +2,10 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getSupabaseAdminClient, getSupabaseBucketName } from "@/lib/supabase";
-import { HELP_POSTER_SLOT_VALUES, posterPathKey, posterUrlKey, imagePathKey, imageUrlKey } from "@/lib/help-posters";
+import {
+  HELP_POSTER_SLOT_VALUES, posterPathKey, posterUrlKey, imagePathKey, imageUrlKey,
+  listKeyFor, parseHelpImages, serializeHelpImages, type HelpImage,
+} from "@/lib/help-posters";
 
 function sanitizeFileName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -14,19 +17,36 @@ function isSlot(v: string): boolean {
 
 function keysFor(slot: string, kind: string) {
   return kind === "image"
-    ? { urlKey: imageUrlKey(slot), pathKey: imagePathKey(slot), folder: "help-images" }
-    : { urlKey: posterUrlKey(slot), pathKey: posterPathKey(slot), folder: "help-posters" };
+    ? { urlKey: imageUrlKey(slot), pathKey: imagePathKey(slot), listKey: listKeyFor(slot, "image"), folder: "help-images" }
+    : { urlKey: posterUrlKey(slot), pathKey: posterPathKey(slot), listKey: listKeyFor(slot, "poster"), folder: "help-posters" };
 }
 
-async function saveKeys(supabase: ReturnType<typeof getSupabaseAdminClient>, urlKey: string, pathKey: string, url: string, path: string) {
-  const now = new Date().toISOString();
-  await supabase.schema("meankatcafe").from("site_settings").upsert({ key: urlKey, value: url, updated_at: now }, { onConflict: "key" });
-  await supabase.schema("meankatcafe").from("site_settings").upsert({ key: pathKey, value: path, updated_at: now }, { onConflict: "key" });
+type Supa = ReturnType<typeof getSupabaseAdminClient>;
+
+async function setSetting(supabase: Supa, key: string, value: string) {
+  await supabase.schema("meankatcafe").from("site_settings")
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
 }
 
-async function currentPath(supabase: ReturnType<typeof getSupabaseAdminClient>, pathKey: string) {
-  const { data } = await supabase.schema("meankatcafe").from("site_settings").select("value").eq("key", pathKey).maybeSingle();
+async function getSetting(supabase: Supa, key: string) {
+  const { data } = await supabase.schema("meankatcafe").from("site_settings").select("value").eq("key", key).maybeSingle();
   return (data?.value as string) || "";
+}
+
+/** Current images for a slot, migrating the legacy single-image keys on read. */
+async function currentImages(supabase: Supa, keys: ReturnType<typeof keysFor>): Promise<HelpImage[]> {
+  const list = parseHelpImages(await getSetting(supabase, keys.listKey));
+  if (list.length) return list;
+  const url = await getSetting(supabase, keys.urlKey);
+  const path = await getSetting(supabase, keys.pathKey);
+  return url ? [{ url, path }] : [];
+}
+
+/** Persist the list, keeping the legacy single keys pointed at the first image. */
+async function saveImages(supabase: Supa, keys: ReturnType<typeof keysFor>, images: HelpImage[]) {
+  await setSetting(supabase, keys.listKey, serializeHelpImages(images));
+  await setSetting(supabase, keys.urlKey, images[0]?.url ?? "");
+  await setSetting(supabase, keys.pathKey, images[0]?.path ?? "");
 }
 
 export async function POST(request: Request) {
@@ -47,22 +67,22 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseAdminClient();
   const bucket = getSupabaseBucketName();
-  const { urlKey, pathKey, folder } = keysFor(slot, kind);
-
-  const prev = await currentPath(supabase, pathKey);
-  if (prev) await supabase.storage.from(bucket).remove([prev]);
+  const keys = keysFor(slot, kind);
 
   const ext = image.name.includes(".") ? image.name.split(".").pop() : "png";
-  const path = `${folder}/${slot}-${crypto.randomUUID()}.${sanitizeFileName(ext || "png")}`;
+  const path = `${keys.folder}/${slot}-${crypto.randomUUID()}.${sanitizeFileName(ext || "png")}`;
   const { error: uploadError } = await supabase.storage
     .from(bucket)
     .upload(path, image, { contentType: image.type || "image/png", upsert: false });
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
   const url = supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-  await saveKeys(supabase, urlKey, pathKey, url, path);
 
-  return NextResponse.json({ ok: true, slot, kind, url });
+  // Append — a slot can hold several images (multi-page infographics).
+  const images = [...(await currentImages(supabase, keys)), { url, path }];
+  await saveImages(supabase, keys, images);
+
+  return NextResponse.json({ ok: true, slot, kind, url, images });
 }
 
 export async function DELETE(request: Request) {
@@ -74,15 +94,32 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const slot = (searchParams.get("slot") ?? "").trim();
   const kind = (searchParams.get("kind") ?? "").trim() === "image" ? "image" : "poster";
+  const indexRaw = searchParams.get("index");
   if (!slot || !isSlot(slot)) return NextResponse.json({ error: "Invalid slot." }, { status: 400 });
 
   const supabase = getSupabaseAdminClient();
   const bucket = getSupabaseBucketName();
-  const { urlKey, pathKey } = keysFor(slot, kind);
+  const keys = keysFor(slot, kind);
+  const images = await currentImages(supabase, keys);
 
-  const prev = await currentPath(supabase, pathKey);
-  if (prev) await supabase.storage.from(bucket).remove([prev]);
+  // No index → clear the whole slot (previous behaviour); otherwise drop one.
+  let removed: HelpImage[];
+  let remaining: HelpImage[];
+  if (indexRaw === null || indexRaw === "") {
+    removed = images;
+    remaining = [];
+  } else {
+    const index = Number(indexRaw);
+    if (!Number.isInteger(index) || index < 0 || index >= images.length) {
+      return NextResponse.json({ error: "Invalid image index." }, { status: 400 });
+    }
+    removed = [images[index]];
+    remaining = images.filter((_, i) => i !== index);
+  }
 
-  await saveKeys(supabase, urlKey, pathKey, "", "");
-  return NextResponse.json({ ok: true });
+  const paths = removed.map((im) => im.path).filter(Boolean);
+  if (paths.length) await supabase.storage.from(bucket).remove(paths);
+
+  await saveImages(supabase, keys, remaining);
+  return NextResponse.json({ ok: true, images: remaining });
 }

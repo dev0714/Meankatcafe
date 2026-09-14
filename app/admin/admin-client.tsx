@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CAT_CATEGORY_OPTIONS, DEFAULT_IMAGE_TRANSFORM, isUploadedCat, type CatCard, type CatCategory, type ImageTransform, categoryLabel } from "@/lib/cats";
 import { transformToStyle } from "@/lib/image-transform";
 import { VOLUNTEER_ALL_FIELDS, answerToText, type VolunteerAnswers } from "@/lib/volunteer";
-import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey } from "@/lib/help-posters";
+import { HELP_POSTER_SLOTS, posterUrlKey, imageUrlKey, listKeyFor, helpImagesFor, serializeHelpImages, type HelpImage } from "@/lib/help-posters";
 import { compressImage } from "@/lib/compress-image";
 import { DEFAULT_WEEK, parseWeek, slotsForDate, CAFE_TZ, WEEKDAY_FULL, DISPLAY_ORDER, type WeekHours, type DayHours, type TimeRange } from "@/lib/hours";
 import { SHOP_CATEGORIES, CATEGORY_TILE, type Product, type Order, type OrderStatus, type ShopCategory, type ShopProductCategory } from "@/lib/shop";
@@ -1375,28 +1375,49 @@ export default function AdminClient() {
     setUserMsg("User updated successfully.");
   }
 
-  async function handleUploadHelpPoster(slot: string, file: File, kind: "poster" | "image" = "poster") {
+  // Uploads are sequential: each request appends to the stored list, so running
+  // them in parallel would race and drop images.
+  async function handleUploadHelpPoster(slot: string, files: File[], kind: "poster" | "image" = "poster") {
+    if (!files.length) return;
     setPosterUploadingSlot(`${slot}-${kind}`); setSettingsMsg("");
-    const fd = new FormData();
-    fd.append("slot", slot);
-    fd.append("kind", kind);
-    fd.append("image", await compressImage(file));
-    const res = await fetch("/api/admin/help-poster", { method: "POST", body: fd });
-    const data = await res.json().catch(() => ({}));
+    let latest: HelpImage[] | null = null;
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append("slot", slot);
+      fd.append("kind", kind);
+      fd.append("image", await compressImage(file));
+      const res = await fetch("/api/admin/help-poster", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPosterUploadingSlot(null);
+        if (latest) applyHelpImages(slot, kind, latest);
+        setSettingsMsg(data.error ?? "Upload failed.");
+        return;
+      }
+      latest = (data.images ?? []) as HelpImage[];
+    }
     setPosterUploadingSlot(null);
-    if (!res.ok) { setSettingsMsg(data.error ?? "Upload failed."); return; }
-    const key = kind === "image" ? imageUrlKey(slot) : posterUrlKey(slot);
-    setSettings((s) => ({ ...s, [key]: data.url } as SiteSettings));
+    if (latest) applyHelpImages(slot, kind, latest);
     setSettingsMsg("Updated.");
   }
 
-  async function handleRemoveHelpPoster(slot: string, kind: "poster" | "image" = "poster") {
+  async function handleRemoveHelpPoster(slot: string, kind: "poster" | "image" = "poster", index?: number) {
     if (!confirm("Remove this image?")) return;
-    const res = await fetch(`/api/admin/help-poster?slot=${slot}&kind=${kind}`, { method: "DELETE" });
-    if (res.ok) {
-      const key = kind === "image" ? imageUrlKey(slot) : posterUrlKey(slot);
-      setSettings((s) => ({ ...s, [key]: "" } as SiteSettings));
-    }
+    const q = `slot=${slot}&kind=${kind}${index === undefined ? "" : `&index=${index}`}`;
+    const res = await fetch(`/api/admin/help-poster?${q}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setSettingsMsg(data.error ?? "Remove failed."); return; }
+    applyHelpImages(slot, kind, data.images ?? []);
+  }
+
+  // Mirror the server's list + legacy first-image keys into local settings state.
+  function applyHelpImages(slot: string, kind: "poster" | "image", images: HelpImage[]) {
+    const urlKey = kind === "image" ? imageUrlKey(slot) : posterUrlKey(slot);
+    setSettings((s) => ({
+      ...s,
+      [listKeyFor(slot, kind)]: serializeHelpImages(images),
+      [urlKey]: images[0]?.url ?? "",
+    } as SiteSettings));
   }
 
   async function handleSaveSettings(e: FormEvent<HTMLFormElement>) {
@@ -1480,6 +1501,42 @@ export default function AdminClient() {
   const categoryNames = shopCategories.length ? shopCategories.map((c) => c.name) : [...SHOP_CATEGORIES];
   const tileFor = (name: string) =>
     shopCategories.find((c) => c.name === name)?.bgColor ?? CATEGORY_TILE[name as ShopCategory] ?? "#f7daff";
+
+  // One How-to-Help slot — a thumbnail grid (any number of images, shown in
+  // order) with per-image remove, plus an add button that accepts multiples.
+  function renderHelpImageSlot(slot: string, label: string, kind: "poster" | "image") {
+    const images = helpImagesFor(settings as unknown as Record<string, string>, slot, kind);
+    const busy = posterUploadingSlot === `${slot}-${kind}`;
+    const noun = kind === "image" ? "image" : "poster";
+    return (
+      <div key={slot}>
+        <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>
+          {label}{images.length > 1 ? ` — ${images.length} images` : ""}
+        </div>
+        {images.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, marginBottom: 10 }}>
+            {images.map((im, i) => (
+              <div key={im.url} style={{ position: "relative", border: `1.5px solid ${BRAND.purpleLight}`, borderRadius: 12, overflow: "hidden", background: BRAND.cream }}>
+                <img src={im.url} alt={`${label} ${i + 1}`} style={{ width: "100%", height: 150, objectFit: "contain", display: "block" }} />
+                <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.55)", color: "white", borderRadius: 999, padding: "1px 8px", fontSize: 11, fontWeight: 800 }}>{i + 1}</div>
+                <button type="button" className="mk-danger" style={{ position: "absolute", top: 6, right: 6, padding: "4px 9px", fontSize: 11 }} onClick={() => handleRemoveHelpPoster(slot, kind, i)} aria-label={`Remove ${noun} ${i + 1}`}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "11px" }}>
+          {busy ? "Uploading…" : images.length ? `+ Add another ${noun}` : `Upload ${noun}`}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; handleUploadHelpPoster(slot, files, kind); }}
+          />
+        </label>
+      </div>
+    );
+  }
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -3216,32 +3273,7 @@ export default function AdminClient() {
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🖼️ How to Help Posters</div>
                     <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>Each poster pops up when a visitor clicks that section’s button on the How to Help page. Leave one empty to keep its normal link.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                      {HELP_POSTER_SLOTS.map(({ slot, label }) => {
-                        const url = settings[posterUrlKey(slot) as keyof SiteSettings];
-                        const busy = posterUploadingSlot === `${slot}-poster`;
-                        return (
-                          <div key={slot}>
-                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>{label}</div>
-                            {url ? (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                <img src={url} alt={`${label} poster`} style={{ width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.cream }} />
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  <label className="mk-outline" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "9px" }}>
-                                    {busy ? "Uploading…" : "Replace"}
-                                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f); e.target.value = ""; }} />
-                                  </label>
-                                  <button type="button" className="mk-danger" style={{ flex: 1 }} onClick={() => handleRemoveHelpPoster(slot)}>Remove</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "11px" }}>
-                                {busy ? "Uploading…" : "Upload poster"}
-                                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f); e.target.value = ""; }} />
-                              </label>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {HELP_POSTER_SLOTS.map(({ slot, label }) => renderHelpImageSlot(slot, label, "poster"))}
                     </div>
                   </div>
 
@@ -3250,32 +3282,7 @@ export default function AdminClient() {
                     <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: BRAND.text }}>🖼️ How to Help Block Images</div>
                     <p style={{ fontSize: 13, color: BRAND.textLight, marginBottom: 18 }}>The big image shown next to each section on the How to Help page. Leave empty to keep the emoji.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                      {HELP_POSTER_SLOTS.map(({ slot, label }) => {
-                        const url = settings[imageUrlKey(slot) as keyof SiteSettings];
-                        const busy = posterUploadingSlot === `${slot}-image`;
-                        return (
-                          <div key={slot}>
-                            <div className="tag" style={{ color: BRAND.textLight, marginBottom: 8 }}>{label}</div>
-                            {url ? (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                <img src={url} alt={`${label} image`} style={{ width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 12, border: `1.5px solid ${BRAND.purpleLight}`, background: BRAND.cream }} />
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  <label className="mk-outline" style={{ flex: 1, textAlign: "center", cursor: "pointer", padding: "9px" }}>
-                                    {busy ? "Uploading…" : "Replace"}
-                                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f, "image"); e.target.value = ""; }} />
-                                  </label>
-                                  <button type="button" className="mk-danger" style={{ flex: 1 }} onClick={() => handleRemoveHelpPoster(slot, "image")}>Remove</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <label className="mk-outline" style={{ display: "block", textAlign: "center", cursor: "pointer", padding: "11px" }}>
-                                {busy ? "Uploading…" : "Upload image"}
-                                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadHelpPoster(slot, f, "image"); e.target.value = ""; }} />
-                              </label>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {HELP_POSTER_SLOTS.map(({ slot, label }) => renderHelpImageSlot(slot, label, "image"))}
                     </div>
                   </div>
                 </>)}

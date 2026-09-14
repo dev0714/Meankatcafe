@@ -51,6 +51,16 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   donate_image_path: "",
   events_image_url: "",
   events_image_path: "",
+  // Multi-image lists (JSON array of {url, path}); the *_url/*_path keys above
+  // mirror the first entry for backwards compatibility.
+  adopt_poster_list: "",
+  volunteer_poster_list: "",
+  donate_poster_list: "",
+  events_poster_list: "",
+  adopt_image_list: "",
+  volunteer_image_list: "",
+  donate_image_list: "",
+  events_image_list: "",
 };
 
 export async function GET() {
