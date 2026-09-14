@@ -1378,7 +1378,7 @@ function HowToHelpPage({ setPage, goToAdoptable, scrollTarget, clearScrollTarget
       <section className="give-section" id="purr-chase">
         <div className="give-inner">
           <div className="give-head">
-            <div className="help-script-tag">Purr-chase With</div>
+            <div className="help-script-tag">Purr-chase with</div>
             <h2 className="help-h2">Purpose 🛍️</h2>
             <p className="help-text">
               Support our shop, where proceeds go directly towards giving rescue cats the love, care and second chance they deserve.
